@@ -22,8 +22,8 @@ import type { PrefilledSlot, BookingConfirmData } from '@/components/BookingForm
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /** A tutor is available at `time` if that exact time string is in their availabilityBlocks */
-const isTutorAvailable = (tutor: Tutor, time: string) =>
-  tutor.availabilityBlocks.includes(time);
+const isTutorAvailable = (tutor: Tutor, dow: number, time: string) =>
+  tutor.availabilityBlocks.includes(`${dow}-${time}`);
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -89,7 +89,7 @@ export default function MasterDeployment() {
         const dow = dayOfWeek(isoDate); // 1=Mon…5=Fri
         if (!tutor.availability.includes(dow)) return;
         TIME_SLOTS.forEach(time => {
-          if (!isTutorAvailable(tutor, time)) return;
+          if (!isTutorAvailable(tutor, dow, time)) return;
           const session = sessions.find(s => s.date === isoDate && s.tutorId === tutor.id && s.time === time);
           const count = session ? session.students.length : 0;
           if (count < MAX_CAPACITY) {
@@ -371,9 +371,9 @@ export default function MasterDeployment() {
                                 {TIME_SLOTS.map(time => {
                                   const session = sessions.find(s => s.date === isoDate && s.tutorId === tutor.id && s.time === time);
                                   const hasStudents = session && session.students.length > 0;
-                                  const isAvailable = isTutorAvailable(tutor, time) && !hasStudents;
+                                  const isAvailable = isTutorAvailable(tutor, dow, time) && !hasStudents;
+                                  const isOutside = !isTutorAvailable(tutor, dow, time);
                                   const isFull = hasStudents && session!.students.length >= MAX_CAPACITY;
-                                  const isOutside = !isTutorAvailable(tutor, time);
 
                                   return (
                                     <td
@@ -474,9 +474,9 @@ export default function MasterDeployment() {
                               {TIME_SLOTS.map(time => {
                                 const session = sessions.find(s => s.date === isoDate && s.tutorId === tutor.id && s.time === time);
                                 const hasStudents = session && session.students.length > 0;
-                                const isAvailable = isTutorAvailable(tutor, time) && !hasStudents;
+                                const isAvailable = isTutorAvailable(tutor, dow, time) && !hasStudents;
                                 const isFull = hasStudents && session!.students.length >= MAX_CAPACITY;
-                                const isOutside = !isTutorAvailable(tutor, time);
+                                const isOutside = !isTutorAvailable(tutor, dow, time);
                                 return (
                                   <div key={time} className="flex-shrink-0 w-40 p-2" style={{
                                     background: isOutside ? 'repeating-linear-gradient(45deg, #f7f2eb, #f7f2eb 4px, #f0e8d8 4px, #f0e8d8 8px)' : 'white',
@@ -634,7 +634,7 @@ export default function MasterDeployment() {
                 </p>
                 {tutors.filter(t =>
                   t.id !== selectedSession.tutorId &&
-                  isTutorAvailable(t, selectedSession.time) &&
+                  isTutorAvailable(t, dayOfWeek(selectedSession.date), selectedSession.time) &&
                   t.availability.includes(dayOfWeek(selectedSession.date)) &&
                   t.cat === tutors.find(ot => ot.id === selectedSession.tutorId)?.cat
                 ).map(t => (

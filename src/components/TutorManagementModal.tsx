@@ -142,10 +142,34 @@ export function TutorManagementModal({ tutors, onClose, onRefetch }: { tutors: T
   const [error, setError] = useState<string | null>(null);
 
   const handleSave = async (updated: Tutor) => {
-    setError(null);
-    const { error } = await supabase.from('tutors').update({ name: updated.name, subjects: updated.subjects, cat: updated.cat, availability: updated.availability, availability_blocks: updated.availabilityBlocks }).eq('id', updated.id);
-    if (error) setError(error.message); else onRefetch();
-  };
+  setError(null);
+  
+  // ─── DEBUG LOG ─────────────────────────────────────────────────
+  console.log("Saving to Supabase...");
+  console.log("Target ID:", updated.id);
+  console.log("New Availability Blocks:", updated.availabilityBlocks);
+  // ──────────────────────────────────────────────────────────────
+
+  const { error } = await supabase
+    .from('tutors')
+    .update({ 
+      name: updated.name, 
+      subjects: updated.subjects, 
+      cat: updated.cat, 
+      availability: updated.availability, 
+      // Ensure this matches your SQL: availability_blocks
+      availability_blocks: updated.availabilityBlocks 
+    })
+    .eq('id', updated.id);
+
+  if (error) {
+    console.error("Supabase Error:", error);
+    setError(error.message);
+  } else {
+    console.log("Save Successful!");
+    onRefetch(); 
+  }
+};
 
   const handleAdd = async () => {
     if (!newTutor.name.trim()) return;

@@ -129,14 +129,17 @@ export function useScheduleData(weekStart: Date): ScheduleData {
         if (studentRes.error) throw studentRes.error
         if (sessionRes.error) throw sessionRes.error
 
-        const tutors: Tutor[] = (tutorRes.data ?? []).map(r => ({
-          id:                 r.id,
-          name:               r.name,
-          subjects:           r.subjects ?? [],
-          cat:                r.cat,
-          availability:       r.availability ?? [],
-          availabilityBlocks: r.availability_blocks ?? [],
-        }))
+        const tutors: Tutor[] = (tutorRes.data ?? []).map(r => {
+  console.log(r.name, r.availability_blocks);
+  return {
+    id:                 r.id,
+    name:               r.name,
+    subjects:           r.subjects ?? [],
+    cat:                r.cat,
+    availability:       r.availability ?? [],
+    availabilityBlocks: r.availability_blocks ?? [],
+  }
+})
 
         const students: Student[] = (studentRes.data ?? []).map(r => ({
           id:        r.id,
