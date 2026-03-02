@@ -4,6 +4,7 @@ import { Search, X, Repeat, Check, Clock, User } from "lucide-react";
 
 import { DAYS, formatTime } from '@/components/constants';
 import { getOccupiedBlocks } from '@/lib/useScheduleData';
+import { SUBJECT_GROUPS, ALL_SUBJECTS } from '@/components/TutorManagementModal';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -92,7 +93,8 @@ export function BookingForm({
   const [recurring, setRecurring] = useState(false);
   const [recurringWeeks, setRecurringWeeks] = useState(4);
   const [selectedSlot, setSelectedSlot] = useState<any>(prefilledSlot || null);
-  const [durationMinutes, setDurationMinutes] = useState<number | null>(null); // NEW — null until chosen
+  const [durationMinutes, setDurationMinutes] = useState<number | null>(null);
+  const [subjectFilter, setSubjectFilter] = useState<string | null>(null);
 
   // Who is already on the schedule this week?
   const assignedStudentIds = useMemo(() => {
@@ -117,18 +119,23 @@ export function BookingForm({
     });
   }, [searchQuery, studentDatabase, assignedStudentIds]);
 
-  // Filter slots to only those with enough consecutive free blocks for the chosen duration
+  // Filter slots by duration AND subject
   const filteredSeats = useMemo(() => {
     if (!durationMinutes) return [];
     const numBlocks = Math.ceil(durationMinutes / 30);
-    if (numBlocks <= 1) return allAvailableSeats;
 
-    return allAvailableSeats.filter(slot => {
-      // Check that all subsequent blocks are also free for this tutor on this date
+    let seats = allAvailableSeats;
+
+    // Filter by subject if one is selected
+    if (subjectFilter) {
+      seats = seats.filter(slot => slot.tutor.subjects?.includes(subjectFilter));
+    }
+
+    if (numBlocks <= 1) return seats;
+    return seats.filter(slot => {
       const needed = getOccupiedBlocks(slot.time, durationMinutes);
-      // allAvailableSeats already contains free slots — check each needed block exists
       return needed.every(blockTime =>
-        blockTime === slot.time || // the first block is already confirmed free
+        blockTime === slot.time ||
         allAvailableSeats.some(s =>
           s.tutor.id === slot.tutor.id &&
           s.date === slot.date &&
@@ -136,7 +143,7 @@ export function BookingForm({
         )
       );
     });
-  }, [durationMinutes, allAvailableSeats]);
+  }, [durationMinutes, subjectFilter, allAvailableSeats]);
 
   // Group by day
   const slotsByDay = useMemo(() => {
@@ -242,8 +249,32 @@ export function BookingForm({
           <button onClick={onCancel} className="p-1.5 hover:bg-[#f9f7f4] rounded-full text-[#a8a29e] transition-colors"><X size={20} /></button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
+            {/* Subject filter pills — only show when on slot picker step */}
+            {!prefilledSlot && !showDurationStep && (
+              <div className="px-6 pb-3 flex flex-wrap gap-1.5 border-b border-[#f0ece8]">
+                <button
+                  onClick={() => setSubjectFilter(null)}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${!subjectFilter ? 'bg-[#1c1917] text-white' : 'bg-[#f0ece8] text-[#78716c] hover:bg-[#e7e3dd]'}`}
+                >
+                  All
+                </button>
+                {SUBJECT_GROUPS.map(group => (
+                  <React.Fragment key={group.group}>
+                    {group.subjects.map(subject => (
+                      <button
+                        key={subject}
+                        onClick={() => setSubjectFilter(subjectFilter === subject ? null : subject)}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all ${subjectFilter === subject ? 'bg-[#6d28d9] text-white' : 'bg-[#f0ece8] text-[#78716c] hover:bg-[#e7e3dd]'}`}
+                      >
+                        {subject}
+                      </button>
+                    ))}
+                  </React.Fragment>
+                ))}
+              </div>
+            )}
 
+        <div className="flex-1 overflow-y-auto p-6">
           {/* ── STEP 1: DURATION PICKER ── */}
           {!prefilledSlot && showDurationStep ? (
             <div className="max-w-md mx-auto py-16 flex flex-col items-center gap-6">

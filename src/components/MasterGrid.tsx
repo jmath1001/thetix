@@ -357,11 +357,7 @@ export default function MasterDeployment() {
                                     </div>
                                     <div>
                                       <p className="text-sm font-bold leading-none mb-1.5" style={{ color: '#1c1008' }}>{tutor.name}</p>
-                                      <div className="flex flex-wrap gap-1">
-                                        {tutor.subjects.map((s: string) => (
-                                          <span key={s} className="text-[9px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-tight" style={{ background: palette.bg, color: palette.text, border: `1px solid ${palette.border}` }}>{s}</span>
-                                        ))}
-                                      </div>
+                                      
                                     </div>
                                   </div>
                                 </td>
@@ -496,11 +492,7 @@ export default function MasterDeployment() {
                         <div key={tutor.id} className="rounded-xl overflow-hidden" style={{ background: 'white', border: '1px solid #ddd4c8', boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}>
                           <div className="p-3" style={{ background: '#f7f2eb', borderBottom: '1px solid #ddd4c8' }}>
                             <p className="text-xs font-bold leading-none mb-1" style={{ color: '#1c1008' }}>{tutor.name}</p>
-                            <div className="flex flex-wrap gap-1">
-                              {tutor.subjects.slice(0, 2).map((s: string) => (
-                                <span key={s} className="text-[7px] font-semibold px-1.5 py-0.5 rounded uppercase" style={{ background: palette.bg, color: palette.text, border: `1px solid ${palette.border}` }}>{s}</span>
-                              ))}
-                            </div>
+                            
                           </div>
                           <div className="overflow-x-auto">
                             <div className="flex">

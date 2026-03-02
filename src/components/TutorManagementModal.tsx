@@ -8,9 +8,65 @@ import type { Tutor } from '@/lib/useScheduleData';
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const DAY_NUMS = [1, 2, 3, 4, 5, 6, 7];
 
-const EMPTY_TUTOR: Omit<Tutor, 'id'> = {
-  name: '', subjects: [], cat: 'math', availability: [], availabilityBlocks: [],
-};
+// ─── Subject definitions ──────────────────────────────────────────────────────
+
+export const SUBJECT_GROUPS = [
+  {
+    group: 'Math & Science',
+    subjects: ['Algebra', 'Geometry', 'Precalculus', 'Calculus', 'Statistics', 'Biology', 'Chemistry', 'Physics'],
+  },
+  {
+    group: 'English & Humanities',
+    subjects: ['English/Writing', 'Literature', 'History', 'Geography'],
+  },
+  {
+    group: 'Test Prep',
+    subjects: ['SAT Math', 'SAT Reading', 'ACT Math', 'ACT English', 'ACT Science'],
+  },
+];
+
+export const ALL_SUBJECTS = SUBJECT_GROUPS.flatMap(g => g.subjects);
+
+// ─── Subject Checkboxes ───────────────────────────────────────────────────────
+
+function SubjectCheckboxes({ selected, onChange }: { selected: string[]; onChange: (s: string[]) => void }) {
+  const toggle = (subject: string) => {
+    onChange(selected.includes(subject)
+      ? selected.filter(s => s !== subject)
+      : [...selected, subject]
+    );
+  };
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#a8a29e' }}>Subjects</p>
+      {SUBJECT_GROUPS.map(group => (
+        <div key={group.group}>
+          <p className="text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: '#78716c' }}>{group.group}</p>
+          <div className="flex flex-wrap gap-2">
+            {group.subjects.map(subject => {
+              const active = selected.includes(subject);
+              return (
+                <button
+                  key={subject}
+                  type="button"
+                  onClick={() => toggle(subject)}
+                  className="px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all"
+                  style={active
+                    ? { background: '#6d28d9', color: 'white', border: '1px solid #6d28d9' }
+                    : { background: 'white', color: '#78716c', border: '1px solid #e7e3dd' }
+                  }
+                >
+                  {subject}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // ─── Availability Grid ────────────────────────────────────────────────────────
 
@@ -55,6 +111,10 @@ function AvailabilityGrid({ blocks, onChange }: { blocks: string[]; onChange: (b
 
 // ─── Tutor Row ────────────────────────────────────────────────────────────────
 
+const EMPTY_TUTOR: Omit<Tutor, 'id'> = {
+  name: '', subjects: [], cat: 'math', availability: [], availabilityBlocks: [],
+};
+
 function TutorRow({ tutor, onSave, onDelete }: { tutor: Tutor; onSave: (u: Tutor) => Promise<void>; onDelete: (id: string) => Promise<void> }) {
   const [expanded, setExpanded] = useState(false);
   const [draft, setDraft] = useState<Tutor>(tutor);
@@ -77,7 +137,7 @@ function TutorRow({ tutor, onSave, onDelete }: { tutor: Tutor; onSave: (u: Tutor
             <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded" style={{ background: draft.cat === 'math' ? '#dbeafe' : '#fce7f3', color: draft.cat === 'math' ? '#1d4ed8' : '#be185d' }}>
               {draft.cat === 'math' ? 'Math/Sci' : 'Eng/Hist'}
             </span>
-            <span className="text-[10px] truncate max-w-[160px]" style={{ color: '#a8a29e' }}>{draft.subjects.join(', ')}</span>
+            <span className="text-[10px] truncate max-w-[200px]" style={{ color: '#a8a29e' }}>{draft.subjects.join(', ') || 'No subjects'}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -111,6 +171,11 @@ function TutorRow({ tutor, onSave, onDelete }: { tutor: Tutor; onSave: (u: Tutor
             </div>
           </div>
 
+          <SubjectCheckboxes
+            selected={draft.subjects}
+            onChange={subjects => setDraft({ ...draft, subjects })}
+          />
+
           <AvailabilityGrid blocks={draft.availabilityBlocks}
             onChange={b => setDraft({ ...draft, availabilityBlocks: b, availability: Array.from(new Set(b.map(x => parseInt(x.split('-')[0])))).sort((a, b) => a - b) })}
           />
@@ -142,39 +207,38 @@ export function TutorManagementModal({ tutors, onClose, onRefetch }: { tutors: T
   const [error, setError] = useState<string | null>(null);
 
   const handleSave = async (updated: Tutor) => {
-  setError(null);
-  
-  // ─── DEBUG LOG ─────────────────────────────────────────────────
-  console.log("Saving to Supabase...");
-  console.log("Target ID:", updated.id);
-  console.log("New Availability Blocks:", updated.availabilityBlocks);
-  // ──────────────────────────────────────────────────────────────
+    setError(null);
+    const { error } = await supabase
+      .from('tutors')
+      .update({
+        name: updated.name,
+        subjects: updated.subjects,
+        cat: updated.cat,
+        availability: updated.availability,
+        availability_blocks: updated.availabilityBlocks,
+      })
+      .eq('id', updated.id);
+    if (error) setError(error.message);
+    else onRefetch();
+  };
 
-  const { error } = await supabase
-    .from('tutors')
-    .update({ 
-      name: updated.name, 
-      subjects: updated.subjects, 
-      cat: updated.cat, 
-      availability: updated.availability, 
-      // Ensure this matches your SQL: availability_blocks
-      availability_blocks: updated.availabilityBlocks 
-    })
-    .eq('id', updated.id);
-
-  if (error) {
-    console.error("Supabase Error:", error);
-    setError(error.message);
-  } else {
-    console.log("Save Successful!");
-    onRefetch(); 
-  }
-};
+  const handleDelete = async (id: string) => {
+    setError(null);
+    const { error } = await supabase.from('tutors').delete().eq('id', id);
+    if (error) setError(error.message);
+    else onRefetch();
+  };
 
   const handleAdd = async () => {
     if (!newTutor.name.trim()) return;
     setSaving(true); setError(null);
-    const { error } = await supabase.from('tutors').insert([{ name: newTutor.name, subjects: newTutor.subjects, cat: newTutor.cat, availability: newTutor.availability, availability_blocks: newTutor.availabilityBlocks }]);
+    const { error } = await supabase.from('tutors').insert([{
+      name: newTutor.name,
+      subjects: newTutor.subjects,
+      cat: newTutor.cat,
+      availability: newTutor.availability,
+      availability_blocks: newTutor.availabilityBlocks,
+    }]);
     setSaving(false);
     if (error) setError(error.message);
     else { setAdding(false); setNewTutor(EMPTY_TUTOR); onRefetch(); }
@@ -231,6 +295,12 @@ export function TutorManagementModal({ tutors, onClose, onRefetch }: { tutors: T
                   ))}
                 </div>
               </div>
+
+              <SubjectCheckboxes
+                selected={newTutor.subjects}
+                onChange={subjects => setNewTutor({ ...newTutor, subjects })}
+              />
+
               <AvailabilityGrid blocks={newTutor.availabilityBlocks}
                 onChange={b => setNewTutor({ ...newTutor, availabilityBlocks: b, availability: Array.from(new Set(b.map(x => parseInt(x.split('-')[0])))).sort((a, b) => a - b) })}
               />
@@ -244,9 +314,7 @@ export function TutorManagementModal({ tutors, onClose, onRefetch }: { tutors: T
           )}
 
           {tutors.map(t => (
-            <TutorRow key={t.id} tutor={t} onSave={handleSave}
-              onDelete={async (id) => { await supabase.from('tutors').delete().eq('id', id); onRefetch(); }}
-            />
+            <TutorRow key={t.id} tutor={t} onSave={handleSave} onDelete={handleDelete} />
           ))}
 
           {tutors.length === 0 && !adding && (
