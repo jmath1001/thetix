@@ -1,9 +1,9 @@
 "use client"
 import React, { useState, useMemo } from 'react';
-import { Search, X, Repeat, Check, Clock, User } from "lucide-react";
+import { Search, X, Repeat, Check, Clock } from "lucide-react";
 
-import { DAYS, formatTime, getSessionsForDay } from '@/components/constants';
-import { SUBJECT_GROUPS, ALL_SUBJECTS } from '@/components/TutorManagementModal';
+import { formatTime } from '@/components/constants';
+import { SUBJECT_GROUPS } from '@/components/TutorManagementModal';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -21,7 +21,6 @@ export interface BookingConfirmData {
   recurring: boolean;
   recurringWeeks: number;
   subject: string;
-  durationMinutes: number;  // NEW
 }
 
 export interface BookingFormProps {
@@ -35,10 +34,7 @@ export interface BookingFormProps {
   sessions?: any[];
 }
 
-
-
-
-// ─── StudentRow Component ─────────────────────────────────────────────────────
+// ─── StudentRow ───────────────────────────────────────────────────────────────
 
 function StudentRow({ student, selected, onSelect, isUnassigned }: {
   student: any;
@@ -53,7 +49,7 @@ function StudentRow({ student, selected, onSelect, isUnassigned }: {
       style={{ background: selected ? '#ede9fe' : 'transparent' }}
     >
       <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold"
-           style={{ background: selected ? '#6d28d9' : '#f0ece8', color: selected ? 'white' : '#78716c' }}>
+        style={{ background: selected ? '#6d28d9' : '#f0ece8', color: selected ? 'white' : '#78716c' }}>
         {student.name.charAt(0)}
       </div>
       <div className="flex-1 min-w-0">
@@ -88,10 +84,8 @@ export function BookingForm({
   const [recurring, setRecurring] = useState(false);
   const [recurringWeeks, setRecurringWeeks] = useState(4);
   const [selectedSlot, setSelectedSlot] = useState<any>(prefilledSlot || null);
-  const [durationMinutes, setDurationMinutes] = useState<number | null>(30); // fixed — no picker needed
   const [subjectFilter, setSubjectFilter] = useState<string | null>(null);
 
-  // Who is already on the schedule this week?
   const assignedStudentIds = useMemo(() => {
     const ids = new Set<string>();
     sessions.forEach((session: any) => {
@@ -100,7 +94,6 @@ export function BookingForm({
     return ids;
   }, [sessions]);
 
-  // Filter and sort students
   const filteredStudents = useMemo(() => {
     const filtered = studentDatabase.filter(s =>
       s.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -114,13 +107,11 @@ export function BookingForm({
     });
   }, [searchQuery, studentDatabase, assignedStudentIds]);
 
-  // Filter slots by subject
   const filteredSeats = useMemo(() => {
     if (!subjectFilter) return allAvailableSeats;
     return allAvailableSeats.filter(slot => slot.tutor.subjects?.includes(subjectFilter));
   }, [subjectFilter, allAvailableSeats]);
 
-  // Group by day
   const slotsByDay = useMemo(() => {
     const groups: Record<string, any[]> = {};
     filteredSeats.forEach(slot => {
@@ -136,17 +127,15 @@ export function BookingForm({
   };
 
   const canConfirm = selectedStudent && (selectedSlot || prefilledSlot);
-  const showDurationStep = false; // no duration step in session-based app
 
   return (
     <div className="w-full max-w-5xl bg-white rounded-2xl flex flex-col md:flex-row overflow-hidden border border-[#e7e3dd] shadow-2xl" style={{ maxHeight: '85vh' }}>
 
-      {/* ── LEFT PANEL: STUDENT SELECTION ── */}
+      {/* ── LEFT PANEL ── */}
       <div className="w-full md:w-72 bg-[#faf9f7] border-r border-[#e7e3dd] flex flex-col">
         <div className="p-5 bg-white border-b border-[#e7e3dd]">
           <h3 className="text-lg font-bold text-[#1c1917] mb-1">Book Session</h3>
           <p className="text-xs text-[#a8a29e] mb-4">Select a student to schedule</p>
-
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a8a29e]" />
             <input
@@ -175,105 +164,66 @@ export function BookingForm({
         </div>
 
         {selectedStudent && (
-          <div className="p-4 bg-white border-t border-[#e7e3dd] space-y-3">
-            <div>
-              <label className="text-[10px] font-bold text-[#a8a29e] uppercase tracking-widest mb-1.5 block">Session Topic</label>
-              <input
-                className="w-full px-3 py-2 rounded-lg text-sm border border-[#e7e3dd] focus:border-[#6d28d9] outline-none"
-                placeholder="e.g. Geometry, SAT Prep"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-              />
-            </div>
+          <div className="p-4 bg-white border-t border-[#e7e3dd]">
+            <label className="text-[10px] font-bold text-[#a8a29e] uppercase tracking-widest mb-1.5 block">Session Topic</label>
+            <input
+              className="w-full px-3 py-2 rounded-lg text-sm border border-[#e7e3dd] focus:border-[#6d28d9] outline-none"
+              placeholder="e.g. Geometry, SAT Prep"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+            />
           </div>
         )}
       </div>
 
       {/* ── RIGHT PANEL ── */}
       <div className="flex-1 flex flex-col bg-white overflow-hidden">
+
+        {/* Header */}
         <div className="px-6 py-4 border-b border-[#f0ece8] flex justify-between items-center sticky top-0 bg-white z-10">
           <div className="flex items-center gap-4">
             <h4 className="font-bold text-[#1c1917]">
               {prefilledSlot ? 'Confirm Details' : 'Available Openings'}
             </h4>
-            {!prefilledSlot && !showDurationStep && (
+            {!prefilledSlot && (
               <div className="flex gap-1 bg-[#f0ece8] p-1 rounded-lg">
                 {(['math', 'english'] as const).map(cat => (
-                  <button
-                    key={cat}
-                    onClick={() => setEnrollCat(cat)}
-                    className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${enrollCat === cat ? 'bg-white text-[#6d28d9] shadow-sm' : 'text-[#78716c]'}`}
-                  >
+                  <button key={cat} onClick={() => setEnrollCat(cat)}
+                    className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${enrollCat === cat ? 'bg-white text-[#6d28d9] shadow-sm' : 'text-[#78716c]'}`}>
                     {cat}
                   </button>
                 ))}
               </div>
             )}
-            {/* Back button when duration already chosen */}
-            {!prefilledSlot && !showDurationStep && (
-              <button
-                onClick={() => { setDurationMinutes(null); setSelectedSlot(null); }}
-                className="text-[10px] font-bold text-[#a8a29e] hover:text-[#6d28d9] underline underline-offset-2 transition-colors"
-              >
-                ← Change duration
-              </button>
-            )}
           </div>
           <button onClick={onCancel} className="p-1.5 hover:bg-[#f9f7f4] rounded-full text-[#a8a29e] transition-colors"><X size={20} /></button>
         </div>
 
-            {/* Subject filter pills — only show when on slot picker step */}
-            {!prefilledSlot && !showDurationStep && (
-              <div className="px-6 pb-3 flex flex-wrap gap-1.5 border-b border-[#f0ece8]">
-                <button
-                  onClick={() => setSubjectFilter(null)}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${!subjectFilter ? 'bg-[#1c1917] text-white' : 'bg-[#f0ece8] text-[#78716c] hover:bg-[#e7e3dd]'}`}
-                >
-                  All
-                </button>
-                {SUBJECT_GROUPS.map(group => (
-                  <React.Fragment key={group.group}>
-                    {group.subjects.map(subject => (
-                      <button
-                        key={subject}
-                        onClick={() => setSubjectFilter(subjectFilter === subject ? null : subject)}
-                        className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all ${subjectFilter === subject ? 'bg-[#6d28d9] text-white' : 'bg-[#f0ece8] text-[#78716c] hover:bg-[#e7e3dd]'}`}
-                      >
-                        {subject}
-                      </button>
-                    ))}
-                  </React.Fragment>
-                ))}
-              </div>
-            )}
-
-        <div className="flex-1 overflow-y-auto p-6">
-          {/* ── STEP 1: DURATION PICKER ── */}
-          {!prefilledSlot && showDurationStep ? (
-            <div className="max-w-md mx-auto py-16 flex flex-col items-center gap-6">
-              <div className="text-center">
-                <div className="w-14 h-14 rounded-2xl bg-[#ede9fe] flex items-center justify-center mx-auto mb-4">
-                  <Clock size={24} className="text-[#6d28d9]" />
-                </div>
-                <h3 className="text-xl font-bold text-[#1c1917] mb-1">How long is the session?</h3>
-                <p className="text-xs text-[#a8a29e]">We'll only show slots with enough consecutive availability</p>
-              </div>
-              <div className="grid grid-cols-2 gap-3 w-full">
-                {DURATION_OPTIONS.map(opt => (
-                  <button
-                    key={opt.value}
-                    onClick={() => setDurationMinutes(opt.value)}
-                    className="py-5 rounded-2xl border-2 border-[#e7e3dd] hover:border-[#6d28d9] hover:bg-[#faf9ff] transition-all font-black text-lg text-[#1c1917] hover:text-[#6d28d9]"
-                  >
-                    {opt.label}
+        {/* Subject filter pills */}
+        {!prefilledSlot && (
+          <div className="px-6 py-3 flex flex-wrap gap-1.5 border-b border-[#f0ece8]">
+            <button onClick={() => setSubjectFilter(null)}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${!subjectFilter ? 'bg-[#1c1917] text-white' : 'bg-[#f0ece8] text-[#78716c] hover:bg-[#e7e3dd]'}`}>
+              All
+            </button>
+            {SUBJECT_GROUPS.map(group => (
+              <React.Fragment key={group.group}>
+                {group.subjects.map(subj => (
+                  <button key={subj}
+                    onClick={() => setSubjectFilter(subjectFilter === subj ? null : subj)}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all ${subjectFilter === subj ? 'bg-[#6d28d9] text-white' : 'bg-[#f0ece8] text-[#78716c] hover:bg-[#e7e3dd]'}`}>
+                    {subj}
                   </button>
                 ))}
-              </div>
-            </div>
+              </React.Fragment>
+            ))}
+          </div>
+        )}
 
-          ) : prefilledSlot ? (
+        <div className="flex-1 overflow-y-auto p-6">
+          {prefilledSlot ? (
             /* ── PREFILLED MODE ── */
-            <div className="max-w-md mx-auto space-y-6 py-10">
+            <div className="max-w-md mx-auto py-10">
               <div className="p-6 rounded-2xl border-2 border-[#6d28d9] bg-[#faf9ff] flex items-center gap-5">
                 <div className="w-16 h-16 rounded-2xl bg-[#6d28d9] flex flex-col items-center justify-center text-white">
                   <span className="text-[10px] font-bold uppercase opacity-80">{prefilledSlot.dayName.slice(0, 3)}</span>
@@ -285,27 +235,21 @@ export function BookingForm({
                 </div>
               </div>
             </div>
-
           ) : (
-            /* ── STEP 2: SLOT PICKER ── */
+            /* ── SLOT PICKER ── */
             <div className="space-y-8">
               {Object.entries(slotsByDay).length > 0 ? Object.entries(slotsByDay).map(([day, slots]) => (
                 <div key={day} className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <div className="px-3 py-1 rounded-full bg-[#1c1917] text-white text-[10px] font-black uppercase tracking-widest">
-                      {day}
-                    </div>
-                    <div className="h-[1px] flex-1 bg-[#f0ece8]"></div>
+                    <div className="px-3 py-1 rounded-full bg-[#1c1917] text-white text-[10px] font-black uppercase tracking-widest">{day}</div>
+                    <div className="h-[1px] flex-1 bg-[#f0ece8]" />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {slots.map((slot, idx) => {
                       const isSelected = selectedSlot?.tutor.id === slot.tutor.id && selectedSlot?.time === slot.time && selectedSlot?.dayName === slot.dayName;
                       return (
-                        <button
-                          key={idx}
-                          onClick={() => setSelectedSlot(slot)}
-                          className={`p-4 rounded-xl border-2 text-left transition-all relative ${isSelected ? 'border-[#6d28d9] bg-[#faf9ff] shadow-lg shadow-violet-100' : 'border-[#f0ece8] hover:border-[#c4b5fd]'}`}
-                        >
+                        <button key={idx} onClick={() => setSelectedSlot(slot)}
+                          className={`p-4 rounded-xl border-2 text-left transition-all relative ${isSelected ? 'border-[#6d28d9] bg-[#faf9ff] shadow-lg shadow-violet-100' : 'border-[#f0ece8] hover:border-[#c4b5fd]'}`}>
                           <div className="flex items-center gap-2 mb-2">
                             <Clock size={12} className={isSelected ? 'text-[#6d28d9]' : 'text-[#a8a29e]'} />
                             <span className={`text-sm font-bold ${isSelected ? 'text-[#6d28d9]' : 'text-[#1c1917]'}`}>
@@ -324,17 +268,16 @@ export function BookingForm({
                 </div>
               )) : (
                 <div className="text-center py-20">
-                  <p className="text-sm text-[#a8a29e] italic">No available slots with {DURATION_OPTIONS.find(d => d.value === durationMinutes)?.label} of consecutive availability.</p>
+                  <p className="text-sm text-[#a8a29e] italic">No available slots this week.</p>
                 </div>
               )}
             </div>
           )}
         </div>
 
-        {/* ── FOOTER ACTIONS ── */}
+        {/* ── FOOTER ── */}
         <div className="p-6 border-t border-[#f0ece8] bg-[#faf9f7]">
           <div className="flex flex-col md:flex-row items-center gap-4">
-            {/* Recurring Toggle */}
             <div className="flex items-center gap-4 bg-white px-4 py-2.5 rounded-xl border border-[#e7e3dd] w-full md:w-auto">
               <div className="flex items-center gap-2">
                 <Repeat size={14} className={recurring ? 'text-[#6d28d9]' : 'text-[#a8a29e]'} />
@@ -342,11 +285,8 @@ export function BookingForm({
               </div>
               <div className="flex gap-1">
                 {[2, 4, 8].map(w => (
-                  <button
-                    key={w}
-                    onClick={() => { setRecurring(true); setRecurringWeeks(w); }}
-                    className={`px-2 py-1 rounded text-[10px] font-bold border ${recurring && recurringWeeks === w ? 'bg-[#6d28d9] border-[#6d28d9] text-white' : 'bg-white border-[#e7e3dd] text-[#78716c]'}`}
-                  >
+                  <button key={w} onClick={() => { setRecurring(true); setRecurringWeeks(w); }}
+                    className={`px-2 py-1 rounded text-[10px] font-bold border ${recurring && recurringWeeks === w ? 'bg-[#6d28d9] border-[#6d28d9] text-white' : 'bg-white border-[#e7e3dd] text-[#78716c]'}`}>
                     {w}w
                   </button>
                 ))}
@@ -356,7 +296,6 @@ export function BookingForm({
               </div>
             </div>
 
-            {/* Submit Button */}
             <button
               disabled={!canConfirm}
               onClick={() => onConfirm({
@@ -365,7 +304,6 @@ export function BookingForm({
                 recurring,
                 recurringWeeks,
                 subject: subject || selectedStudent?.subject,
-                durationMinutes: 110, // fixed session length (~1hr 50min)
               })}
               className={`flex-1 py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all active:scale-[0.98] shadow-xl ${
                 canConfirm
@@ -373,9 +311,7 @@ export function BookingForm({
                   : 'bg-[#e7e3dd] text-[#a8a29e] cursor-not-allowed shadow-none'
               }`}
             >
-              {canConfirm
-                ? `Confirm Booking: ${selectedStudent.name}`
-                : 'Select Student & Slot to Continue'}
+              {canConfirm ? `Confirm Booking: ${selectedStudent.name}` : 'Select Student & Slot to Continue'}
             </button>
           </div>
         </div>
@@ -384,7 +320,7 @@ export function BookingForm({
   );
 }
 
-// ─── BookingToast Component ───────────────────────────────────────────────────
+// ─── BookingToast ─────────────────────────────────────────────────────────────
 
 export function BookingToast({ data, onClose }: { data: BookingConfirmData; onClose: () => void }) {
   return (
