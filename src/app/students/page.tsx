@@ -24,10 +24,10 @@ const isTutorAvailable = (tutor: any, dow: number, time: string) =>
 // ─── Session Badge ────────────────────────────────────────────────────────────
 
 function SessionBadge({ session, isThisWeek }: { session: any; isThisWeek: boolean }) {
-  const statusStyle: Record<string, { bg: string; text: string }> = {
-    present:   { bg: '#dcfce7', text: '#15803d' },
-    'no-show': { bg: '#fee2e2', text: '#b91c1c' },
-    scheduled: { bg: '#ede9fe', text: '#6d28d9' },
+  const statusStyle: Record<string, { background: string; color: string }> = {
+    present:   { background: '#dcfce7', color: '#15803d' },
+    'no-show': { background: '#fee2e2', color: '#b91c1c' },
+    scheduled: { background: '#ede9fe', color: '#6d28d9' },
   };
   const sc = statusStyle[session.status] ?? statusStyle.scheduled;
   const d = new Date(session.date + 'T00:00:00');
