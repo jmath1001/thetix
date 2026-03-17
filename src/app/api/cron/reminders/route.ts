@@ -88,15 +88,11 @@ export async function GET() {
 
         const confirmLink = `${process.env.NEXT_PUBLIC_BASE_URL}/confirm?token=${token}`;
 
-        const body = `
-${settings.reminder_body
+        const body = settings.reminder_body
   .replace("{{name}}", student.name)
   .replace("{{date}}", session.session_date)
-  .replace("{{time}}", session.time)}
-
-Confirm your session here:
-${confirmLink}
-        `;
+  .replace("{{time}}", session.time)
+  .replace("{{link}}", confirmLink);
 
         await transporter.sendMail({
           from: `"${settings.center_name}" <${process.env.GOOGLE_EMAIL}>`,
