@@ -7,8 +7,9 @@ import { Loader2, Search, X, ChevronDown, ChevronUp, Calendar, Clock, User } fro
 const statusStyle: Record<string, { bg: string; color: string; label: string }> = {
   present:   { bg: '#dcfce7', color: '#15803d', label: 'Present' },
   'no-show': { bg: '#fee2e2', color: '#b91c1c', label: 'No-show' },
-  scheduled: { bg: '#ede9fe', color: '#6d28d9', label: 'Scheduled' },
+  scheduled: { bg: '#f3f4f6', color: '#6b7280', label: 'Scheduled' },
   confirmed: { bg: '#dcfce7', color: '#15803d', label: 'Confirmed' },
+  unknown:   { bg: '#f3f4f6', color: '#9ca3af', label: 'Not marked' },
 };
 
 function formatDate(d: string) {
@@ -129,7 +130,7 @@ export default function StudentHistoryPage() {
                   : allSessions;
               const upcomingCount = allSessions.filter(s => !s.isPast).length;
               const pastCount = allSessions.filter(s => s.isPast).length;
-              const presentCount = allSessions.filter(s => s.status === 'present').length;
+              const presentCount = allSessions.filter(s => s.isPast && (s.status === 'present' || s.status === 'confirmed')).length;
               const colorIdx = student.name.charCodeAt(0) % colors.length;
               const isOpen = expanded === student.id;
 
@@ -165,7 +166,8 @@ export default function StudentHistoryPage() {
                       ) : (
                         <div className="divide-y divide-[#f0ece8]">
                           {displaySessions.map((s, i) => {
-                            const sc = statusStyle[s.status] ?? statusStyle.scheduled;
+                            const displayStatus = s.isPast && s.status === 'scheduled' ? 'unknown' : s.status;
+                            const sc = statusStyle[displayStatus] ?? statusStyle.unknown;
                             return (
                               <div key={i} className="px-4 py-3 flex items-start gap-3">
                                 {/* Date block */}
