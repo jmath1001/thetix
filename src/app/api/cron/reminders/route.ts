@@ -20,7 +20,7 @@ export async function GET() {
     const now = new Date();
     const tomorrow = new Date();
     tomorrow.setDate(now.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split("T")[0];
+    const tomorrowStr = tomorrow.toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
 
     const { data: sessions, error } = await supabase
       .from("slake_sessions")
