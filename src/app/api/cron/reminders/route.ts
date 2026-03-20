@@ -44,7 +44,6 @@ export async function GET() {
       .eq("session_date", tomorrowStr);
 
     if (error) throw error;
-    if (!sessions || sessions.length === 0) return NextResponse.json({ sent: 0 });
 
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -54,21 +53,46 @@ export async function GET() {
       },
     });
 
+    // No sessions at all — notify center and bail
+    if (!sessions || sessions.length === 0) {
+      if (settings.center_email) {
+        await transporter.sendMail({
+          from: `"${settings.center_name}" <${process.env.GOOGLE_EMAIL}>`,
+          to: settings.center_email,
+          subject: `Reminder Summary — No scheduled students for ${tomorrowStr}`,
+          text: [
+            `Hi,`,
+            ``,
+            `The automated reminder job ran for ${tomorrowStr} but found no scheduled students to notify.`,
+            ``,
+            `No reminder emails were sent.`,
+            ``,
+            `— ${settings.center_name} Automated Reminders`,
+          ].join("\n"),
+        });
+      }
+      return NextResponse.json({ sent: 0 });
+    }
+
     let sent = 0;
+
+    type SummaryEntry = {
+      studentName: string;
+      emailedTo: string;
+      sessionDate: string;
+      sessionTime: string;
+    };
+    const summaryEntries: SummaryEntry[] = [];
 
     for (const session of sessions) {
       for (const entry of session.slake_session_students as any[]) {
-        // Skip if already sent, confirmed, or no-show
         if (entry.reminder_sent) continue;
-        // if (entry.status === 'confirmed' || entry.status === 'no-show') continue;
-
         if (!entry.slake_students) continue;
 
         const student = entry.slake_students;
         const targetEmail = student.parent_email || student.email;
         if (!targetEmail) continue;
 
-        // Generate token if missing
         let token = entry.confirmation_token;
         if (!token) {
           token = randomUUID();
@@ -93,13 +117,64 @@ export async function GET() {
           text: body,
         });
 
-        // Mark this student's reminder as sent
         await supabase
           .from("slake_session_students")
           .update({ reminder_sent: true })
           .eq("id", entry.id);
 
+        summaryEntries.push({
+          studentName: student.name,
+          emailedTo: targetEmail,
+          sessionDate: session.session_date,
+          sessionTime: session.time,
+        });
+
         sent++;
+      }
+    }
+
+    // Send summary email to center
+    if (settings.center_email) {
+      if (sent === 0) {
+        // Sessions exist but all reminders were already sent previously
+        await transporter.sendMail({
+          from: `"${settings.center_name}" <${process.env.GOOGLE_EMAIL}>`,
+          to: settings.center_email,
+          subject: `Reminder Summary — No scheduled students for ${tomorrowStr}`,
+          text: [
+            `Hi,`,
+            ``,
+            `The automated reminder job ran for ${tomorrowStr} but found no scheduled students to notify.`,
+            ``,
+            `No reminder emails were sent.`,
+            ``,
+            `— ${settings.center_name} Automated Reminders`,
+          ].join("\n"),
+        });
+      } else {
+        const rows = summaryEntries
+          .map(
+            (e) =>
+              `  • ${e.studentName} (${e.emailedTo}) — ${e.sessionDate} at ${e.sessionTime}`
+          )
+          .join("\n");
+
+        await transporter.sendMail({
+          from: `"${settings.center_name}" <${process.env.GOOGLE_EMAIL}>`,
+          to: settings.center_email,
+          subject: `Reminder Summary — ${sent} email${sent !== 1 ? "s" : ""} sent for ${tomorrowStr}`,
+          text: [
+            `Hi,`,
+            ``,
+            `Here is a summary of the reminder emails sent on ${now.toLocaleDateString("en-CA", { timeZone: "America/Chicago" })}:`,
+            ``,
+            rows,
+            ``,
+            `Total sent: ${sent}`,
+            ``,
+            `— ${settings.center_name} Automated Reminders`,
+          ].join("\n"),
+        });
       }
     }
 
