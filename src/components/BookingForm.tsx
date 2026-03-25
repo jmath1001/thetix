@@ -51,7 +51,7 @@ function StudentRow({ student, selected, onSelect, isUnassigned }: {
         <div className="flex items-center gap-2">
           <p className="text-sm font-semibold truncate text-[#1c1917]">{student.name}</p>
           {isUnassigned && !selected && (
-            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-[#fef3c7] text-[#92400e] border border-[#fcd34d] shrink-0">NEW</span>
+            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-[#fef2f2] text-[#dc2626] border border-[#fca5a5] shrink-0">NEW</span>
           )}
         </div>
         <p className="text-[10px] text-[#a8a29e] uppercase font-medium">Grade {student.grade || 'N/A'}</p>
@@ -77,10 +77,8 @@ export function BookingForm({
   const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Mobile tab: 0=student, 1=slot, 2=confirm
   const [mobileTab, setMobileTab] = useState(0);
 
-  // Handle clicking outside subject dropdown
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -121,7 +119,6 @@ export function BookingForm({
     return groups;
   }, [filteredSeats]);
 
-  // Subjects available for current cat only
   const catSubjects = useMemo(() => {
     const s = new Set<string>();
     catSeats.forEach(seat => seat.tutor.subjects?.forEach((subj: string) => s.add(subj)));
@@ -132,7 +129,6 @@ export function BookingForm({
     return catSubjects.filter(s => s.toLowerCase().includes(topic.toLowerCase()));
   }, [catSubjects, topic]);
 
-  // Reset subject filter when cat changes
   React.useEffect(() => { setSubjectFilter(null); }, [enrollCat]);
   const studentHasAvailability = selectedStudent?.availabilityBlocks?.length > 0;
   
@@ -150,7 +146,6 @@ export function BookingForm({
   const selectStudent = (student: any) => { setSelectedStudent(student); setTopic(''); setNotes(''); setShowAllSlots(false); };
   const canConfirm = selectedStudent && (selectedSlot || prefilledSlot) && topic.trim() !== '';
 
-  // ── Shared slot panel ──
   const SlotPanel = () => (
     <div className="flex-1 overflow-y-auto p-4 md:p-6">
       {studentHasAvailability && !prefilledSlot && (
@@ -205,7 +200,7 @@ export function BookingForm({
                       </div>
                       <p className="text-xs font-bold text-[#1c1917] truncate">{slot.tutor.name}</p>
                       <p className="text-[9px] text-[#a8a29e] uppercase mt-0.5">{slot.tutor.subjects?.[0]}</p>
-                      <p className="text-[9px] font-bold mt-1.5" style={{ color: slot.seatsLeft === 1 ? '#c27d38' : '#a8a29e' }}>
+                      <p className="text-[9px] font-bold mt-1.5" style={{ color: slot.seatsLeft === 1 ? '#dc2626' : '#a8a29e' }}>
                         {slot.seatsLeft === 0 ? 'Full' : `${slot.seatsLeft} spot${slot.seatsLeft !== 1 ? 's' : ''} left`}
                       </p>
                       {isSelected && <div className="absolute top-2 right-2"><Check size={14} className="text-[#dc2626]" strokeWidth={3} /></div>}
@@ -234,7 +229,6 @@ export function BookingForm({
     </div>
   );
 
-  // ── Shared confirm footer ──
   const ConfirmFooter = () => (
     <div className="p-4 md:p-6 border-t border-[#f0ece8] bg-[#faf9f7]">
       <div className="flex flex-col gap-3">
@@ -250,7 +244,7 @@ export function BookingForm({
                 {w}w
               </button>
             ))}
-            {recurring && <button onClick={() => setRecurring(false)} className="ml-1 p-1 text-[#ef4444] hover:bg-red-50 rounded"><X size={11} /></button>}
+            {recurring && <button onClick={() => setRecurring(false)} className="ml-1 p-1 text-[#dc2626] hover:bg-red-50 rounded"><X size={11} /></button>}
           </div>
         </div>
         <button disabled={!canConfirm}
@@ -264,12 +258,10 @@ export function BookingForm({
 
   return (
     <>
-      {/* ── DESKTOP: side-by-side ── */}
       <div className="hidden md:flex w-full max-w-5xl bg-white rounded-2xl overflow-hidden border border-[#e7e3dd] shadow-2xl flex-row" style={{ maxHeight: '85vh' }}>
-        {/* Left: students */}
         <div className="w-72 bg-[#faf9f7] border-r border-[#e7e3dd] flex flex-col">
           <div className="p-5 bg-white border-b border-[#e7e3dd]">
-            <h3 className="text-lg font-bold text-[#1c1917] mb-1">Slake Scheduler</h3>
+            <h3 className="text-lg font-bold text-[#1c1917] mb-1">C2 Scheduler</h3>
             <p className="text-xs text-[#a8a29e] mb-3">Select a student to schedule</p>
             <div className="relative">
               <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a8a29e]" />
@@ -299,13 +291,20 @@ export function BookingForm({
                   <div className="absolute bottom-full left-0 w-full mb-1 bg-white border border-[#e7e3dd] rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto">
                     {filteredSubjectOptions.length > 0 ? (
                       filteredSubjectOptions.map(s => (
-                        <button key={s} onClick={() => {setTopic(s); setShowSubjectDropdown(false);}}
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-red-50 transition-colors border-b border-[#f0ece8] last:border-0 font-medium">
+                        <button key={s} 
+                          type="button"
+                          onMouseDown={(e) => {
+                            // Using onMouseDown to prevent focus loss before click
+                            e.preventDefault(); 
+                            setTopic(s); 
+                            setShowSubjectDropdown(false);
+                          }}
+                          className="w-full px-3 py-2.5 text-left text-sm text-[#1c1917] hover:bg-[#dc2626] hover:text-white transition-colors border-b border-[#f0ece8] last:border-0 font-bold">
                           {s}
                         </button>
                       ))
                     ) : (
-                      <div className="px-3 py-2 text-[11px] text-[#a8a29e] italic">Press Enter to use custom topic</div>
+                      <div className="px-3 py-2 text-[11px] text-[#dc2626] italic font-bold">Press Enter to use custom topic</div>
                     )}
                   </div>
                 )}
@@ -324,7 +323,6 @@ export function BookingForm({
           )}
         </div>
 
-        {/* Right: slots */}
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="px-6 py-4 border-b border-[#f0ece8] flex justify-between items-center bg-white">
             <div className="flex items-center gap-4">
@@ -340,7 +338,7 @@ export function BookingForm({
                 </div>
               )}
             </div>
-            <button onClick={onCancel} className="p-1.5 hover:bg-[#f0ece8] rounded-full text-[#a8a29e]"><X size={20} /></button>
+            <button onClick={onCancel} className="p-1.5 hover:bg-[#fef2f2] rounded-full text-[#a8a29e] hover:text-[#dc2626]"><X size={20} /></button>
           </div>
           {!prefilledSlot && (
             <div className="px-6 py-2.5 flex gap-1.5 overflow-x-auto border-b border-[#f0ece8] no-scrollbar">
@@ -359,7 +357,6 @@ export function BookingForm({
         </div>
       </div>
 
-      {/* ── MOBILE: full screen sheet with tabs ── */}
       <div className="md:hidden fixed inset-0 z-50 flex flex-col bg-white" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#e7e3dd] bg-[#faf9f7] shrink-0">
           <div>
@@ -410,8 +407,13 @@ export function BookingForm({
                     {showSubjectDropdown && (
                       <div className="absolute bottom-full left-0 w-full mb-1 bg-white border border-[#e7e3dd] rounded-xl shadow-xl z-50 max-h-40 overflow-y-auto">
                         {filteredSubjectOptions.map(s => (
-                          <button key={s} onClick={() => {setTopic(s); setShowSubjectDropdown(false);}}
-                            className="w-full px-3 py-2.5 text-left text-sm border-b border-[#f0ece8] active:bg-red-50">
+                          <button key={s} 
+                            onMouseDown={(e) => {
+                                e.preventDefault();
+                                setTopic(s); 
+                                setShowSubjectDropdown(false);
+                            }}
+                            className="w-full px-3 py-3 text-left text-sm text-[#1c1917] font-bold border-b border-[#f0ece8] active:bg-[#dc2626] active:text-white">
                             {s}
                           </button>
                         ))}
@@ -493,7 +495,7 @@ export function BookingToast({ data, onClose }: { data: BookingConfirmData; onCl
         <p className="text-sm font-bold text-[#1c1917]">{data.student.name} Booked!</p>
         <p className="text-[11px] text-[#a8a29e] truncate">{data.slot.dayName} · {data.topic} · {data.slot.tutor.name}{data.recurring ? ` · ${data.recurringWeeks}wk` : ''}</p>
       </div>
-      <button onClick={onClose} className="text-[#a8a29e] hover:text-[#1c1917] shrink-0"><X size={16} /></button>
+      <button onClick={onClose} className="text-[#a8a29e] hover:text-[#dc2626] shrink-0"><X size={16} /></button>
     </div>
   );
 }
