@@ -1,9 +1,10 @@
 "use client"
-import { X, UserX } from 'lucide-react';
+import { X, UserX, CheckCircle2, CircleOff, Clock } from 'lucide-react';
 import {
   bookStudent,
   removeStudentFromSession,
   updateAttendance,
+  updateConfirmationStatus, // Added this import
   formatDate,
   dayOfWeek,
   type Tutor,
@@ -53,12 +54,21 @@ export function AttendanceModal({
   });
 
   const currentStatus = student.status;
+  const currentConf = student.confirmationStatus;
 
   const handleAttendance = async (status: 'scheduled' | 'present' | 'no-show') => {
     try {
       await updateAttendance({ sessionId: s.id, studentId: student.id, status });
       refetch();
       setSelectedSession(null);
+    } catch (err) { console.error(err); }
+  };
+
+  const handleConfirmation = async (status: 'confirmed' | 'unconfirmed' | null) => {
+    try {
+      await updateConfirmationStatus({ rowId: student.rowId, status });
+      refetch();
+      // We don't close the modal here so the user can see the change
     } catch (err) { console.error(err); }
   };
 
@@ -152,6 +162,22 @@ export function AttendanceModal({
         {tab === 'session' && (
           <>
             <div className="p-4 border-b border-[#f0ece8]">
+              <p className="text-[9px] font-black text-[#a8a29e] uppercase tracking-widest mb-2">Confirmation</p>
+              <div className="flex gap-2 mb-4">
+                {([
+                  { status: 'confirmed', label: 'Confirmed', icon: <CheckCircle2 size={12}/>, activeStyle: { background: '#dcfce7', borderColor: '#16a34a', color: '#15803d' } },
+                  { status: 'unconfirmed', label: 'No Response', icon: <CircleOff size={12}/>, activeStyle: { background: '#fee2e2', borderColor: '#dc2626', color: '#b91c1c' } },
+                  { status: null, label: 'Pending', icon: <Clock size={12}/>, activeStyle: { background: '#f5f5f4', borderColor: '#78716c', color: '#44403c' } },
+                ] as const).map(({ status, label, icon, activeStyle }) => (
+                  <button key={String(status)} onClick={() => handleConfirmation(status)}
+                    className="flex-1 py-2 flex flex-col items-center gap-1 rounded-xl font-black text-[9px] uppercase tracking-wider transition-all active:scale-95 border-2"
+                    style={currentConf === status ? activeStyle : { background: 'white', borderColor: '#e7e3dd', color: '#a8a29e' }}>
+                    {icon}
+                    {label}
+                  </button>
+                ))}
+              </div>
+
               <p className="text-[9px] font-black text-[#a8a29e] uppercase tracking-widest mb-2">Attendance</p>
               <div className="flex gap-2 mb-2">
                 {([

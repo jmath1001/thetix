@@ -611,3 +611,20 @@ export async function markCompletedSeries(): Promise<void> {
 
   if (error) throw error
 }
+
+// ── Added Confirmation Helper ────────────────────────────────────────────────
+
+export async function updateConfirmationStatus({
+  rowId,
+  status,
+}: {
+  rowId: string
+  status: 'confirmed' | 'unconfirmed' | null
+}) {
+  const { error } = await supabase
+    .from('slake_session_students')
+    .update({ confirmation_status: status })
+    .eq('id', rowId)
+
+  if (error) throw error
+}
