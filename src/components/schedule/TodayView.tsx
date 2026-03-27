@@ -94,7 +94,6 @@ export function TodayView({
         <div className="hidden md:flex items-center gap-3 mb-4 shrink-0">
           <div className="flex items-center gap-4">
             <div>
-              {/* Red kept only for the day name — brand accent */}
               <h2 className="text-2xl font-bold" style={{ color: '#dc2626', fontFamily: 'ui-serif, Georgia, serif' }}>{dayLabel}</h2>
               <p className="text-xs font-semibold" style={{ color: '#9ca3af' }}>
                 {selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
@@ -149,7 +148,6 @@ export function TodayView({
                 <div style={{ minWidth: 'max-content', width: '100%' }}>
                   <table className="border-collapse w-full">
                     <thead>
-                      {/* Charcoal header — red no longer spans the full width */}
                       <tr style={{ background: '#1f2937', borderBottom: '1px solid #111827' }}>
                         <th className="px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wider"
                           style={{ color: 'rgba(255,255,255,0.5)', borderRight: '1px solid rgba(255,255,255,0.08)', width: 1, whiteSpace: 'nowrap', position: 'sticky', left: 0, top: 0, zIndex: 4, background: '#1f2937' }}>
@@ -169,7 +167,6 @@ export function TodayView({
                         const isOnTimeOff = timeOff.some(t => t.tutorId === tutor.id && t.date === todayIso);
                         return (
                           <tr key={tutor.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                            {/* Neutral instructor column — no pink tint */}
                             <td className="px-3 py-3 align-middle"
                               style={{ background: '#f0f2f5', borderRight: '1px solid #d1d5db', position: 'sticky', left: 0, zIndex: 1, width: 1, whiteSpace: 'nowrap' }}>
                               <div className="flex items-center gap-2.5">
@@ -257,7 +254,6 @@ export function TodayView({
                                         style={{ minHeight: 100, background: 'repeating-linear-gradient(45deg, #e9ebee, #e9ebee 4px, #dfe2e6 4px, #dfe2e6 8px)' }}>
                                         {isOnTimeOff ? (
                                           <>
-                                            {/* Red kept for OFF — signals an exception clearly */}
                                             <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#dc2626' }}>OFF</span>
                                             {timeOffNote && <span className="text-[9px] font-medium text-center px-2" style={{ color: '#9ca3af' }}>{timeOffNote}</span>}
                                           </>
@@ -285,7 +281,6 @@ export function TodayView({
                   const isOnTimeOff = timeOff.some(t => t.tutorId === tutor.id && t.date === todayIso);
                   return (
                     <div key={tutor.id} className="rounded-xl overflow-hidden" style={{ background: 'white', border: '1px solid #e5e7eb', boxShadow: '0 1px 6px rgba(0,0,0,0.06)' }}>
-                      {/* Charcoal mobile card header */}
                       <div className="p-2.5" style={{ background: '#1f2937', borderBottom: '1px solid #111827' }}>
                         <p className="text-xs font-bold" style={{ color: 'rgba(255,255,255,0.85)' }}>{tutor.name}</p>
                       </div>
@@ -375,10 +370,11 @@ export function TodayView({
             {/* ── PENDING PANEL ── */}
             <div className="hidden md:flex flex-col shrink-0" style={{ width: 220, minHeight: 0 }}>
               <div className="rounded-xl overflow-hidden flex flex-col" style={{ background: 'white', border: '1px solid #e5e7eb', boxShadow: '0 1px 8px rgba(0,0,0,0.06)', flex: 1, minHeight: 0 }}>
-                {/* Charcoal panel header — red badge only when there are pending items */}
-                <div className="px-3 py-2.5 shrink-0" style={{ background: '#1f2937', borderBottom: '1px solid #111827' }}>
+                
+                {/* Updated: Professional light header with dark text for visibility */}
+                <div className="px-3 py-2.5 shrink-0" style={{ background: '#f3f4f6', borderBottom: '1px solid #e5e7eb' }}>
                   <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-white">Needs Confirmation</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#374151' }}>Needs Confirmation</p>
                     {pendingStudents.length > 0 && (
                       <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full" style={{ background: '#dc2626', color: 'white' }}>
                         {pendingStudents.length}
@@ -411,12 +407,13 @@ export function TodayView({
                           })}>
                           <p className="text-xs font-bold leading-tight" style={{ color: '#111827' }}>{student.name}</p>
                           <div className="flex items-center gap-1 mt-1">
-                            <Clock size={9} style={{ color: '#9ca3af' }} />
-                            <span className="text-[9px] font-semibold" style={{ color: '#6b7280' }}>
+                            <Clock size={9} style={{ color: '#4b5563' }} />
+                            <span className="text-[9px] font-semibold" style={{ color: '#4b5563' }}>
                               {daySessions.find(b => b.time === student.sessionTime)?.label ?? student.sessionTime}
                             </span>
                           </div>
-                          <p className="text-[9px] mt-0.5 truncate" style={{ color: '#9ca3af' }}>{student.tutorName}</p>
+                          {/* Darkened tutor name for better readability */}
+                          <p className="text-[9px] mt-0.5 font-medium truncate" style={{ color: '#6b7280' }}>{student.tutorName}</p>
                         </div>
                       ))}
                     </div>
