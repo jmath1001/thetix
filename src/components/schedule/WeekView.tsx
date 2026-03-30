@@ -7,6 +7,7 @@ import { getSessionsForDay } from '@/components/constants';
 import { MAX_CAPACITY } from '@/components/constants';
 import { ACTIVE_DAYS, DAY_NAMES, TUTOR_PALETTES } from './scheduleConstants';
 import { isTutorAvailable } from './scheduleUtils';
+import { logEvent } from '@/lib/analytics';
 
 // ─── Topic options ────────────────────────────────────────────────────────────
 const MATH_TOPICS = ['Algebra', 'Geometry', 'Pre-Calculus', 'Calculus', 'Statistics', 'SAT Math', 'ACT Math', 'Math'];
@@ -99,7 +100,9 @@ export function WeekView({
     patchForm(key, { saving: true, error: null });
     try {
       await onInlineBook({ tutorId: tutor.id, date, time: block.time, student: form.student, topic: form.topic });
+      
       closeForm(key);
+      logEvent('session_booked', { studentName: form.student.name, date, recurring: false });
       refetch();
     } catch (err: any) {
       patchForm(key, { saving: false, error: err?.message || 'Booking failed — please try again.' });
@@ -356,6 +359,7 @@ export function WeekView({
                                                   e.stopPropagation();
                                                   const next = student.status === 'present' ? 'scheduled' : 'present';
                                                   await updateAttendance({ sessionId: session.id, studentId: student.id, status: next });
+                                                  logEvent('attendance_marked', { status: next, studentName: student.name, source: 'week_grid' });
                                                   refetch();
                                                 }}
                                                 className="shrink-0 w-4 h-4 rounded flex items-center justify-center transition-all"

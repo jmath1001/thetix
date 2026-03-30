@@ -23,6 +23,7 @@ import { ScheduleNav } from './ScheduleNav';
 import { TodayView } from './TodayView';
 import { WeekView } from './WeekView';
 import { AttendanceModal } from './AttendanceModal';
+import { logEvent } from '@/lib/analytics';
 
 export default function MasterDeployment() {
   const [todayDate, setTodayDate] = useState<Date>(() => getCentralTimeNow());
@@ -117,6 +118,13 @@ export default function MasterDeployment() {
       setBookingToast(data);
       setIsEnrollModalOpen(false);
       setGridSlotToBook(null);
+      logEvent('session_booked', {
+  studentName: data.student.name,
+  tutorName: data.slot.tutor.name,
+  date: (data.slot as any).date,
+  recurring: data.recurring,
+  source: gridSlotToBook ? 'grid_slot' : 'booking_form',
+});
       setTimeout(() => setBookingToast(null), 4000);
     } catch (err: any) {
       alert(err.message || "Something went wrong with the booking.");

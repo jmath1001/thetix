@@ -5,6 +5,7 @@ import {
   Mail, Send, Clock, Check, AlertCircle, Edit3, Save,
   X, RefreshCw, ChevronDown, ChevronUp, Users, Calendar,
 } from 'lucide-react';
+import { logEvent } from '@/lib/analytics';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -165,6 +166,7 @@ export default function ContactCenter() {
       .eq('center_name', settings.center_name);
     setSettings(s => s ? { ...s, reminder_subject: draftSubject, reminder_body: draftBody } : s);
     setSavingTemplate(false); setTemplateSaved(true); setEditingTemplate(false);
+    logEvent('template_saved', {});
     setTimeout(() => setTemplateSaved(false), 3000);
   };
 
@@ -204,6 +206,7 @@ export default function ContactCenter() {
         setSendResult({ sent: 0, failed: selected.size, errors: [data.error] });
       } else {
         setSendResult({ sent: data.sent ?? 0, failed: data.failed ?? 0, errors: data.errors ?? [] });
+        logEvent('reminder_sent', { sent: data.sent ?? 0, failed: data.failed ?? 0, date: dispatchDate });
         await Promise.all([fetchCandidates(dispatchDate), fetchLogs()]);
       }
     } catch (e: any) {

@@ -17,6 +17,7 @@ import {
   Repeat, ChevronDown, ChevronUp, X, AlertTriangle,
   RefreshCw, Calendar, User, BookOpen, Edit3, Clock, Pencil,
 } from 'lucide-react';
+import { logEvent } from '@/lib/analytics';
 
 const DAY_NAMES: Record<number, string> = {
   1: 'Monday', 2: 'Tuesday', 3: 'Wednesday',

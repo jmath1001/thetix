@@ -7,6 +7,7 @@ import {
   bookStudent, getWeekStart, getWeekDates, toISODate, dayOfWeek, getCentralTimeNow,
 } from '@/lib/useScheduleData';
 import { getSessionsForDay } from '@/components/constants';
+import { logEvent } from '@/lib/analytics';
 
 const EMPTY_FORM = { name: '', grade: '', email: '', phone: '', parent_name: '', parent_email: '', parent_phone: '' };
 const ACTIVE_DAYS = [1, 2, 3, 4, 6];
@@ -385,13 +386,14 @@ function StudentCard({
       parent_name: draft.parent_name || null, parent_email: draft.parent_email || null,
       parent_phone: draft.parent_phone || null, bluebook_url: draft.bluebook_url || null,
     }).eq('id', student.id);
-    if (!error) { onRefetch(); setIsEditing(false); }
+if (!error) { onRefetch(); setIsEditing(false); logEvent('student_edited', { studentName: draft.name }); }
     setSaving(false);
   };
 
   const handleDelete = async () => {
     if (!confirmDelete) { setConfirmDelete(true); setTimeout(() => setConfirmDelete(false), 3000); return; }
     await supabase.from('slake_students').delete().eq('id', student.id);
+    logEvent('student_deleted', {});
     onRefetch();
   };
 
@@ -401,7 +403,9 @@ function StudentCard({
       student: { id: student.id, name: student.name, subject: student.subject ?? '', grade: student.grade ?? null, hoursLeft: student.hours_left ?? 0, availabilityBlocks: student.availability_blocks ?? [], email: student.email ?? null, phone: student.phone ?? null, parent_name: student.parent_name ?? null, parent_email: student.parent_email ?? null, parent_phone: student.parent_phone ?? null, bluebook_url: student.bluebook_url ?? null },
       topic: data.topic, recurring: data.recurring, recurringWeeks: data.recurringWeeks,
     });
-    setShowBooking(false); onRefetch(); onBookingSuccess(data);
+    setShowBooking(false); onRefetch();
+    logEvent('session_booked', { studentName: student.name, tutorName: data.slot.tutor.name, date: data.slot.date, recurring: data.recurring });
+    onBookingSuccess(data);
   };
 
   const color = avatarColor(student.name);

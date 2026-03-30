@@ -5,7 +5,7 @@ import { X, Trash2, UserPlus, ChevronDown, ChevronUp, AlertTriangle, CalendarOff
 import { SESSION_BLOCKS } from '@/components/constants';
 import { supabase } from '@/lib/supabaseClient';
 import type { Tutor } from '@/lib/useScheduleData';
-
+import { logEvent } from '@/lib/analytics';
 // ─── Subject definitions ──────────────────────────────────────────────────────
 
 export const SUBJECT_GROUPS = [
@@ -489,7 +489,7 @@ export default function TutorManagementPage() {
     }]);
     setSaving(false);
     if (error) setError(error.message);
-    else { setAdding(false); setNewTutor(EMPTY_TUTOR); fetchAll(); }
+    else { setAdding(false); setNewTutor(EMPTY_TUTOR); fetchAll(); logEvent('tutor_created', { tutorName: newTutor.name });}
   };
 
   if (loading) return (
