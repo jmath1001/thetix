@@ -366,7 +366,12 @@ export function WeekView({
                                               </button>
                                             </div>
                                           </div>
-                                          <p className="text-[10px] font-semibold uppercase tracking-tight" style={{ color: palette.tag }}>{student.topic}</p>
+                                          <div className="flex items-center gap-1.5 mt-0.5">
+                                            <p className="text-[10px] font-semibold uppercase tracking-tight" style={{ color: palette.tag }}>{student.topic}</p>
+                                            {student.seriesId && (
+                                              <span className="text-[8px] font-black px-1 py-0.5 rounded" style={{ background: '#ede9fe', color: '#7c3aed', letterSpacing: '0.02em' }}>↺ REC</span>
+                                            )}
+                                          </div>
                                           {student.grade && <p className="text-[9px] font-medium mt-0.5" style={{ color: '#9ca3af' }}>Grade {student.grade}</p>}
                                           {student.notes && <p className="text-[9px] mt-1 italic truncate" style={{ color: '#9ca3af' }}>📝 {student.notes}</p>}
                                         </div>
@@ -455,7 +460,7 @@ export function WeekView({
                                               onClick={() => setSelectedSessionWithNotes({ ...session, activeStudent: student, dayName: dayLabel, date: isoDate, tutorName: tutor.name, block })}>
                                               <p className="text-[10px] font-bold leading-none truncate" style={{ color: '#111827' }}>{student.name}</p>
                                               <p className="text-[8px] leading-none mt-0.5 truncate" style={{ color: palette.tag }}>
-                                                {student.topic}{student.grade ? ` · Gr.${student.grade}` : ''}
+                                                {student.topic}{student.grade ? ` · Gr.${student.grade}` : ''}{student.seriesId ? ' ↺' : ''}
                                               </p>
                                             </div>
                                           </div>
