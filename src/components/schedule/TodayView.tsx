@@ -56,6 +56,243 @@ interface TodayViewProps {
   onDateChange: (date: Date) => void;
 }
 
+
+// ─── Side panel (Confirmation + Attendance tabs) ─────────────────────────────
+
+type SidePanelTab = 'confirmation' | 'attendance';
+type AttendanceFilter = 'all' | 'present' | 'no-show' | 'unmarked';
+
+function SidePanel({
+  todayIso,
+  sessions,
+  tutors,
+  daySessions,
+  dayLabel,
+  pendingStudents,
+  setSelectedSessionWithNotes,
+  refetch,
+}: {
+  todayIso: string;
+  sessions: any[];
+  tutors: any[];
+  daySessions: any[];
+  dayLabel: string;
+  pendingStudents: any[];
+  setSelectedSessionWithNotes: (s: any) => void;
+  refetch: () => void;
+}) {
+  const [tab, setTab] = useState<SidePanelTab>('confirmation');
+  const [attFilter, setAttFilter] = useState<AttendanceFilter>('all');
+  const [toggling, setToggling] = useState<string | null>(null);
+
+  // All students booked today (flat list)
+  const allToday = sessions
+    .filter(s => s.date === todayIso)
+    .flatMap(s => s.students.map((st: any) => ({
+      ...st,
+      sessionTime: s.time,
+      sessionId: s.id,
+      tutorName: tutors.find(t => t.id === s.tutorId)?.name ?? '',
+      session: s,
+    })))
+    .sort((a: any, b: any) => a.sessionTime.localeCompare(b.sessionTime) || a.name.localeCompare(b.name));
+
+  const present   = allToday.filter(s => s.status === 'present');
+  const noShow    = allToday.filter(s => s.status === 'no-show');
+  const unmarked  = allToday.filter(s => s.status !== 'present' && s.status !== 'no-show' && s.status !== 'cancelled');
+
+  const attCounts = { all: allToday.filter(s => s.status !== 'cancelled').length, present: present.length, 'no-show': noShow.length, unmarked: unmarked.length };
+
+  const filteredAtt = attFilter === 'all'
+    ? allToday.filter(s => s.status !== 'cancelled')
+    : attFilter === 'present'   ? present
+    : attFilter === 'no-show'   ? noShow
+    : unmarked;
+
+  const handleToggle = async (student: any, next: 'present' | 'no-show' | 'scheduled') => {
+    const key = student.rowId || student.id;
+    setToggling(key);
+    try {
+      await updateAttendance({ sessionId: student.sessionId, studentId: student.id, status: next });
+      refetch();
+    } finally {
+      setToggling(null);
+    }
+  };
+
+  const statusStyle = (status: string) => {
+    if (status === 'present')  return { bg: '#edfaf3', border: '#6ee7b7', dot: '#059669', label: 'Present' };
+    if (status === 'no-show')  return { bg: '#fef2f2', border: '#fca5a5', dot: '#dc2626', label: 'No-show' };
+    return                            { bg: '#f9fafb', border: '#e5e7eb', dot: '#d1d5db', label: 'Unmarked' };
+  };
+
+  return (
+    <div className="hidden md:flex flex-col shrink-0" style={{ width: 232, minHeight: 0 }}>
+      <div className="rounded-xl overflow-hidden flex flex-col"
+        style={{ background: 'white', border: '1px solid #e5e7eb', boxShadow: '0 1px 8px rgba(0,0,0,0.06)', flex: 1, minHeight: 0 }}>
+
+        {/* Tab bar */}
+        <div className="flex shrink-0" style={{ background: '#f3f4f6', borderBottom: '1px solid #e5e7eb' }}>
+          {([
+            { key: 'confirmation', label: 'Confirm', count: pendingStudents.length, countBg: '#dc2626' },
+            { key: 'attendance',   label: 'Attend',  count: attCounts.all,          countBg: '#1f2937' },
+          ] as const).map(t => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[10px] font-black uppercase tracking-wider transition-all"
+              style={tab === t.key
+                ? { background: 'white', color: '#111827', borderBottom: '2px solid #1f2937' }
+                : { color: '#9ca3af', borderBottom: '2px solid transparent' }}>
+              {t.label}
+              {t.count > 0 && (
+                <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full" style={{ background: tab === t.key ? t.countBg : '#d1d5db', color: 'white' }}>
+                  {t.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* ── CONFIRMATION TAB ── */}
+        {tab === 'confirmation' && (
+          <div className="overflow-y-auto flex-1 p-2">
+            {pendingStudents.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full gap-2 py-8">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: '#dcfce7' }}>
+                  <Check size={14} style={{ color: '#16a34a' }} />
+                </div>
+                <p className="text-[10px] font-semibold text-center" style={{ color: '#9ca3af' }}>All confirmed</p>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {pendingStudents.map((student: any, idx: number) => (
+                  <div key={`${student.rowId || student.id}-${idx}`}
+                    className="p-2.5 rounded-lg cursor-pointer transition-all hover:shadow-sm"
+                    style={{ background: '#f9fafb', border: '1px solid #e5e7eb' }}
+                    onClick={() => setSelectedSessionWithNotes({
+                      ...student.session,
+                      activeStudent: student,
+                      dayName: dayLabel,
+                      date: todayIso,
+                      tutorName: student.tutorName,
+                      block: daySessions.find((b: any) => b.time === student.sessionTime),
+                    })}>
+                    <p className="text-xs font-bold leading-tight" style={{ color: '#111827' }}>{student.name}</p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <Clock size={9} style={{ color: '#4b5563' }} />
+                      <span className="text-[9px] font-semibold" style={{ color: '#4b5563' }}>
+                        {daySessions.find((b: any) => b.time === student.sessionTime)?.label ?? student.sessionTime}
+                      </span>
+                    </div>
+                    <p className="text-[9px] mt-0.5 font-medium truncate" style={{ color: '#6b7280' }}>{student.tutorName}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── ATTENDANCE TAB ── */}
+        {tab === 'attendance' && (
+          <>
+            {/* Filter pills */}
+            <div className="flex gap-1 px-2 py-2 shrink-0" style={{ borderBottom: '1px solid #f3f4f6' }}>
+              {([
+                { key: 'all',      label: 'All',     dot: '#9ca3af' },
+                { key: 'present',  label: 'Here',    dot: '#059669' },
+                { key: 'no-show',  label: 'No-show', dot: '#dc2626' },
+                { key: 'unmarked', label: '?',       dot: '#d1d5db' },
+              ] as const).map(f => (
+                <button
+                  key={f.key}
+                  onClick={() => setAttFilter(f.key)}
+                  className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg text-[9px] font-black transition-all"
+                  style={attFilter === f.key
+                    ? { background: '#1f2937', color: 'white' }
+                    : { background: '#f3f4f6', color: '#6b7280' }}>
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: attFilter === f.key ? 'white' : f.dot }} />
+                  {f.label}
+                  {attCounts[f.key] > 0 && (
+                    <span style={{ opacity: 0.7 }}>({attCounts[f.key]})</span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            <div className="overflow-y-auto flex-1 p-2">
+              {filteredAtt.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full gap-2 py-8">
+                  <p className="text-[10px] font-semibold text-center" style={{ color: '#9ca3af' }}>
+                    No {attFilter === 'all' ? '' : attFilter} students
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {filteredAtt.map((student: any, idx: number) => {
+                    const st = statusStyle(student.status);
+                    const isToggling = toggling === (student.rowId || student.id);
+                    return (
+                      <div key={`${student.rowId || student.id}-${idx}`}
+                        className="rounded-lg overflow-hidden"
+                        style={{ border: `1px solid ${st.border}`, background: st.bg }}>
+                        {/* Student row */}
+                        <div className="flex items-center gap-2 px-2.5 py-2">
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ background: st.dot }} />
+                          <div className="flex-1 min-w-0 cursor-pointer"
+                            onClick={() => setSelectedSessionWithNotes({
+                              ...student.session,
+                              activeStudent: student,
+                              dayName: dayLabel,
+                              date: todayIso,
+                              tutorName: student.tutorName,
+                              block: daySessions.find((b: any) => b.time === student.sessionTime),
+                            })}>
+                            <p className="text-xs font-bold leading-tight truncate" style={{ color: '#111827' }}>{student.name}</p>
+                            <p className="text-[9px] font-semibold" style={{ color: '#6b7280' }}>
+                              {daySessions.find((b: any) => b.time === student.sessionTime)?.label ?? student.sessionTime}
+                              {' · '}{student.tutorName.split(' ')[0]}
+                            </p>
+                          </div>
+                        </div>
+                        {/* Attendance toggles */}
+                        <div className="flex border-t" style={{ borderColor: st.border }}>
+                          {([
+                            { status: 'present' as const, label: '✓ Here',    activeBg: '#059669', activeColor: 'white' },
+                            { status: 'scheduled' as const, label: '– Reset', activeBg: '#6b7280', activeColor: 'white' },
+                            { status: 'no-show' as const, label: '✕ Skip',    activeBg: '#dc2626', activeColor: 'white' },
+                          ]).map((btn, bi) => {
+                            const isActive = student.status === btn.status || (btn.status === 'scheduled' && student.status !== 'present' && student.status !== 'no-show');
+                            return (
+                              <button
+                                key={btn.status}
+                                disabled={isToggling}
+                                onClick={() => handleToggle(student, btn.status)}
+                                className="flex-1 py-1.5 text-[8px] font-black uppercase tracking-wide transition-all"
+                                style={{
+                                  background: isActive ? btn.activeBg : 'transparent',
+                                  color: isActive ? btn.activeColor : '#9ca3af',
+                                  borderRight: bi < 2 ? `1px solid ${st.border}` : 'none',
+                                  opacity: isToggling ? 0.5 : 1,
+                                }}>
+                                {isToggling && isActive ? '…' : btn.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function TodayView({
   tutors,
   sessions,
@@ -744,57 +981,17 @@ export function TodayView({
               })()}
             </div>
 
-            {/* ── PENDING PANEL ── */}
-            <div className="hidden md:flex flex-col shrink-0" style={{ width: 220, minHeight: 0 }}>
-              <div className="rounded-xl overflow-hidden flex flex-col"
-                style={{ background: 'white', border: '1px solid #e5e7eb', boxShadow: '0 1px 8px rgba(0,0,0,0.06)', flex: 1, minHeight: 0 }}>
-                <div className="px-3 py-2.5 shrink-0" style={{ background: '#f3f4f6', borderBottom: '1px solid #e5e7eb' }}>
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#374151' }}>Needs Confirmation</p>
-                    {pendingStudents.length > 0 && (
-                      <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full" style={{ background: '#dc2626', color: 'white' }}>
-                        {pendingStudents.length}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="overflow-y-auto flex-1 p-2">
-                  {pendingStudents.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full gap-2 py-8">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: '#dcfce7' }}>
-                        <Check size={14} style={{ color: '#16a34a' }} />
-                      </div>
-                      <p className="text-[10px] font-semibold text-center" style={{ color: '#9ca3af' }}>All confirmed</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {pendingStudents.map((student: any, idx: number) => (
-                        <div key={`${student.rowId || student.id}-${idx}`}
-                          className="p-2.5 rounded-lg cursor-pointer transition-all hover:shadow-sm"
-                          style={{ background: '#f9fafb', border: '1px solid #e5e7eb' }}
-                          onClick={() => setSelectedSessionWithNotes({
-                            ...student.session,
-                            activeStudent: student,
-                            dayName: dayLabel,
-                            date: todayIso,
-                            tutorName: student.tutorName,
-                            block: daySessions.find(b => b.time === student.sessionTime),
-                          })}>
-                          <p className="text-xs font-bold leading-tight" style={{ color: '#111827' }}>{student.name}</p>
-                          <div className="flex items-center gap-1 mt-1">
-                            <Clock size={9} style={{ color: '#4b5563' }} />
-                            <span className="text-[9px] font-semibold" style={{ color: '#4b5563' }}>
-                              {daySessions.find(b => b.time === student.sessionTime)?.label ?? student.sessionTime}
-                            </span>
-                          </div>
-                          <p className="text-[9px] mt-0.5 font-medium truncate" style={{ color: '#6b7280' }}>{student.tutorName}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+            {/* ── SIDE PANEL ── */}
+            <SidePanel
+              todayIso={todayIso}
+              sessions={sessions}
+              tutors={tutors}
+              daySessions={daySessions}
+              dayLabel={dayLabel}
+              pendingStudents={pendingStudents}
+              setSelectedSessionWithNotes={setSelectedSessionWithNotes}
+              refetch={refetch}
+            />
 
           </div>
         )}
