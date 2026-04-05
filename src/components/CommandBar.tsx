@@ -304,6 +304,10 @@ export function CommandBar({ sessions = [], students = [], tutors = [], allAvail
                     const student = matches.length === 1 ? matches[0] : null
                     
                     if (student) {
+                      // Check if item includes status (e.g., "John Doe: Present")
+                      const statusMatch = item.match(/: (.+)$/)
+                      const attendanceStatus = statusMatch ? statusMatch[1] : null
+                      
                       return (
                         <div key={i} style={{ padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, cursor: 'pointer', transition: 'all 0.2s', display: 'flex', gap: 12, alignItems: 'flex-start' }}
                           onMouseEnter={e => { e.currentTarget.style.background = '#f0f4f9'; e.currentTarget.style.borderColor = '#d0dce8' }}
@@ -314,9 +318,11 @@ export function CommandBar({ sessions = [], students = [], tutors = [], allAvail
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 12, fontWeight: 600, color: '#1e293b' }}>{student.name}</div>
                             <div style={{ fontSize: 11, color: '#64748b', marginTop: 2, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                              {attendanceStatus && <span style={{ color: attendanceStatus === 'Present' ? '#10b981' : '#ef4444', fontWeight: 600 }}>{attendanceStatus}</span>}
                               {student.subject && <span>{student.subject}</span>}
                               {student.grade && <span>Grade {student.grade}</span>}
                               {student.hoursLeft !== undefined && <span>{student.hoursLeft}h left</span>}
+                              {student.parent_name && <span>{student.parent_name}</span>}
                               {student.parent_phone && <span>{student.parent_phone}</span>}
                             </div>
                           </div>

@@ -27,6 +27,7 @@ RESPONSE FORMAT — return ONLY one of these JSON shapes, nothing else:
 RULES:
 - Use 12hr time format (3:30pm not 15:30)
 - Be flexible - if the user asks for students, sessions, anything - return as list type
+- For attendance queries (e.g., "attendance on Tuesday", "who attended yesterday", "attendance for April 3", "did John attend last week"), find the relevant past session(s) and return a list with student names and their attendance status from the session data (use the 'status' field: Present, Absent, etc.)
 - Don't be strict about format, just return useful data
 - If uncertain, return answer type with your best guess
 `
