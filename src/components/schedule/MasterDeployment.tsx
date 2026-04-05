@@ -314,7 +314,18 @@ export default function MasterDeployment() {
 
       {bookingToast && <BookingToast data={bookingToast} onClose={() => setBookingToast(null)} />}
       {isTutorModalOpen && <TutorManagementModal tutors={tutors} onClose={() => setIsTutorModalOpen(false)} onRefetch={refetch} />}
-      <OptimizationPreview proposal={proposal} onConfirm={confirmChanges} onCancel={closePreview} isApplying={isApplying} />
+      <OptimizationPreview 
+        proposal={proposal} 
+        onConfirm={confirmChanges} 
+        onCancel={closePreview} 
+        isApplying={isApplying}
+        activeDates={activeDates}
+        tutors={tutors}
+        sessions={sessions}
+        timeOff={timeOff}
+        students={students}
+        tutorPaletteMap={tutorPaletteMap}
+      />
     </div>
   );
 }
