@@ -15,6 +15,7 @@ interface CommandBarProps {
     tutorId?: string
     topic?: string
   }) => void
+  onOpenProposal?: (proposal: any) => void
   weekStart?: string
   nextWeekStart?: string
 }
@@ -23,6 +24,7 @@ type Result =
   | { type: 'answer'; text: string }
   | { type: 'list'; title: string; items: string[] }
   | { type: 'slots'; slotIndices: number[]; reason: string }
+  | { type: 'proposal'; title: string; reasoning: string; changes: any[] }
   | { type: 'action'; action: string; studentId: string; slotDate: string; slotTime: string; tutorId: string; topic: string }
   | { type: 'error'; text: string }
 
@@ -33,7 +35,7 @@ const SUGGESTIONS = [
   'Find best-fit tutor for Chemistry',
 ]
 
-export function CommandBar({ sessions = [], students = [], tutors = [], allAvailableSeats = [], onBookingAction, weekStart, nextWeekStart }: CommandBarProps) {
+export function CommandBar({ sessions = [], students = [], tutors = [], allAvailableSeats = [], onBookingAction, onOpenProposal, weekStart, nextWeekStart }: CommandBarProps) {
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<Result | null>(null)
@@ -125,6 +127,12 @@ export function CommandBar({ sessions = [], students = [], tutors = [], allAvail
         body: JSON.stringify({ query: q, context: buildContext() }),
       })
       const data: Result = await res.json()
+      if (data.type === 'proposal') {
+        onOpenProposal?.(data)
+        setResult(null)
+        setQuery('')
+        return
+      }
       setResult(data)
       if (data.type === 'action' && data.action === 'open_booking') {
         setTimeout(() => {

@@ -15,6 +15,8 @@ import {
 } from '@/lib/useScheduleData';
 import { BookingForm, BookingToast } from '@/components/BookingForm';
 import { TutorManagementModal } from '@/components/TutorManagementModal';
+import OptimizationPreview from '@/components/OptimizationPreview';
+import { useOptimizer } from '@/hooks/useOptimizer';
 import type { PrefilledSlot, BookingConfirmData } from '@/components/BookingForm';
 
 import { ACTIVE_DAYS, DAY_NAMES, TUTOR_PALETTES } from './scheduleConstants';
@@ -192,6 +194,8 @@ export default function MasterDeployment() {
 
   const closeAllModals = () => { setIsEnrollModalOpen(false); setGridSlotToBook(null); setAiPrefilledStudentId(null); };
 
+  const { proposal, isApplying, openPreview, confirmChanges, closePreview } = useOptimizer(refetch);
+
   if (loading) return (
     <div className="w-full min-h-screen flex items-center justify-center" style={{ background: '#fafafa' }}>
       <div className="flex flex-col items-center gap-3">
@@ -234,6 +238,7 @@ export default function MasterDeployment() {
               students={students}
               tutors={tutors}
               onBookingAction={handleAIBookingAction}
+              onOpenProposal={openPreview}
               allAvailableSeats={allAvailableSeats}
               weekStart={toISODate(weekStart)}
               nextWeekStart={toISODate(nextWeekStart)}
@@ -309,6 +314,7 @@ export default function MasterDeployment() {
 
       {bookingToast && <BookingToast data={bookingToast} onClose={() => setBookingToast(null)} />}
       {isTutorModalOpen && <TutorManagementModal tutors={tutors} onClose={() => setIsTutorModalOpen(false)} onRefetch={refetch} />}
+      <OptimizationPreview proposal={proposal} onConfirm={confirmChanges} onCancel={closePreview} isApplying={isApplying} />
     </div>
   );
 }

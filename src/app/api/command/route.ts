@@ -22,8 +22,8 @@ Filter availableSeats by tutor subjects (case insensitive match), day/time if sp
 3. For booking requests ("book Maya for Physics Tuesday evening"):
 {"type":"action","action":"open_booking","studentId":"<id>","slotDate":"<YYYY-MM-DD>","slotTime":"<HH:MM>","tutorId":"<id>","topic":"<subject>"}
 
-4. For any other question:
-{"type":"answer","text":"Plain English answer"}
+3. For optimization or schedule improvement suggestions, return a proposal object when the user asks to optimize, rebalance, or improve the schedule:
+{"type":"proposal","title":"Descriptive headline","reasoning":"Why this proposal helps","changes":[{"studentName":"Maya Chen","oldTime":"Tue 4pm","newSlot":{"time":"Thu 4pm","tutorName":"Ava Smith","date":"2026-04-07"},"explanation":"Move Maya to free capacity with Ava"}]}
 
 RULES:
 - Use 12hr time format (3:30pm not 15:30)
