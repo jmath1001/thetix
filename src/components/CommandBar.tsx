@@ -109,12 +109,19 @@ export function CommandBar({ sessions, students, tutors, allAvailableSeats, onBo
       setResult(data)
       if (data.type === 'action' && data.action === 'open_booking') {
         setTimeout(() => {
-          onBookingAction({ studentId: data.studentId, slotDate: data.slotDate, slotTime: data.slotTime, tutorId: data.tutorId, topic: data.topic })
+          onBookingAction({ 
+            studentId: data.studentId, 
+            slotDate: data.slotDate, 
+            slotTime: data.slotTime, 
+            tutorId: data.tutorId, 
+            topic: data.topic 
+          })
           setResult(null)
           setQuery('')
         }, 800)
       }
-    } catch {
+    } catch (err) {
+      console.error("Command error:", err)
       setResult({ type: 'error', text: 'Optimization engine unreachable. Check network.' })
     } finally {
       setLoading(false)
@@ -131,11 +138,11 @@ export function CommandBar({ sessions, students, tutors, allAvailableSeats, onBo
     ? (result.slotIndices ?? []).map((i: number) => allAvailableSeats[i]).filter(Boolean)
     : []
 
-  const showDropdown = result || loading || (isFocused && !query);
+  const showDropdown = !!(result || loading || (isFocused && !query));
 
   return (
     <div style={{ position: 'relative', width: '100%', maxWidth: '550px' }}>
-      {/* Search Input Bar - Graphite Theme */}
+      {/* Search Input Bar */}
       <div 
         style={{ 
           display: 'flex', 
@@ -188,12 +195,12 @@ export function CommandBar({ sessions, students, tutors, allAvailableSeats, onBo
         {loading && <Loader2 size={14} className="animate-spin" style={{ color: '#6366f1' }} />}
       </div>
 
-      {/* Floating Results Panel - Floating Overlay */}
+      {/* Floating Results Panel */}
       {showDropdown && (
         <div 
           style={{ 
             position: 'fixed',
-            top: '118px', 
+            top: '120px', 
             left: '50%',
             transform: 'translateX(-50%)',
             width: '95%',
@@ -210,7 +217,7 @@ export function CommandBar({ sessions, students, tutors, allAvailableSeats, onBo
           }}
         >
           <div style={{ overflowY: 'auto', flex: 1 }}>
-            {/* Quick Actions / Intent Detection */}
+            {/* Suggestion View */}
             {isFocused && !query && !result && !loading && (
               <div style={{ padding: '20px' }}>
                 <p style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '14px' }}>Smart Scheduling Actions</p>
@@ -238,7 +245,22 @@ export function CommandBar({ sessions, students, tutors, allAvailableSeats, onBo
               </div>
             )}
 
-            {/* Optimized Slots Grid */}
+            {/* List Results */}
+            {result?.type === 'list' && (
+              <div style={{ padding: '24px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase', marginBottom: '12px' }}>{result.title}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {result.items.map((item, i) => (
+                    <div key={i} style={{ padding: '10px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#6366f1' }} />
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Slots Grid */}
             {result?.type === 'slots' && (
               <div style={{ padding: '24px' }}>
                 <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
@@ -289,19 +311,18 @@ export function CommandBar({ sessions, students, tutors, allAvailableSeats, onBo
             )}
 
             {/* AI Action Overlay */}
-            {result?.type === 'action' && (
+            {loading && !result && (
               <div style={{ padding: '50px 24px', textAlign: 'center' }}>
                 <div style={{ position: 'relative', width: '40px', height: '40px', margin: '0 auto 16px' }}>
                    <Loader2 size={40} className="animate-spin" style={{ color: '#6366f1' }} />
-                   <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '20px', height: '20px', background: '#6366f1', borderRadius: '50%', opacity: 0.2 }} />
                 </div>
-                <p style={{ fontWeight: 700, color: '#0f172a', fontSize: '15px' }}>Applying Constraint-Based Optimization...</p>
-                <p style={{ fontSize: '13px', color: '#64748b', marginTop: 4 }}>Validating tutor subjects and student hours...</p>
+                <p style={{ fontWeight: 700, color: '#0f172a', fontSize: '15px' }}>Analyzing constraints...</p>
+                <p style={{ fontSize: '13px', color: '#64748b', marginTop: 4 }}>Checking tutor availability and student status</p>
               </div>
             )}
           </div>
 
-          {/* Indigo Footer Controls */}
+          {/* Footer Controls */}
           {result && (
             <div style={{ padding: '12px 24px', borderTop: '1px solid #f1f5f9', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <button 
@@ -312,7 +333,7 @@ export function CommandBar({ sessions, students, tutors, allAvailableSeats, onBo
               </button>
               <div style={{ display: 'flex', gap: '16px', fontSize: '10px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>
                 <span>ESC to Close</span>
-                <span>Enter to Recalculate</span>
+                <span>Enter to Search</span>
               </div>
             </div>
           )}
