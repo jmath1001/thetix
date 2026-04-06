@@ -1,6 +1,6 @@
 "use client"
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Zap } from 'lucide-react';
 
 import { MAX_CAPACITY, getSessionsForDay, type SessionBlock } from '@/components/constants';
 import {
@@ -12,6 +12,7 @@ import {
   dayOfWeek,
   getCentralTimeNow,
   type Tutor,
+  type Student,
 } from '@/lib/useScheduleData';
 import { BookingForm, BookingToast } from '@/components/BookingForm';
 import { TutorManagementModal } from '@/components/TutorManagementModal';
@@ -27,10 +28,12 @@ import { WeekView } from './WeekView';
 import { AttendanceModal } from './AttendanceModal';
 import { logEvent } from '@/lib/analytics';
 import { CommandBar } from '@/components/CommandBar';
+import { ScheduleBuilder } from '@/components/ScheduleBuilder';
 
 export default function MasterDeployment() {
   const [todayDate, setTodayDate] = useState<Date>(() => getCentralTimeNow());
   const [weekStart, setWeekStart] = useState<Date>(() => getWeekStart(getCentralTimeNow()));
+  const [isScheduleBuilderOpen, setIsScheduleBuilderOpen] = useState(false);
 
   const weekDates = useMemo(() => getWeekDates(weekStart), [weekStart]);
   const { tutors, students, sessions, timeOff, loading, error, refetch } = useScheduleData(weekStart);
@@ -57,19 +60,39 @@ export default function MasterDeployment() {
     setWeekStart(getWeekStart(date));
   }, []);
 
+  const handleScheduleBuilderConfirm = useCallback(async (
+    bookings: { student: Student; slot: any; topic: string }[]
+  ) => {
+    for (const booking of bookings) {
+      await bookStudent({
+        tutorId: booking.slot.tutor.id,
+        date: booking.slot.date,
+        time: booking.slot.time,
+        student: booking.student,
+        topic: booking.topic,
+        notes: '',
+        recurring: false,
+        recurringWeeks: 1,
+      });
+    }
+    refetch();
+    setIsScheduleBuilderOpen(false);
+    logEvent('schedule_builder_confirmed', { count: bookings.length });
+  }, [refetch]);
+
   useEffect(() => {
-  if (todayView) {
-    document.documentElement.style.overflow = 'hidden'; // <-- html element, not body
-    document.body.style.background = '#fafafa';
-  } else {
-    document.documentElement.style.overflow = '';
-    document.body.style.background = '';
-  }
-  return () => {
-    document.documentElement.style.overflow = '';
-    document.body.style.background = '';
-  };
-}, [todayView]);
+    if (todayView) {
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.background = '#fafafa';
+    } else {
+      document.documentElement.style.overflow = '';
+      document.body.style.background = '';
+    }
+    return () => {
+      document.documentElement.style.overflow = '';
+      document.body.style.background = '';
+    };
+  }, [todayView]);
 
   const tutorPaletteMap = useMemo(() => {
     const map: Record<string, number> = {};
@@ -91,8 +114,9 @@ export default function MasterDeployment() {
     [weekDates]
   );
 
+  // Filtered by enrollCat — for BookingForm
   const allAvailableSeats = useMemo(() => {
-    let seats: any[] = [];
+    const seats: any[] = [];
     tutors.filter(t => t.cat === enrollCat).forEach(tutor => {
       activeDates.forEach(date => {
         const isoDate = toISODate(date);
@@ -111,6 +135,36 @@ export default function MasterDeployment() {
     });
     return seats.sort((a, b) => { const dd = a.date.localeCompare(b.date); return dd !== 0 ? dd : a.time.localeCompare(b.time); });
   }, [enrollCat, tutors, sessions, activeDates, timeOff]);
+
+  // All tutors regardless of category — for ScheduleBuilder
+  const allSeatsForBuilder = useMemo(() => {
+    const seats: any[] = [];
+    tutors.forEach(tutor => {
+      activeDates.forEach(date => {
+        const isoDate = toISODate(date);
+        const dow = dayOfWeek(isoDate);
+        if (!tutor.availability.includes(dow)) return;
+        if (timeOff.some(t => t.tutorId === tutor.id && t.date === isoDate)) return;
+        getSessionsForDay(dow).forEach(block => {
+          if (!isTutorAvailable(tutor, dow, block.time)) return;
+          const session = sessions.find(s => s.date === isoDate && s.tutorId === tutor.id && s.time === block.time);
+          const count = session ? session.students.length : 0;
+          if (count < MAX_CAPACITY) {
+            seats.push({ tutor, dayName: DAY_NAMES[ACTIVE_DAYS.indexOf(dow)], date: isoDate, time: block.time, block, count, seatsLeft: MAX_CAPACITY - count, dayNum: dow });
+          }
+        });
+      });
+    });
+    return seats.sort((a, b) => { const dd = a.date.localeCompare(b.date); return dd !== 0 ? dd : a.time.localeCompare(b.time); });
+  }, [tutors, sessions, activeDates, timeOff]);
+
+  // Week range strings for ScheduleBuilder
+  const weekStartIso = toISODate(weekStart);
+  const weekEndIso = useMemo(() => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + 6);
+    return toISODate(d);
+  }, [weekStart]);
 
   const handleGridSlotClick = (tutor: Tutor, date: string, dayName: string, block: SessionBlock) => {
     setGridSlotToBook({ tutor, dayNum: dayOfWeek(date), dayName, time: block.time, date, block } as any);
@@ -141,7 +195,6 @@ export default function MasterDeployment() {
     }
   };
 
-  // ── Called when CommandBar AI resolves a booking intent ──────────────────
   const handleAIBookingAction = useCallback(({
     studentId, slotDate, slotTime, tutorId, topic,
   }: {
@@ -151,28 +204,24 @@ export default function MasterDeployment() {
     tutorId?: string
     topic?: string
   }) => {
-    // If AI only provided a studentId (no slot info), open the booking modal preselected to that student
     if (studentId && !slotDate && !slotTime && !tutorId) {
-      setAiPrefilledStudentId(studentId)
-      setIsEnrollModalOpen(true)
-      logEvent('ai_booking_initiated', { studentId })
-      return
+      setAiPrefilledStudentId(studentId);
+      setIsEnrollModalOpen(true);
+      logEvent('ai_booking_initiated', { studentId });
+      return;
     }
-
-    if (!slotDate || !slotTime || !tutorId) return
-    const tutor = tutors.find(t => t.id === tutorId)
-    if (!tutor) return
-    const dow = dayOfWeek(slotDate)
-    const block = getSessionsForDay(dow).find(b => b.time === slotTime)
-    const dayName = DAY_NAMES[ACTIVE_DAYS.indexOf(dow)]
-    // Pre-fill the slot — same as clicking a green cell in the grid
-    setGridSlotToBook({ tutor, dayNum: dow, dayName, time: slotTime, date: slotDate, block } as any)
-    // Pre-select student cat so the right tab is shown in BookingForm
-    setEnrollCat(tutor.cat)
-    setAiPrefilledStudentId(studentId ?? null)
-    setIsEnrollModalOpen(true)
-    logEvent('ai_booking_initiated', { studentId, tutorId, slotDate, slotTime, topic })
-  }, [tutors])
+    if (!slotDate || !slotTime || !tutorId) return;
+    const tutor = tutors.find(t => t.id === tutorId);
+    if (!tutor) return;
+    const dow = dayOfWeek(slotDate);
+    const block = getSessionsForDay(dow).find(b => b.time === slotTime);
+    const dayName = DAY_NAMES[ACTIVE_DAYS.indexOf(dow)];
+    setGridSlotToBook({ tutor, dayNum: dow, dayName, time: slotTime, date: slotDate, block } as any);
+    setEnrollCat(tutor.cat);
+    setAiPrefilledStudentId(studentId ?? null);
+    setIsEnrollModalOpen(true);
+    logEvent('ai_booking_initiated', { studentId, tutorId, slotDate, slotTime, topic });
+  }, [tutors]);
 
   const setSelectedSessionWithNotes = (s: any) => {
     setSelectedSession(s);
@@ -182,17 +231,15 @@ export default function MasterDeployment() {
   const patchSelectedSession = useCallback((patch: Record<string, any>) => {
     setSelectedSession((prev: any) => {
       if (!prev) return prev;
-      return {
-        ...prev,
-        activeStudent: {
-          ...prev.activeStudent,
-          ...patch,
-        },
-      };
+      return { ...prev, activeStudent: { ...prev.activeStudent, ...patch } };
     });
   }, []);
 
-  const closeAllModals = () => { setIsEnrollModalOpen(false); setGridSlotToBook(null); setAiPrefilledStudentId(null); };
+  const closeAllModals = () => {
+    setIsEnrollModalOpen(false);
+    setGridSlotToBook(null);
+    setAiPrefilledStudentId(null);
+  };
 
   const { proposal, isApplying, openPreview, confirmChanges, closePreview } = useOptimizer(refetch);
 
@@ -231,8 +278,8 @@ export default function MasterDeployment() {
         setSelectedTutorFilter={setSelectedTutorFilter}
         onOpenTutorModal={() => setIsTutorModalOpen(true)}
         onOpenEnrollModal={() => setIsEnrollModalOpen(true)}
-        // ── CommandBar sits inside ScheduleNav as a button in the header ──
         commandBarSlot={
+          <>
             <CommandBar
               sessions={[...sessions, ...(nextWeekSessions ?? [])]}
               students={students}
@@ -241,9 +288,18 @@ export default function MasterDeployment() {
               onOpenProposal={openPreview}
               onOpenAttendanceModal={(session) => setSelectedSession(session)}
               allAvailableSeats={allAvailableSeats}
-              weekStart={toISODate(weekStart)}
+              weekStart={weekStartIso}
               nextWeekStart={toISODate(nextWeekStart)}
             />
+            <button
+              onClick={() => setIsScheduleBuilderOpen(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 8, background: '#f5f3ff', border: '1px solid #c4b5fd', color: '#7c3aed', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#ede9fe'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#f5f3ff'; }}
+            >
+              <Zap size={12} /> Build
+            </button>
+          </>
         }
       />
 
@@ -261,10 +317,7 @@ export default function MasterDeployment() {
           selectedDate={todayDate}
           onDateChange={handleTodayDateChange}
           onInlineBook={async ({ tutorId, date, time, student, topic }) => {
-            await bookStudent({
-              tutorId, date, time, student, topic,
-              notes: '', recurring: false, recurringWeeks: 1,
-            });
+            await bookStudent({ tutorId, date, time, student, topic, notes: '', recurring: false, recurringWeeks: 1 });
           }}
         />
       )}
@@ -282,22 +335,39 @@ export default function MasterDeployment() {
           handleGridSlotClick={handleGridSlotClick}
           refetch={refetch}
           onInlineBook={async ({ tutorId, date, time, student, topic }) => {
-            await bookStudent({
-              tutorId, date, time, student, topic,
-              notes: '', recurring: false, recurringWeeks: 1,
-            });
+            await bookStudent({ tutorId, date, time, student, topic, notes: '', recurring: false, recurringWeeks: 1 });
           }}
         />
       )}
 
       {isEnrollModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(20,14,8,0.75)', backdropFilter: 'blur(8px)' }}>
-          <BookingForm prefilledSlot={null} onConfirm={handleConfirmBooking} onCancel={closeAllModals} enrollCat={enrollCat} setEnrollCat={setEnrollCat} allAvailableSeats={allAvailableSeats} studentDatabase={students} initialStudentId={aiPrefilledStudentId} sessions={sessions} />
+          <BookingForm
+            prefilledSlot={null}
+            onConfirm={handleConfirmBooking}
+            onCancel={closeAllModals}
+            enrollCat={enrollCat}
+            setEnrollCat={setEnrollCat}
+            allAvailableSeats={allAvailableSeats}
+            studentDatabase={students}
+            initialStudentId={aiPrefilledStudentId}
+            sessions={sessions}
+          />
         </div>
       )}
       {gridSlotToBook && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(20,14,8,0.75)', backdropFilter: 'blur(8px)' }}>
-          <BookingForm prefilledSlot={gridSlotToBook} onConfirm={handleConfirmBooking} onCancel={closeAllModals} enrollCat={enrollCat} setEnrollCat={setEnrollCat} allAvailableSeats={allAvailableSeats} studentDatabase={students} initialStudentId={aiPrefilledStudentId} sessions={sessions} />
+          <BookingForm
+            prefilledSlot={gridSlotToBook}
+            onConfirm={handleConfirmBooking}
+            onCancel={closeAllModals}
+            enrollCat={enrollCat}
+            setEnrollCat={setEnrollCat}
+            allAvailableSeats={allAvailableSeats}
+            studentDatabase={students}
+            initialStudentId={aiPrefilledStudentId}
+            sessions={sessions}
+          />
         </div>
       )}
 
@@ -315,10 +385,11 @@ export default function MasterDeployment() {
 
       {bookingToast && <BookingToast data={bookingToast} onClose={() => setBookingToast(null)} />}
       {isTutorModalOpen && <TutorManagementModal tutors={tutors} onClose={() => setIsTutorModalOpen(false)} onRefetch={refetch} />}
-      <OptimizationPreview 
-        proposal={proposal} 
-        onConfirm={confirmChanges} 
-        onCancel={closePreview} 
+
+      <OptimizationPreview
+        proposal={proposal}
+        onConfirm={confirmChanges}
+        onCancel={closePreview}
         isApplying={isApplying}
         activeDates={activeDates}
         tutors={tutors}
@@ -327,6 +398,19 @@ export default function MasterDeployment() {
         students={students}
         tutorPaletteMap={tutorPaletteMap}
       />
+
+      {isScheduleBuilderOpen && (
+        <ScheduleBuilder
+          students={students}
+          tutors={tutors}
+          sessions={sessions}
+          allAvailableSeats={allSeatsForBuilder}
+          weekStart={weekStartIso}
+          weekEnd={weekEndIso}
+          onConfirm={handleScheduleBuilderConfirm}
+          onClose={() => setIsScheduleBuilderOpen(false)}
+        />
+      )}
     </div>
   );
 }

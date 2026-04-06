@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { PlusCircle, Check, X, Loader2 } from 'lucide-react';
-import { updateAttendance, toISODate, dayOfWeek, type Tutor } from '@/lib/useScheduleData';
+import { PlusCircle, Check, X, Loader2, Trash2 } from 'lucide-react';
+import { updateAttendance, removeStudentFromSession, toISODate, dayOfWeek, type Tutor } from '@/lib/useScheduleData';
 import { getSessionsForDay } from '@/components/constants';
 import { MAX_CAPACITY } from '@/components/constants';
 import { ACTIVE_DAYS, DAY_NAMES, TUTOR_PALETTES } from './scheduleConstants';
@@ -65,6 +65,22 @@ export function WeekView({
 }: WeekViewProps) {
   const [forms, setForms]               = useState<Record<string, InlineForm>>({});
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [bulkRemoveMode, setBulkRemoveMode] = useState(false);
+  const [selectedRemovals, setSelectedRemovals] = useState<Record<string, { sessionId: string; studentId: string; name: string }>>({});
+  const [isRemoving, setIsRemoving] = useState(false);
+
+  const selectionKey = (sessionId: string, studentId: string) => `${sessionId}|${studentId}`;
+  const toggleRemovalSelection = (sessionId: string, studentId: string, name: string) => {
+    const key = selectionKey(sessionId, studentId);
+    setSelectedRemovals(prev => {
+      const next = { ...prev };
+      if (next[key]) delete next[key]; else next[key] = { sessionId, studentId, name };
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedRemovals({});
+  const selectedCount = Object.keys(selectedRemovals).length;
 
   const openForm = (tutor: Tutor, date: string, time: string) => {
     const key = slotKey(tutor.id, date, time);
@@ -110,6 +126,30 @@ export function WeekView({
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  const handleBulkRemove = async () => {
+    if (!selectedCount) return;
+    if (!window.confirm(`Remove ${selectedCount} selected booking${selectedCount === 1 ? '' : 's'}?`)) return;
+    setIsRemoving(true);
+    try {
+      await Promise.all(Object.values(selectedRemovals).map(item =>
+        removeStudentFromSession({ sessionId: item.sessionId, studentId: item.studentId })
+      ));
+      clearSelection();
+      setBulkRemoveMode(false);
+      refetch();
+      logEvent('bulk_remove_sessions', { count: selectedCount, source: 'week_view' });
+    } catch (err: any) {
+      console.error('Bulk removal failed', err);
+      alert(err?.message || 'Bulk removal failed. Please try again.');
+    } finally {
+      setIsRemoving(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!bulkRemoveMode) clearSelection();
+  }, [bulkRemoveMode]);
 
   const renderInlineForm = (tutor: Tutor, date: string, block: any, palette: any) => {
     const key   = slotKey(tutor.id, date, block.time);
@@ -211,6 +251,39 @@ export function WeekView({
 
   return (
     <div className="max-w-[1600px] mx-auto p-3 md:p-6 space-y-10 md:space-y-14">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-sm font-semibold text-slate-900">Weekly Schedule</p>
+          <p className="text-xs text-slate-500">Select multiple student slots and remove them in one action.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setBulkRemoveMode(prev => !prev)}
+            className="inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-xs font-semibold transition"
+            style={{ background: bulkRemoveMode ? '#4338ca' : 'white', color: bulkRemoveMode ? 'white' : '#334155', border: '1px solid #e2e8f0' }}
+          >
+            {bulkRemoveMode ? 'Exit remove mode' : 'Bulk remove'}
+          </button>
+          <button
+            onClick={handleBulkRemove}
+            disabled={!selectedCount || isRemoving || !bulkRemoveMode}
+            className="inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-xs font-semibold transition"
+            style={{ background: selectedCount && bulkRemoveMode ? '#dc2626' : '#f3f4f6', color: selectedCount && bulkRemoveMode ? 'white' : '#9ca3af', border: '1px solid #e5e7eb', cursor: selectedCount && bulkRemoveMode ? 'pointer' : 'not-allowed' }}
+          >
+            <Trash2 size={14} /> {isRemoving ? 'Removing…' : `Remove ${selectedCount || 0}`}
+          </button>
+        </div>
+      </div>
+      {bulkRemoveMode && (
+        <div className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-xs text-violet-700">
+          {selectedCount > 0
+            ? `${selectedCount} booking${selectedCount !== 1 ? 's' : ''} selected. Click cards to toggle.`
+            : 'Select booked student cards to remove multiple entries at once.'}
+          {selectedCount > 0 && (
+            <button onClick={clearSelection} className="ml-4 font-semibold text-violet-700 underline">Clear</button>
+          )}
+        </div>
+      )}
       {activeDates.map((date) => {
         const isoDate   = toISODate(date);
         const dow       = dayOfWeek(isoDate);
@@ -307,47 +380,64 @@ export function WeekView({
                                     <div className="flex flex-col gap-1.5 h-full min-h-[100px]">
 
                                       {/* Booked students — same card style as TodayView */}
-                                      {hasStudents && !isOnTimeOff && session!.students.map((student: any) => (
-                                        <div key={student.rowId || student.id}
-                                          className="p-2.5 rounded-xl cursor-pointer transition-all hover:shadow-md"
-                                          style={
-                                            student.status === 'no-show'  ? { background: 'transparent', border: '1.5px solid #d1d5db', opacity: 0.45 }
-                                            : student.status === 'present' ? { background: '#edfaf3',     border: '1.5px solid #6ee7b7' }
-                                            :                               { background: palette.bg,      border: `1.5px solid ${palette.border}` }
-                                          }
-                                          onClick={() => setSelectedSessionWithNotes({ ...session, activeStudent: student, dayName: dayLabel, date: isoDate, tutorName: tutor.name, block })}>
-                                          <div className="flex justify-between items-start mb-1">
-                                            <p className="text-sm font-bold leading-tight" style={{ color: '#111827' }}>{student.name}</p>
-                                            <div className="flex items-center gap-1 shrink-0 ml-1">
-                                              {student.confirmationStatus === 'confirmed'            && <span style={{ color: '#15803d', fontSize: 10 }}>✓</span>}
-                                              {student.confirmationStatus === 'cancelled'            && <span style={{ color: '#dc2626', fontSize: 10 }}>✕</span>}
-                                              {student.confirmationStatus === 'reschedule_requested' && <span style={{ color: '#6d28d9', fontSize: 10 }}>↗</span>}
-                                              <button
-                                                onClick={async e => {
-                                                  e.stopPropagation();
-                                                  const next = student.status === 'present' ? 'scheduled' : 'present';
-                                                  await updateAttendance({ sessionId: session.id, studentId: student.id, status: next });
-                                                  logEvent('attendance_marked', { status: next, studentName: student.name, source: 'week_grid' });
-                                                  refetch();
-                                                }}
-                                                className="shrink-0 w-5 h-5 rounded-md flex items-center justify-center transition-all"
-                                                style={student.status === 'present'
-                                                  ? { background: '#059669', border: '1.5px solid #059669' }
-                                                  : { background: 'white', border: '1.5px solid #d1d5db' }}>
-                                                {student.status === 'present' && <Check size={11} strokeWidth={3} color="white" />}
-                                              </button>
+                                      {hasStudents && !isOnTimeOff && session!.students.map((student: any) => {
+                                        const key = selectionKey(session.id, student.id);
+                                        const isSelected = !!selectedRemovals[key];
+                                        return (
+                                          <div key={student.rowId || student.id}
+                                            className="p-2.5 rounded-xl cursor-pointer transition-all hover:shadow-md"
+                                            style={
+                                              student.status === 'no-show'  ? { background: 'transparent', border: '1.5px solid #d1d5db', opacity: 0.45 }
+                                              : student.status === 'present' ? { background: '#edfaf3',     border: '1.5px solid #6ee7b7' }
+                                              :                               { background: palette.bg,      border: `1.5px solid ${palette.border}` }
+                                            }
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              if (bulkRemoveMode) {
+                                                toggleRemovalSelection(session.id, student.id, student.name);
+                                                return;
+                                              }
+                                              setSelectedSessionWithNotes({ ...session, activeStudent: student, dayName: dayLabel, date: isoDate, tutorName: tutor.name, block });
+                                            }}>
+                                            <div className="flex justify-between items-start mb-1">
+                                              <p className="text-sm font-bold leading-tight" style={{ color: '#111827' }}>{student.name}</p>
+                                              <div className="flex items-center gap-1 shrink-0 ml-1">
+                                                {student.confirmationStatus === 'confirmed'            && <span style={{ color: '#15803d', fontSize: 10 }}>✓</span>}
+                                                {student.confirmationStatus === 'cancelled'            && <span style={{ color: '#dc2626', fontSize: 10 }}>✕</span>}
+                                                {student.confirmationStatus === 'reschedule_requested' && <span style={{ color: '#6d28d9', fontSize: 10 }}>↗</span>}
+                                                <button
+                                                  onClick={async e => {
+                                                    e.stopPropagation();
+                                                    const next = student.status === 'present' ? 'scheduled' : 'present';
+                                                    await updateAttendance({ sessionId: session.id, studentId: student.id, status: next });
+                                                    logEvent('attendance_marked', { status: next, studentName: student.name, source: 'week_grid' });
+                                                    refetch();
+                                                  }}
+                                                  className="shrink-0 w-5 h-5 rounded-md flex items-center justify-center transition-all"
+                                                  style={student.status === 'present'
+                                                    ? { background: '#059669', border: '1.5px solid #059669' }
+                                                    : { background: 'white', border: '1.5px solid #d1d5db' }}>
+                                                  {student.status === 'present' && <Check size={11} strokeWidth={3} color="white" />}
+                                                </button>
+                                              </div>
                                             </div>
-                                          </div>
-                                          <div className="flex items-center gap-1.5 mt-0.5">
-                                            <p className="text-[10px] font-semibold uppercase tracking-tight" style={{ color: palette.tag }}>{student.topic}</p>
-                                            {student.seriesId && (
-                                              <span className="text-[8px] font-black px-1 py-0.5 rounded" style={{ background: '#ede9fe', color: '#7c3aed', letterSpacing: '0.02em' }}>↺ REC</span>
+                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                              <p className="text-[10px] font-semibold uppercase tracking-tight" style={{ color: palette.tag }}>{student.topic}</p>
+                                              {student.seriesId && (
+                                                <span className="text-[8px] font-black px-1 py-0.5 rounded" style={{ background: '#ede9fe', color: '#7c3aed', letterSpacing: '0.02em' }}>↺ REC</span>
+                                              )}
+                                            </div>
+                                            {student.grade && <p className="text-[10px] mt-0.5" style={{ color: '#9ca3af' }}>Grade {student.grade}</p>}
+                                            {student.notes && <p className="text-[10px] mt-1 italic truncate" style={{ color: '#9ca3af' }}>📝 {student.notes}</p>}
+                                            {bulkRemoveMode && (
+                                              <div className="mt-2 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: isSelected ? '#7c3aed' : '#6b7280' }}>
+                                                <span style={{ width: 10, height: 10, borderRadius: 999, display: 'inline-block', background: isSelected ? '#7c3aed' : '#d1d5db' }} />
+                                                {isSelected ? 'Selected' : 'Tap to select'}
+                                              </div>
                                             )}
                                           </div>
-                                          {student.grade && <p className="text-[10px] mt-0.5" style={{ color: '#9ca3af' }}>Grade {student.grade}</p>}
-                                          {student.notes && <p className="text-[10px] mt-1 italic truncate" style={{ color: '#9ca3af' }}>📝 {student.notes}</p>}
-                                        </div>
-                                      ))}
+                                        );
+                                      })}
 
                                       {hasStudents && !isOnTimeOff && !isFull && renderAddMore(tutor, isoDate, block, session, palette)}
                                       {isAvail && renderAvailableSlot(tutor, isoDate, block, palette)}
@@ -406,37 +496,58 @@ export function WeekView({
                                   <div className="space-y-1" style={{ minHeight: 110 }}>
                                     {hasStudents && !isOnTimeOff && (
                                       <>
-                                        {session!.students.map((student: any) => (
-                                          <div key={student.rowId || student.id}
-                                            className="flex items-center gap-1.5 px-1.5 py-1.5 rounded-lg transition-all"
-                                            style={
-                                              student.status === 'no-show'  ? { background: 'transparent', border: '1.5px solid #d1d5db', opacity: 0.4 }
-                                              : student.status === 'present' ? { background: '#edfaf3', border: '1.5px solid #6ee7b7' }
-                                              :                               { background: palette.bg, border: `1.5px solid ${palette.border}` }
-                                            }>
-                                            <button
-                                              onClick={async e => {
-                                                e.stopPropagation();
-                                                const next = student.status === 'present' ? 'scheduled' : 'present';
-                                                await updateAttendance({ sessionId: session.id, studentId: student.id, status: next });
-                                                logEvent('attendance_marked', { status: next, studentName: student.name, source: 'week_grid' });
-                                                refetch();
+                                        {session!.students.map((student: any) => {
+                                          const key = selectionKey(session.id, student.id);
+                                          const isSelected = !!selectedRemovals[key];
+                                          return (
+                                            <div key={student.rowId || student.id}
+                                              className="flex items-center gap-1.5 px-1.5 py-1.5 rounded-lg transition-all"
+                                              style={{
+                                                ...(student.status === 'no-show'
+                                                  ? { background: 'transparent', border: '1.5px solid #d1d5db', opacity: 0.4 }
+                                                  : student.status === 'present'
+                                                    ? { background: '#edfaf3', border: '1.5px solid #6ee7b7' }
+                                                    : { background: palette.bg, border: `1.5px solid ${palette.border}` }),
+                                                ...(bulkRemoveMode ? { boxShadow: isSelected ? '0 0 0 2px rgba(124,58,237,0.3)' : 'none' } : {}),
                                               }}
-                                              className="shrink-0 w-3 h-3 rounded flex items-center justify-center"
-                                              style={student.status === 'present'
-                                                ? { background: '#059669', border: '1.5px solid #059669' }
-                                                : { background: 'white', border: '1.5px solid #d1d5db' }}>
-                                              {student.status === 'present' && <Check size={7} strokeWidth={3} color="white" />}
-                                            </button>
-                                            <div className="flex-1 min-w-0 cursor-pointer"
-                                              onClick={() => setSelectedSessionWithNotes({ ...session, activeStudent: student, dayName: dayLabel, date: isoDate, tutorName: tutor.name, block })}>
-                                              <p className="text-[10px] font-bold leading-none truncate" style={{ color: '#111827' }}>{student.name}</p>
-                                              <p className="text-[8px] leading-none mt-0.5 truncate" style={{ color: palette.tag }}>
-                                                {student.topic}{student.grade ? ` · Gr.${student.grade}` : ''}{student.seriesId ? ' ↺' : ''}
-                                              </p>
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (bulkRemoveMode) {
+                                                  toggleRemovalSelection(session.id, student.id, student.name);
+                                                  return;
+                                                }
+                                                setSelectedSessionWithNotes({ ...session, activeStudent: student, dayName: dayLabel, date: isoDate, tutorName: tutor.name, block });
+                                              }}>
+                                              <button
+                                                onClick={async e => {
+                                                  e.stopPropagation();
+                                                  const next = student.status === 'present' ? 'scheduled' : 'present';
+                                                  await updateAttendance({ sessionId: session.id, studentId: student.id, status: next });
+                                                  logEvent('attendance_marked', { status: next, studentName: student.name, source: 'week_grid' });
+                                                  refetch();
+                                                }}
+                                                className="shrink-0 w-3 h-3 rounded flex items-center justify-center"
+                                                style={student.status === 'present'
+                                                  ? { background: '#059669', border: '1.5px solid #059669' }
+                                                  : { background: 'white', border: '1.5px solid #d1d5db' }}>
+                                                {student.status === 'present' && <Check size={7} strokeWidth={3} color="white" />}
+                                              </button>
+                                              <div className="flex-1 min-w-0"
+                                                style={{ cursor: bulkRemoveMode ? 'pointer' : 'default' }}>
+                                                <p className="text-[10px] font-bold leading-none truncate" style={{ color: '#111827' }}>{student.name}</p>
+                                                <p className="text-[8px] leading-none mt-0.5 truncate" style={{ color: palette.tag }}>
+                                                  {student.topic}{student.grade ? ` · Gr.${student.grade}` : ''}{student.seriesId ? ' ↺' : ''}
+                                                </p>
+                                              </div>
+                                              {bulkRemoveMode && (
+                                                <div className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.16em]" style={{ color: isSelected ? '#7c3aed' : '#6b7280' }}>
+                                                  <span style={{ width: 8, height: 8, borderRadius: 999, display: 'inline-block', background: isSelected ? '#7c3aed' : '#d1d5db' }} />
+                                                  {isSelected ? 'Selected' : 'Tap to select'}
+                                                </div>
+                                              )}
                                             </div>
-                                          </div>
-                                        ))}
+                                          );
+                                        })}
                                         {!isFull && (
                                           <button onClick={() => openForm(tutor, isoDate, block.time)}
                                             className="w-full py-1 rounded-lg text-[7px] font-bold uppercase transition-all"

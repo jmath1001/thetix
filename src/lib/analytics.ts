@@ -26,6 +26,7 @@ export type EventName =
  | 'template_saved'
  | 'tutor_edited'
  | 'ai_booking_initiated'
+ |'schedule_builder_confirmed'
 | 'tutor_deleted'
 | 'tutor_created'
  | 'recurring_series_cancelled'

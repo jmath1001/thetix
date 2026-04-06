@@ -2,8 +2,29 @@
 import React, { useState } from 'react'
 import { Check, X, Zap, ArrowRight, Loader2, Sparkles, AlertCircle, Calendar, List } from 'lucide-react'
 import { CalendarPreview } from './CalendarPreview'
-import { ACTIVE_DAYS, DAY_NAMES } from './schedule/scheduleConstants'
-import { getWeekDates, toISODate } from '@/lib/useScheduleData'
+
+const SUBJECT_FREQUENCY_HINT: Record<string, string> = {
+  Algebra: 'Weekly',
+  Geometry: 'Weekly',
+  Precalculus: 'Weekly',
+  Calculus: 'Twice weekly',
+  Statistics: 'Weekly',
+  'SAT Math': 'Biweekly',
+  'ACT Math': 'Biweekly',
+  Physics: 'Weekly',
+  Chemistry: 'Weekly',
+  Biology: 'Weekly',
+  'ACT Science': 'Biweekly',
+  'English/Writing': 'Weekly',
+  Literature: 'Weekly',
+  History: 'Weekly',
+  'ACT English': 'Biweekly',
+  'SAT Reading': 'Biweekly',
+}
+
+const getFrequencyHint = (subject?: string) => SUBJECT_FREQUENCY_HINT[subject ?? ''] ?? 'Weekly'
+const getSlotLabel = (slot: any) => slot?.block?.label ?? slot?.time ?? 'Any time'
+const getDayName = (date: string) => new Date(date).toLocaleDateString('en-US', { weekday: 'short' })
 
 export default function OptimizationPreview({ 
   proposal, 
@@ -76,9 +97,36 @@ export default function OptimizationPreview({
           </div>
 
           <div className="mt-5 rounded-3xl border border-slate-200 bg-slate-50 p-5 text-sm leading-6 text-slate-600 shadow-sm">
-            <div className="flex items-start gap-2">
-              <Sparkles size={16} className="mt-0.5 text-indigo-500" />
-              <p>{proposal.reasoning}</p>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-start gap-2">
+                <Sparkles size={16} className="mt-0.5 text-indigo-500" />
+                <p>{proposal.reasoning}</p>
+              </div>
+              <div className="grid w-full grid-cols-2 gap-3 sm:w-auto sm:grid-cols-4">
+                <div className="rounded-3xl bg-white p-3 text-center shadow-sm">
+                  <p className="text-2xl font-semibold text-slate-900">{proposal.changes?.length ?? 0}</p>
+                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Bookings added</p>
+                </div>
+                <div className="rounded-3xl bg-white p-3 text-center shadow-sm">
+                  <p className="text-2xl font-semibold text-slate-900">{new Set(proposal.changes?.map((c: any) => c.newSlot?.tutorName)).size}</p>
+                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Tutors engaged</p>
+                </div>
+                <div className="rounded-3xl bg-white p-3 text-center shadow-sm">
+                  <p className="text-2xl font-semibold text-slate-900">{new Set(proposal.changes?.map((c: any) => c.newSlot?.date)).size}</p>
+                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Days impacted</p>
+                </div>
+                <div className="rounded-3xl bg-white p-3 text-center shadow-sm">
+                  <p className="text-2xl font-semibold text-slate-900">{proposal.changes?.filter((c: any) => c.oldTime === 'Unassigned').length ?? 0}</p>
+                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">New seats</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-indigo-700">Tutor availability</span>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-slate-700">Student availability</span>
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-emerald-700">Balanced week load</span>
+              <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-amber-700">Frequency-aware</span>
             </div>
           </div>
         </div>
@@ -125,13 +173,17 @@ export default function OptimizationPreview({
                       <div className="grid gap-2 sm:grid-cols-2">
                         <div className="rounded-3xl bg-slate-50 p-3 text-sm text-slate-600">
                           <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">New slot</p>
-                          <p className="mt-1 font-semibold text-slate-900">{change.newSlot?.time ?? 'TBD'}</p>
+                          <p className="mt-1 font-semibold text-slate-900">{getSlotLabel(change.newSlot)}</p>
                           <p className="mt-1 text-slate-500">{change.newSlot?.tutorName ?? 'Tutor not set'}</p>
-                          {change.newSlot?.date && <p className="mt-1 text-slate-500">{change.newSlot.date}</p>}
+                          {change.newSlot?.date && <p className="mt-1 text-slate-500">{getDayName(change.newSlot.date)} · {change.newSlot.date}</p>}
                         </div>
                         <div className="rounded-3xl bg-slate-50 p-3 text-sm text-slate-600">
                           <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Why</p>
                           <p className="mt-1 text-slate-700">{change.explanation || 'Better balance and capacity'}</p>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">{getFrequencyHint(change.subject)}</span>
+                            <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-700">{change.newSlot?.time ? 'Evening priority' : 'Flexible'}</span>
+                          </div>
                         </div>
                       </div>
                     </div>

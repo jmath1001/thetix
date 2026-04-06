@@ -98,13 +98,28 @@ export function CalendarPreview({
       {/* Calendar Grid */}
       <div className="overflow-x-auto">
         <div className="min-w-200 p-6">
+          <div className="mb-5 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-3xl bg-white p-4 shadow-sm">
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Booked sessions</p>
+              <p className="mt-2 text-2xl font-semibold text-slate-900">{previewSessions.filter(s => s.students?.length > 0).length}</p>
+            </div>
+            <div className="rounded-3xl bg-white p-4 shadow-sm">
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Preview changes</p>
+              <p className="mt-2 text-2xl font-semibold text-slate-900">{previewSessions.filter(s => s.students?.some((st: any) => st.status === 'preview')).length}</p>
+            </div>
+            <div className="rounded-3xl bg-white p-4 shadow-sm">
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Available tutor-days</p>
+              <p className="mt-2 text-2xl font-semibold text-slate-900">{activeDates.length * tutors.length}</p>
+            </div>
+          </div>
+
           {/* Days header */}
           <div className="grid grid-cols-[120px_repeat(5,1fr)] gap-2 mb-4">
             <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tutor</div>
-            {activeDates.map((date, i) => (
-              <div key={i} className="text-center">
+            {activeDates.map((date) => (
+              <div key={toISODate(date)} className="text-center">
                 <div className="text-sm font-semibold text-slate-900">
-                  {DAY_NAMES[ACTIVE_DAYS[i]]}
+                  {new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(date)}
                 </div>
                 <div className="text-xs text-slate-500">
                   {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
