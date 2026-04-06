@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { DB } from "@/lib/db";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,7 +16,7 @@ export async function POST(req: Request) {
     }
 
     const { data, error } = await supabase
-      .from("slake_session_students")
+      .from(DB.sessionStudents)
       .update({
         status: "confirmed",
         confirmation_status: "confirmed",

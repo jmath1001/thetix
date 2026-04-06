@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient';
+import { DB } from '@/lib/db';
 
 export type EventName =
   | 'attendance_marked'
@@ -41,7 +42,7 @@ export async function logEvent(
   properties: Record<string, any> = {}
 ) {
   try {
-    await supabase.from('slake_events').insert({ event_name, properties });
+    await supabase.from(DB.events).insert({ event_name, properties });
   } catch {
     // never throw — analytics should never break the app
   }

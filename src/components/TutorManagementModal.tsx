@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { X, Trash2, UserPlus, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 import { SESSION_BLOCKS } from '@/components/constants';
 import { supabase } from '@/lib/supabaseClient';
+import { DB } from '@/lib/db';
 import type { Tutor } from '@/lib/useScheduleData';
 
 
@@ -234,7 +235,7 @@ export function TutorManagementModal({ tutors, onClose, onRefetch }: { tutors: T
   const handleSave = async (updated: Tutor) => {
     setError(null);
     const { error } = await supabase
-      .from('slake_tutors')
+      .from(DB.tutors)
       .update({
         name: updated.name,
         subjects: updated.subjects,
@@ -249,7 +250,7 @@ export function TutorManagementModal({ tutors, onClose, onRefetch }: { tutors: T
 
   const handleDelete = async (id: string) => {
     setError(null);
-    const { error } = await supabase.from('slake_tutors').delete().eq('id', id);
+    const { error } = await supabase.from(DB.tutors).delete().eq('id', id);
     if (error) setError(error.message);
     else onRefetch();
   };
@@ -257,7 +258,7 @@ export function TutorManagementModal({ tutors, onClose, onRefetch }: { tutors: T
   const handleAdd = async () => {
     if (!newTutor.name.trim()) return;
     setSaving(true); setError(null);
-    const { error } = await supabase.from('slake_tutors').insert([{
+    const { error } = await supabase.from(DB.tutors).insert([{
       name: newTutor.name,
       subjects: newTutor.subjects,
       cat: newTutor.cat,

@@ -2,11 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
 import { randomUUID } from "crypto";
+import { DB } from "@/lib/db";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+
+const SS = DB.sessionStudents;
+const SESSIONS = DB.sessions;
+const STUDENTS = DB.students;
+const SETTINGS = DB.centerSettings;
+const REMINDER_LOGS = DB.reminderLogs;
+
+function pickRelation(row: any, key: string) {
+  return Array.isArray(row?.[key]) ? row[key][0] : row?.[key];
+}
 
 function buildStudentHtml(settings: any, studentName: string, session: any, confirmLink: string) {
   const body = settings.reminder_body
@@ -68,17 +79,17 @@ function getTransporter() {
 }
 
 // Core send: sends student + parent emails for one session_student row,
-// marks reminder_sent, logs to slake_reminder_logs.
+// marks reminder_sent, logs to reminder logs table.
 async function sendReminderForEntry({
   entry, session, settings, transporter,
 }: { entry: any; session: any; settings: any; transporter: any }) {
-  const student = entry.slake_students;
+  const student = pickRelation(entry, STUDENTS);
   if (!student || (!student.email && !student.parent_email)) return { sent: 0, skipped: true };
 
   let token = entry.confirmation_token;
   if (!token) {
     token = randomUUID();
-    await supabase.from("slake_session_students").update({ confirmation_token: token }).eq("id", entry.id);
+    await supabase.from(SS).update({ confirmation_token: token }).eq("id", entry.id);
   }
   const confirmLink = `${process.env.NEXT_PUBLIC_BASE_URL}/confirm?token=${token}`;
   let sent = 0;
@@ -111,8 +122,8 @@ async function sendReminderForEntry({
     sent++;
   }
 
-  await supabase.from("slake_session_students").update({ reminder_sent: true }).eq("id", entry.id);
-  await supabase.from("slake_reminder_logs").insert({
+  await supabase.from(SS).update({ reminder_sent: true }).eq("id", entry.id);
+  await supabase.from(REMINDER_LOGS).insert({
     session_date:       session.session_date,
     session_time:       session.time,
     student_name:       student.name,
@@ -127,7 +138,7 @@ async function sendReminderForEntry({
 
 export async function GET() {
   try {
-    const { data: settings, error: settingsError } = await supabase.from("slake_center_settings").select("*").single();
+    const { data: settings, error: settingsError } = await supabase.from(SETTINGS).select("*").single();
     if (settingsError || !settings) throw new Error("Settings not found");
 
     const now = new Date();
@@ -136,10 +147,10 @@ export async function GET() {
     const tomorrowStr = tomorrow.toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
 
     const { data: sessions, error } = await supabase
-      .from("slake_sessions")
+      .from(SESSIONS)
       .select(`id, session_date, time,
-        slake_session_students ( id, status, reminder_sent, confirmation_token, topic,
-          slake_students ( name, email, parent_name, parent_email ) )`)
+        ${SS} ( id, status, reminder_sent, confirmation_token, topic,
+          ${STUDENTS} ( name, email, parent_name, parent_email ) )`)
       .in("session_date", [todayStr, tomorrowStr]);
     if (error) throw error;
 
@@ -148,12 +159,12 @@ export async function GET() {
     const summaryEntries: string[] = [];
 
     for (const session of sessions ?? []) {
-      for (const entry of (session.slake_session_students ?? []) as any[]) {
+      for (const entry of (session[SS] ?? []) as any[]) {
         if (entry.reminder_sent) continue;
         const result = await sendReminderForEntry({ entry, session, settings, transporter });
         if (!result.skipped) {
           sent += result.sent ?? 0;
-          summaryEntries.push(`  • ${entry.slake_students?.name} — ${session.session_date} at ${session.time}`);
+          summaryEntries.push(`  • ${pickRelation(entry, STUDENTS)?.name} — ${session.session_date} at ${session.time}`);
         }
       }
     }
@@ -185,14 +196,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
     }
 
-    const { data: settings, error: settingsError } = await supabase.from("slake_center_settings").select("*").single();
+    const { data: settings, error: settingsError } = await supabase.from(SETTINGS).select("*").single();
     if (settingsError || !settings) throw new Error("Settings not found");
 
     const { data: entries, error: fetchErr } = await supabase
-      .from("slake_session_students")
+      .from(SS)
       .select(`id, status, reminder_sent, confirmation_token, topic,
-        slake_students ( name, email, parent_name, parent_email ),
-        slake_sessions ( session_date, time )`)
+        ${STUDENTS} ( name, email, parent_name, parent_email ),
+        ${SESSIONS} ( session_date, time )`)
       .in("id", body.sessionStudentIds);
     if (fetchErr) throw fetchErr;
 
@@ -201,13 +212,14 @@ export async function POST(req: NextRequest) {
     const errors: string[] = [];
 
     for (const entry of (entries ?? []) as any[]) {
-      const session = Array.isArray(entry.slake_sessions) ? entry.slake_sessions[0] : entry.slake_sessions;
-      if (!session) { errors.push(`${entry.slake_students?.name ?? entry.id}: session not found`); continue; }
+      const session = pickRelation(entry, SESSIONS);
+      const student = pickRelation(entry, STUDENTS);
+      if (!session) { errors.push(`${student?.name ?? entry.id}: session not found`); continue; }
       try {
         const result = await sendReminderForEntry({ entry, session, settings, transporter });
         sent += result.sent ?? 0;
       } catch (e: any) {
-        errors.push(`${entry.slake_students?.name ?? entry.id}: ${e.message}`);
+        errors.push(`${student?.name ?? entry.id}: ${e.message}`);
       }
     }
 

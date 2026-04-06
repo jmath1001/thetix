@@ -21,7 +21,7 @@ const ALL_TOPICS  = [...MATH_TOPICS, ...ENG_TOPICS, 'Other'];
 
 type SessionRow = {
   id: string; status: string; notes: string | null; topic: string | null; tutorId: string | null;
-  slake_sessions: { id: string; session_date: string; time: string; tutor_id: string } | null;
+  session: { id: string; session_date: string; time: string; tutor_id: string } | null;
 };
 type EditTab = 'schedule' | 'duration' | 'day';
 type SingleSessionEdit = {
@@ -38,8 +38,8 @@ function dowFromIso(d: string) { const dt = new Date(d + 'T00:00:00'); return dt
 function normaliseRows(data: any[]): SessionRow[] {
   return data.map(r => ({
     id: r.id, status: r.status, notes: r.notes, topic: r.topic ?? null,
-    tutorId: r.slake_sessions ? (Array.isArray(r.slake_sessions) ? r.slake_sessions[0]?.tutor_id : r.slake_sessions?.tutor_id) ?? null : null,
-    slake_sessions: Array.isArray(r.slake_sessions) ? r.slake_sessions[0] || null : r.slake_sessions || null,
+    tutorId: (Array.isArray(r[DB.sessions]) ? r[DB.sessions][0] : r[DB.sessions])?.tutor_id ?? null,
+    session: (Array.isArray(r[DB.sessions]) ? r[DB.sessions][0] : r[DB.sessions]) || null,
   }));
 }
 
@@ -84,8 +84,8 @@ function SeriesCard({ s, tutors, students, today, onEdit, onCancelSeries, onDele
 
   const toggle = () => { if (!expanded) loadSessions(); setExpanded(e => !e); };
 
-  const past = sessions.filter(r => (r.slake_sessions?.session_date ?? '') < today);
-  const future = sessions.filter(r => (r.slake_sessions?.session_date ?? '') >= today && r.status !== 'cancelled');
+  const past = sessions.filter(r => (r.session?.session_date ?? '') < today);
+  const future = sessions.filter(r => (r.session?.session_date ?? '') >= today && r.status !== 'cancelled');
   const present = past.filter(r => r.status === 'present' || r.status === 'confirmed').length;
   const noShow = past.filter(r => r.status === 'no-show').length;
   const attended = past.filter(r => r.status !== 'cancelled').length;
@@ -197,8 +197,8 @@ function SeriesCard({ s, tutors, students, today, onEdit, onCancelSeries, onDele
               <>
                 <p className="text-[9px] font-black uppercase tracking-widest text-[#94a3b8] mb-3">Session Timeline · {sessions.length} sessions</p>
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {sessions.sort((a, b) => (a.slake_sessions?.session_date ?? '').localeCompare(b.slake_sessions?.session_date ?? '')).map(row => {
-                    const date = row.slake_sessions?.session_date ?? '';
+                  {sessions.sort((a, b) => (a.session?.session_date ?? '').localeCompare(b.session?.session_date ?? '')).map(row => {
+                    const date = row.session?.session_date ?? '';
                     const isPast = date < today;
                     const canEdit = s.status === 'active' && row.status !== 'cancelled' && date >= today;
                     return <SessionDot key={row.id} status={row.status} date={date} isPast={isPast} onClick={canEdit ? () => onEditSession(row, s) : undefined} />;
@@ -216,7 +216,7 @@ function SeriesCard({ s, tutors, students, today, onEdit, onCancelSeries, onDele
                     <p className="text-[9px] font-black uppercase tracking-widest text-[#dc2626] mb-2">Upcoming · {future.length}</p>
                     <div className="space-y-1.5">
                       {future.slice(0, 4).map(row => {
-                        const date = row.slake_sessions?.session_date ?? '';
+                        const date = row.session?.session_date ?? '';
                         const d = new Date(date + 'T00:00:00');
                         const canEdit = s.status === 'active' && row.status !== 'cancelled';
                         return (
@@ -227,7 +227,7 @@ function SeriesCard({ s, tutors, students, today, onEdit, onCancelSeries, onDele
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-bold text-[#1e293b] truncate">{row.topic ?? s.topic}</p>
-                              <p className="text-[10px] text-[#94a3b8]">{DAY_NAMES[s.dayOfWeek]} · {row.slake_sessions?.time ?? s.time}</p>
+                              <p className="text-[10px] text-[#94a3b8]">{DAY_NAMES[s.dayOfWeek]} · {row.session?.time ?? s.time}</p>
                             </div>
                             {canEdit && (
                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -332,7 +332,7 @@ export default function RecurringManager() {
       if (newTotalWeeks < editingSeries.totalWeeks) {
         try {
           const sessions = await getSeriesSessions(editingSeries.id);
-          const dropping = sessions.filter(r => { const d = r.slake_sessions?.session_date ?? ''; return d >= today && d > newEnd; }).length;
+          const dropping = sessions.filter(r => { const d = r.session?.session_date ?? ''; return d >= today && d > newEnd; }).length;
           if (dropping > 0) { setSessionsToRemove(dropping); setConfirmStep(true); return; }
         } catch {}
       }
@@ -340,7 +340,7 @@ export default function RecurringManager() {
     if (editTab === 'day') {
       try {
         const sessions = await getSeriesSessions(editingSeries.id);
-        const future = sessions.filter(r => (r.slake_sessions?.session_date ?? '') >= today).length;
+        const future = sessions.filter(r => (r.session?.session_date ?? '') >= today).length;
         if (future > 0) { setSessionsToRemove(future); setConfirmStep(true); return; }
       } catch {}
     }
@@ -360,7 +360,7 @@ export default function RecurringManager() {
         const { error: ue } = await supabase.from(DB.recurringSeries).update({ end_date: newEnd, total_weeks: newTotalWeeks }).eq('id', editingSeries.id);
         if (ue) throw ue;
         const sessions = await getSeriesSessions(editingSeries.id);
-        const toDrop = sessions.filter(r => { const d = r.slake_sessions?.session_date ?? ''; return d >= today && d > newEnd; }).map(r => r.id);
+        const toDrop = sessions.filter(r => { const d = r.session?.session_date ?? ''; return d >= today && d > newEnd; }).map(r => r.id);
         if (toDrop.length > 0) { const { error: de } = await supabase.from(DB.sessionStudents).delete().in('id', toDrop); if (de) throw de; }
         if (newTotalWeeks > editingSeries.totalWeeks) {
           const oldEnd = editingSeries.endDate;
@@ -392,12 +392,12 @@ export default function RecurringManager() {
   };
 
   const openSingleEdit = (row: SessionRow, s: RecurringSeries) => {
-    const date = row.slake_sessions?.session_date ?? '';
-    setSingleEdit({ row, series: s, newDate: date, newTime: row.slake_sessions?.time ?? s.time, newTutorId: row.slake_sessions?.tutor_id ?? s.tutorId, newTopic: row.topic ?? s.topic, saving: false, error: null, confirmCancel: false });
+    const date = row.session?.session_date ?? '';
+    setSingleEdit({ row, series: s, newDate: date, newTime: row.session?.time ?? s.time, newTutorId: row.session?.tutor_id ?? s.tutorId, newTopic: row.topic ?? s.topic, saving: false, error: null, confirmCancel: false });
   };
 
   const openSingleCancel = (row: SessionRow, s: RecurringSeries) => {
-    setSingleEdit({ row, series: s, newDate: row.slake_sessions?.session_date ?? '', newTime: row.slake_sessions?.time ?? s.time, newTutorId: row.slake_sessions?.tutor_id ?? s.tutorId, newTopic: row.topic ?? s.topic, saving: false, error: null, confirmCancel: true });
+    setSingleEdit({ row, series: s, newDate: row.session?.session_date ?? '', newTime: row.session?.time ?? s.time, newTutorId: row.session?.tutor_id ?? s.tutorId, newTopic: row.topic ?? s.topic, saving: false, error: null, confirmCancel: true });
   };
 
   const closeSingleEdit = () => setSingleEdit(null);
@@ -438,7 +438,7 @@ export default function RecurringManager() {
       const { error: e } = await supabase.from(DB.sessionStudents).update({ status: 'cancelled' }).eq('id', singleEdit.row.id);
       if (e) throw e;
       closeSingleEdit();
-      logEvent('recurring_session_cancelled', { seriesId: singleEdit.series.id, date: singleEdit.row.slake_sessions?.session_date });
+      logEvent('recurring_session_cancelled', { seriesId: singleEdit.series.id, date: singleEdit.row.session?.session_date });
       await load();
     } catch (e: any) { patchSingle({ saving: false, error: e.message }); }
   };
@@ -645,7 +645,7 @@ export default function RecurringManager() {
             <div className="flex items-center justify-between px-5 py-4" style={{ background: '#1e293b' }}>
               <div>
                 <p className="text-sm font-black text-white">{singleEdit.confirmCancel ? 'Cancel Session?' : 'Edit Session'}</p>
-                <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>{singleEdit.series.studentName} · {singleEdit.row.slake_sessions?.session_date}</p>
+                <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>{singleEdit.series.studentName} · {singleEdit.row.session?.session_date}</p>
               </div>
               <button onClick={closeSingleEdit} className="w-8 h-8 flex items-center justify-center rounded-full" style={{ background: 'rgba(255,255,255,0.1)', color: 'white' }}>
                 <X size={15}/>
@@ -656,7 +656,7 @@ export default function RecurringManager() {
                 <div className="space-y-4">
                   <div className="px-4 py-4 rounded-xl" style={{ background: '#fef2f2', border: '1px solid #fecaca' }}>
                     <div className="flex items-center gap-2 mb-1.5"><AlertTriangle size={14} style={{ color: '#dc2626' }}/><p className="text-sm font-black text-[#dc2626]">Cancel this occurrence?</p></div>
-                    <p className="text-xs text-[#64748b]">Only <strong>{singleEdit.row.slake_sessions?.session_date}</strong> is affected. The rest of the series continues.</p>
+                    <p className="text-xs text-[#64748b]">Only <strong>{singleEdit.row.session?.session_date}</strong> is affected. The rest of the series continues.</p>
                   </div>
                   <div className="flex gap-3">
                     <button onClick={() => patchSingle({ confirmCancel: false })} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-[#64748b]" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>Go Back</button>

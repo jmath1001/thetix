@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { DB } from '@/lib/db';
 import { toISODate, getCentralTimeNow } from '@/lib/useScheduleData';
 import { Loader2, Search, X, ChevronDown, ChevronUp, Calendar, Clock, User } from 'lucide-react';
 
@@ -34,11 +35,11 @@ export default function StudentHistoryPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     const [studentsRes, tutorsRes, sessionsRes] = await Promise.all([
-      supabase.from('slake_students').select('*').order('name'),
-      supabase.from('slake_tutors').select('id, name').order('name'),
-      supabase.from('slake_sessions').select(`
+      supabase.from(DB.students).select('*').order('name'),
+      supabase.from(DB.tutors).select('id, name').order('name'),
+      supabase.from(DB.sessions).select(`
         id, session_date, time, tutor_id,
-        slake_session_students ( id, student_id, name, topic, status, notes )
+        ${DB.sessionStudents} ( id, student_id, name, topic, status, notes )
       `).order('session_date', { ascending: false }),
     ]);
     setStudents(studentsRes.data ?? []);
@@ -54,7 +55,7 @@ export default function StudentHistoryPage() {
   const getStudentSessions = (studentId: string) => {
     return sessions
       .flatMap(s => {
-        const entry = (s.slake_session_students ?? []).find((ss: any) => ss.student_id === studentId);
+        const entry = (s[DB.sessionStudents] ?? []).find((ss: any) => ss.student_id === studentId);
         if (!entry) return [];
         return [{
           date: s.session_date,
