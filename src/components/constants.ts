@@ -9,7 +9,7 @@ export type SessionBlock = {
 }
 
 export const SESSION_BLOCKS: SessionBlock[] = [
-  { id: 'S1', label: 'Session 1', time: '13:30', display: '1:30 – 3:20 PM', days: [1, 2, 3, 4] },
+  { id: 'S1', label: 'Session 1', time: '13:30', display: '1:30 – 3:20 PM', days: [1, 2, 3] },
   { id: 'S2', label: 'Session 2', time: '15:30', display: '3:30 – 5:20 PM', days: [1, 2, 3, 4] },
   { id: 'S3', label: 'Session 3', time: '17:30', display: '5:30 – 7:20 PM', days: [1, 2, 3, 4] },
   { id: 'S4', label: 'Session 4', time: '19:30', display: '7:30 – 9:20 PM', days: [1, 2, 3, 4] },
