@@ -447,12 +447,12 @@ export default function TutorManagementPage() {
   );
 
   return (
-    <div className="w-full min-h-screen pb-20" style={{ background: '#f8fafc' }}>
+    <div className="w-full min-h-screen pb-20" style={{ background: '#e2e8f0' }}>
 
       {/* Header */}
-      <div className="sticky top-0 z-40 bg-white border-b border-[#f1f5f9]"
+      <div className="sticky top-0 z-40 bg-white border-b border-[#cbd5e1]"
         style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-        <div className="max-w-3xl mx-auto flex items-center justify-between px-6 py-4">
+        <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#dc2626' }}>
               <UserPlus size={15} className="text-white" />
@@ -473,7 +473,7 @@ export default function TutorManagementPage() {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-6 pt-6 space-y-3">
+      <div className="max-w-6xl mx-auto px-6 pt-6 space-y-3">
 
         {error && (
           <div className="p-3 rounded-xl flex items-center gap-2 text-sm"
@@ -571,10 +571,19 @@ export default function TutorManagementPage() {
             <p className="text-xs text-[#cbd5e1] mt-1">Add one above to get started</p>
           </div>
         ) : (
-          tutors.map(t => (
-            <TutorRow key={t.id} tutor={t} timeOffList={timeOffList}
-              onSave={handleSave} onDelete={handleDelete} onRefetch={fetchAll} />
-          ))
+          <div className="rounded-xl overflow-hidden" style={{ border: '1.5px solid #94a3b8', background: '#ffffff' }}>
+            <div className="hidden md:grid" style={{ gridTemplateColumns: '2fr 1fr 2fr 1.4fr 0.8fr 0.8fr', background: '#0f172a', color: 'white' }}>
+              {['Tutor', 'Category', 'Subjects', 'Contact', 'Time Off', 'Actions'].map(h => (
+                <div key={h} className="px-4 py-2.5 text-[10px] font-black uppercase tracking-widest">{h}</div>
+              ))}
+            </div>
+            <div className="space-y-2 p-2" style={{ background: '#f8fafc' }}>
+              {tutors.map(t => (
+                <TutorRow key={t.id} tutor={t} timeOffList={timeOffList}
+                  onSave={handleSave} onDelete={handleDelete} onRefetch={fetchAll} />
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </div>

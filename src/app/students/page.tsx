@@ -204,7 +204,7 @@ function MetricsPanel({ students, allSessions, tutors }: { students: any[]; allS
         <div className="flex items-center gap-2.5">
           <BarChart2 size={14} style={{ color: open ? '#dc2626' : '#94a3b8' }} />
           <div className="text-left">
-            <p className="text-xs font-black text-[#1e293b]">Pilot Metrics</p>
+            <p className="text-xs font-black text-[#1e293b]">Metrics</p>
             <p className="text-[10px] text-[#94a3b8]">
               {metrics.total > 0 ? `${metrics.total} sessions · ${pct(metrics.attendanceRate)} attendance · ${pct(metrics.noShowRate)} no-show` : 'No past data yet'}
             </p>
@@ -393,9 +393,10 @@ function StudentCard({
 
   return (
     <>
-      <div className="bg-white rounded-2xl overflow-hidden transition-all"
-        style={{ border: expanded ? '1.5px solid #fecaca' : '1.5px solid #f1f5f9' }}>
-        <div className="px-4 py-3.5 flex items-center gap-3">
+      <div className="bg-white overflow-hidden transition-all"
+        style={{ border: expanded ? '1.5px solid #dc2626' : '1.5px solid #cbd5e1', borderRadius: 10 }}>
+        <div className="px-4 py-3.5 flex items-center gap-3"
+          style={{ background: expanded ? '#fff7f7' : '#ffffff' }}>
           <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-black text-white shrink-0"
             style={{ background: color }}>{initials}</div>
 
@@ -439,12 +440,12 @@ function StudentCard({
           <div className="flex items-center gap-1.5 shrink-0">
             <button onClick={() => setShowBooking(true)}
               className="px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider text-white transition-all active:scale-95"
-              style={{ background: '#dc2626' }}>Book</button>
+              style={{ background: '#991b1b' }}>Book</button>
             {!isEditing && (
               <>
                 <button onClick={() => { setIsEditing(true); setExpanded(true); setTab('contact'); }}
                   className="px-2 py-1.5 rounded-lg text-[10px] font-bold text-[#64748b] transition-all"
-                  style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>Edit</button>
+                  style={{ background: '#f8fafc', border: '1px solid #94a3b8' }}>Edit</button>
                 <button onClick={handleDelete}
                   className={`p-1.5 rounded-lg transition-all ${confirmDelete ? 'bg-red-100 text-red-600 text-xs font-black px-2' : 'text-[#cbd5e1] hover:text-red-400'}`}>
                   {confirmDelete ? '?' : <Trash2 size={12}/>}
@@ -468,8 +469,8 @@ function StudentCard({
         </div>
 
         {expanded && (
-          <div style={{ borderTop: '1px solid #f8fafc' }}>
-            <div className="flex px-4 gap-0" style={{ background: '#fafafa', borderBottom: '1px solid #f1f5f9' }}>
+          <div style={{ borderTop: '1px solid #cbd5e1' }}>
+            <div className="flex px-4 gap-0" style={{ background: '#f1f5f9', borderBottom: '1px solid #cbd5e1' }}>
               {(['sessions', 'contact'] as const).map(t => (
                 <button key={t} onClick={() => setTab(t)}
                   className="py-2.5 mr-5 text-[10px] font-black uppercase tracking-widest border-b-2 -mb-px transition-colors"
@@ -627,9 +628,9 @@ export default function StudentAdminPage() {
   };
 
   return (
-    <div className="min-h-screen pb-20" style={{ background: '#f8fafc', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}>
-      <div className="sticky top-0 z-40 bg-white border-b border-[#f1f5f9]">
-        <div className="max-w-3xl mx-auto px-5 h-14 flex items-center justify-between">
+    <div className="min-h-screen pb-20" style={{ background: '#e2e8f0', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}>
+      <div className="sticky top-0 z-40 bg-white border-b border-[#cbd5e1]">
+        <div className="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-[#dc2626] flex items-center justify-center">
               <GraduationCap size={14} className="text-white"/>
@@ -648,7 +649,7 @@ export default function StudentAdminPage() {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-5 pt-5 space-y-4">
+      <div className="max-w-6xl mx-auto px-5 pt-5 space-y-4">
         {!loading && (
           <div className="grid grid-cols-3 gap-3">
             {[
@@ -737,12 +738,19 @@ export default function StudentAdminPage() {
             <p className="text-xs font-semibold text-[#94a3b8] uppercase tracking-widest">Loading…</p>
           </div>
         ) : filtered.length > 0 ? (
-          <div className="space-y-2">
+          <div className="rounded-xl overflow-hidden" style={{ border: '1.5px solid #94a3b8', background: '#ffffff' }}>
+            <div className="hidden md:grid" style={{ gridTemplateColumns: '2.2fr 0.8fr 1fr 1.2fr 1fr 1fr', background: '#0f172a', color: 'white' }}>
+              {['Student', 'Grade', 'Booking', 'Next Session', 'Attendance', 'Actions'].map(h => (
+                <div key={h} className="px-4 py-2.5 text-[10px] font-black uppercase tracking-widest">{h}</div>
+              ))}
+            </div>
+            <div className="space-y-2 p-2" style={{ background: '#f8fafc' }}>
             {filtered.map(s => (
               <StudentCard key={s.id} student={s} onRefetch={fetchData}
                 tutors={tutors} allSessions={allSessions} allAvailableSeats={allAvailableSeats}
                 onBookingSuccess={d => { setBookingToast(d); setTimeout(() => setBookingToast(null), 4000); }}/>
             ))}
+            </div>
           </div>
         ) : (
           <div className="text-center py-24 bg-white rounded-2xl" style={{ border: '1.5px dashed #e2e8f0' }}>

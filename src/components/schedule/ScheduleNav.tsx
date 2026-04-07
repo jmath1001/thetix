@@ -47,7 +47,7 @@ export function ScheduleNav({
   commandBarSlot,
 }: ScheduleNavProps) {
   return (
-    <div className="fixed top-16 left-0 right-0 z-30 border-b"
+    <div className="sticky top-0 z-30 border-b"
       style={{ background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(16px)', borderColor: '#fde8e8' }}>
       <div className="max-w-[1600px] mx-auto px-2 md:px-6 h-10 md:h-11 flex items-center gap-1.5 md:gap-2">
 

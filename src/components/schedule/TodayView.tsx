@@ -613,7 +613,7 @@ export function TodayView({
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ position: 'fixed', top: 108, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#fafafa', colorScheme: 'light' } as React.CSSProperties}>
+    <div style={{ width: '100%', height: 'calc(100dvh - 44px)', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#fafafa', colorScheme: 'light' } as React.CSSProperties}>
       <div style={{ maxWidth: 1600, width: '100%', margin: '0 auto', padding: '12px 24px 24px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
 
         {/* Day header — desktop */}

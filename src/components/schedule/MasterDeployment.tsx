@@ -292,7 +292,7 @@ export default function MasterDeployment() {
   );
 
   return (
-    <div className={`w-full pt-11 ${todayView ? '' : 'min-h-screen pb-12'}`} style={{ background: '#fafafa', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}>
+    <div className={`w-full ${todayView ? '' : 'min-h-screen pb-12'}`} style={{ background: '#fafafa', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}>
 
       <ScheduleNav
         todayView={todayView}
