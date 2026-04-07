@@ -327,14 +327,16 @@ export default function MasterDeployment() {
               weekStart={weekStartIso}
               nextWeekStart={toISODate(nextWeekStart)}
             />
-            <button
-              onClick={() => setIsScheduleBuilderOpen(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 8, background: '#f5f3ff', border: '1px solid #c4b5fd', color: '#7c3aed', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#ede9fe'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#f5f3ff'; }}
-            >
-              <Zap size={12} /> Build
-            </button>
+            <span title="Auto schedule builder is in progress." style={{ display: 'inline-flex' }}>
+              <button
+                type="button"
+                disabled
+                aria-label="Auto schedule builder is in progress"
+                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 8, background: '#f3f4f6', border: '1px solid #d1d5db', color: '#9ca3af', fontSize: 12, fontWeight: 700, cursor: 'not-allowed', whiteSpace: 'nowrap', opacity: 0.95 }}
+              >
+                <Zap size={12} /> Build
+              </button>
+            </span>
           </>
         }
       />
