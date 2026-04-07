@@ -608,12 +608,12 @@ export function TodayView({
       <div
         onClick={() => openForm(tutor, block.time)}
         className="flex-1 rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all"
-        style={{ minHeight: minH, background: '#ecfdf3', border: '2px dashed #34d399' }}
-        onMouseEnter={e => { e.currentTarget.style.background = '#d1fae5'; e.currentTarget.style.borderColor = '#10b981'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = '#ecfdf3'; e.currentTarget.style.borderColor = '#34d399'; }}
+        style={{ minHeight: minH, background: '#eff6ff', border: '2px dashed #60a5fa' }}
+        onMouseEnter={e => { e.currentTarget.style.background = '#dbeafe'; e.currentTarget.style.borderColor = '#2563eb'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = '#eff6ff'; e.currentTarget.style.borderColor = '#60a5fa'; }}
       >
-        <PlusCircle size={14} style={{ color: '#059669' }} />
-        <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#059669' }}>Available</span>
+        <PlusCircle size={14} style={{ color: '#2563eb' }} />
+        <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#2563eb' }}>Available</span>
       </div>
     );
   };
@@ -801,7 +801,7 @@ export function TodayView({
                                     background: isOutside
                                       ? 'repeating-linear-gradient(45deg,#e9ebee,#e9ebee 4px,#dfe2e6 4px,#dfe2e6 8px)'
                                       : dropState === 'valid'
-                                        ? '#dcfce7'
+                                        ? '#dbeafe'
                                         : dropState === 'invalid'
                                           ? '#fee2e2'
                                           : '#f3f4f6',
@@ -925,7 +925,7 @@ export function TodayView({
                                   background: isOutside
                                     ? 'repeating-linear-gradient(45deg,#e9ebee,#e9ebee 4px,#dfe2e6 4px,#dfe2e6 8px)'
                                     : dropState === 'valid'
-                                      ? '#dcfce7'
+                                      ? '#dbeafe'
                                       : dropState === 'invalid'
                                         ? '#fee2e2'
                                         : '#f3f4f6',
@@ -996,9 +996,9 @@ export function TodayView({
                                   {isAvail && (
                                     <div onClick={() => openForm(tutor, block.time)}
                                       className="w-full h-full rounded-lg flex flex-col items-center justify-center gap-1 cursor-pointer active:scale-95 transition-all"
-                                      style={{ minHeight: 56, background: '#ecfdf3', border: '2px dashed #34d399' }}>
-                                      <PlusCircle size={12} style={{ color: '#059669' }} />
-                                      <span className="text-[8px] font-bold uppercase tracking-wider" style={{ color: '#059669' }}>Available</span>
+                                      style={{ minHeight: 56, background: '#eff6ff', border: '2px dashed #60a5fa' }}>
+                                      <PlusCircle size={12} style={{ color: '#2563eb' }} />
+                                      <span className="text-[8px] font-bold uppercase tracking-wider" style={{ color: '#2563eb' }}>Available</span>
                                     </div>
                                   )}
                                   {isOutside && (

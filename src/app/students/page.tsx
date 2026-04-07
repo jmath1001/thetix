@@ -259,7 +259,7 @@ function StudentRow({
       {/* Main row */}
       <div className="grid items-center transition-all"
         style={{
-          gridTemplateColumns: '36px 36px 2fr 60px 100px 100px 80px 120px',
+          gridTemplateColumns: '36px 36px 2fr 60px 100px 100px 80px 144px',
           borderBottom: expanded ? 'none' : '1px solid #f1f5f9',
           background: selected ? '#fff5f5' : expanded ? '#fafafa' : '#fff',
           minHeight: 52,
@@ -697,7 +697,7 @@ export default function StudentAdminPage() {
           <div className="rounded-xl overflow-hidden bg-white" style={{ border: '1px solid #e2e8f0' }}>
             {/* Table header */}
             <div className="grid items-center px-0"
-              style={{ gridTemplateColumns: '36px 36px 2fr 60px 100px 100px 80px 120px', background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0', height: 36 }}>
+              style={{ gridTemplateColumns: '36px 36px 2fr 60px 100px 100px 80px 144px', background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0', height: 36 }}>
               <div className="flex items-center justify-center">
                 <button onClick={toggleAll} className="text-[#94a3b8] hover:text-[#dc2626] transition-colors">
                   {allSelected ? <CheckSquare size={13} style={{ color: '#dc2626' }} /> : <Square size={13} />}

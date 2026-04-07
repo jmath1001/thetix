@@ -447,33 +447,28 @@ export default function TutorManagementPage() {
   );
 
   return (
-    <div className="w-full min-h-screen pb-20" style={{ background: '#e2e8f0' }}>
+    <div className="w-full min-h-screen pb-20" style={{ background: '#f1f5f9', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}>
 
       {/* Header */}
-      <div className="sticky top-0 z-40 bg-white border-b border-[#cbd5e1]"
-        style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-        <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
+      <div className="sticky top-0 z-40 bg-white" style={{ borderBottom: '1px solid #e2e8f0' }}>
+        <div className="max-w-7xl mx-auto h-12 flex items-center justify-between px-5 gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#dc2626' }}>
-              <UserPlus size={15} className="text-white" />
-            </div>
-            <div>
-              <h1 className="text-sm font-black text-[#0f172a] leading-none">Tutors</h1>
-              <p className="text-[9px] font-bold uppercase tracking-widest mt-0.5" style={{ color: '#dc2626' }}>
-                {tutors.length} tutor{tutors.length !== 1 ? 's' : ''}
-              </p>
-            </div>
+            <UserPlus size={15} style={{ color: '#dc2626' }} />
+            <span className="text-sm font-black text-[#0f172a]">Tutors</span>
+            <span className="text-[10px] font-bold text-[#94a3b8] bg-[#f8fafc] px-2 py-0.5 rounded-full border border-[#e2e8f0]">
+              {tutors.length}
+            </span>
           </div>
           <button
             onClick={() => { setAdding(a => !a); setNewTutor(EMPTY_TUTOR); }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black text-white transition-all active:scale-95"
-            style={{ background: adding ? '#64748b' : '#dc2626', boxShadow: adding ? 'none' : '0 2px 8px rgba(220,38,38,0.25)' }}>
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black text-white transition-all"
+            style={{ background: adding ? '#64748b' : '#dc2626' }}>
             {adding ? <><X size={13} /> Cancel</> : <><UserPlus size={13} /> Add Tutor</>}
           </button>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 pt-6 space-y-3">
+      <div className="max-w-7xl mx-auto px-5 pt-4 space-y-3">
 
         {error && (
           <div className="p-3 rounded-xl flex items-center gap-2 text-sm"

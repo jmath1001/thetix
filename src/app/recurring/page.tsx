@@ -447,17 +447,15 @@ export default function RecurringManager() {
   const counts = { all: series.length, active: series.filter(s => s.status === 'active').length, completed: series.filter(s => s.status === 'completed').length, cancelled: series.filter(s => s.status === 'cancelled').length };
 
   return (
-    <div className="min-h-screen pb-20" style={{ background: '#f8fafc', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}>
-      <div className="sticky top-0 z-40 bg-white border-b border-[#f1f5f9]">
-        <div className="max-w-4xl mx-auto px-5 h-14 flex items-center justify-between">
+    <div className="min-h-screen pb-20" style={{ background: '#f1f5f9', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}>
+      <div className="sticky top-0 z-40 bg-white" style={{ borderBottom: '1px solid #e2e8f0' }}>
+        <div className="max-w-7xl mx-auto px-5 h-12 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-[#dc2626] flex items-center justify-center">
-              <Repeat size={14} className="text-white"/>
-            </div>
-            <div>
-              <h1 className="text-sm font-black text-[#0f172a] leading-none">Recurring</h1>
-              <p className="text-[9px] font-bold uppercase tracking-widest text-[#dc2626]">C2 Education</p>
-            </div>
+            <Repeat size={15} style={{ color: '#dc2626' }} />
+            <span className="text-sm font-black text-[#0f172a]">Recurring</span>
+            <span className="text-[10px] font-bold text-[#94a3b8] bg-[#f8fafc] px-2 py-0.5 rounded-full border border-[#e2e8f0]">
+              {series.length}
+            </span>
           </div>
           <button onClick={load} disabled={loading} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-[#64748b]" style={{ background: '#f1f5f9' }}>
             <RefreshCw size={11} className={loading ? 'animate-spin' : ''}/> Refresh
@@ -465,7 +463,7 @@ export default function RecurringManager() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-5 pt-5 space-y-4">
+      <div className="max-w-7xl mx-auto px-5 pt-4 space-y-4">
         <div className="flex items-center gap-2 flex-wrap">
           {([
             { key: 'all', label: 'All', color: '#0f172a', bg: 'white', activeBg: '#0f172a' },

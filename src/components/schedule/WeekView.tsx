@@ -267,11 +267,11 @@ export function WeekView({
     return (
       <div onClick={() => openForm(tutor, date, block.time)}
         className="w-full h-full min-h-[100px] rounded-xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-all"
-        style={{ background: '#ecfdf3', border: '2px dashed #34d399' }}
-        onMouseEnter={e => { e.currentTarget.style.background = '#d1fae5'; e.currentTarget.style.borderColor = '#10b981'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = '#ecfdf3'; e.currentTarget.style.borderColor = '#34d399'; }}>
-        <PlusCircle size={14} style={{ color: '#059669' }} />
-        <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#059669' }}>Available</span>
+        style={{ background: '#eff6ff', border: '2px dashed #60a5fa' }}
+        onMouseEnter={e => { e.currentTarget.style.background = '#dbeafe'; e.currentTarget.style.borderColor = '#2563eb'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = '#eff6ff'; e.currentTarget.style.borderColor = '#60a5fa'; }}>
+        <PlusCircle size={14} style={{ color: '#2563eb' }} />
+        <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#2563eb' }}>Available</span>
       </div>
     );
   };
@@ -389,7 +389,7 @@ export function WeekView({
                                       background: isOutside
                                         ? 'repeating-linear-gradient(45deg,#e9ebee,#e9ebee 4px,#dfe2e6 4px,#dfe2e6 8px)'
                                         : dropState === 'valid'
-                                          ? '#dcfce7'
+                                          ? '#dbeafe'
                                           : dropState === 'invalid'
                                             ? '#fee2e2'
                                             : '#f3f4f6',
@@ -529,7 +529,7 @@ export function WeekView({
                                     background: isOutside
                                       ? 'repeating-linear-gradient(45deg,#e9ebee,#e9ebee 4px,#dfe2e6 4px,#dfe2e6 8px)'
                                       : dropState === 'valid'
-                                        ? '#dcfce7'
+                                        ? '#dbeafe'
                                         : dropState === 'invalid'
                                           ? '#fee2e2'
                                           : '#f3f4f6',
@@ -622,9 +622,9 @@ export function WeekView({
                                     {isAvail && (
                                       <div onClick={() => openForm(tutor, isoDate, block.time)}
                                         className="w-full h-full min-h-[110px] rounded-lg flex flex-col items-center justify-center gap-1 cursor-pointer active:scale-95 transition-all"
-                                        style={{ background: '#ecfdf3', border: '2px dashed #34d399' }}>
-                                        <PlusCircle size={14} style={{ color: '#059669' }} />
-                                        <span className="text-[8px] font-bold uppercase tracking-wider" style={{ color: '#059669' }}>Available</span>
+                                        style={{ background: '#eff6ff', border: '2px dashed #60a5fa' }}>
+                                        <PlusCircle size={14} style={{ color: '#2563eb' }} />
+                                        <span className="text-[8px] font-bold uppercase tracking-wider" style={{ color: '#2563eb' }}>Available</span>
                                       </div>
                                     )}
                                     {isOutside && (
