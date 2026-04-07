@@ -10,19 +10,36 @@ const supabase = createClient(
 export async function POST(req: Request) {
   try {
     const { token } = await req.json();
+    const normalizedToken = typeof token === "string" ? token.trim() : "";
 
-    if (!token) {
+    if (!normalizedToken) {
       return NextResponse.json({ error: "Missing token" }, { status: 400 });
+    }
+
+    const { data: existingRow, error: lookupError } = await supabase
+      .from(DB.sessionStudents)
+      .select("id, confirmation_status")
+      .eq("confirmation_token", normalizedToken)
+      .maybeSingle();
+
+    if (lookupError) {
+      return NextResponse.json({ error: lookupError.message }, { status: 500 });
+    }
+
+    if (!existingRow) {
+      return NextResponse.json({ error: "Invalid or expired token" }, { status: 400 });
+    }
+
+    if (existingRow.confirmation_status === "confirmed") {
+      return NextResponse.json({ success: true, alreadyConfirmed: true });
     }
 
     const { data, error } = await supabase
       .from(DB.sessionStudents)
       .update({
-        status: "confirmed",
         confirmation_status: "confirmed",
-        confirmed_at: new Date().toISOString(),
       })
-      .eq("confirmation_token", token)
+      .eq("id", existingRow.id)
       .select()
       .single();
 

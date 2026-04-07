@@ -24,6 +24,13 @@ type Settings = {
   reminder_body: string;
 };
 
+const DEFAULT_SETTINGS: Settings = {
+  center_name: 'Tutoring Center',
+  center_email: '',
+  reminder_subject: 'Reminder: Upcoming tutoring session for {{name}}',
+  reminder_body: 'Hi {{name}},\n\nThis is a reminder that you have a tutoring session on {{date}} at {{time}}.\n\nPlease confirm here: {{link}}\n\nThank you.',
+};
+
 type Candidate = {
   rowId: string;
   studentName: string;
@@ -44,6 +51,7 @@ function formatSentAt(iso: string) {
 
 export default function ContactCenter() {
   const [settings, setSettings]               = useState<Settings | null>(null);
+  const [settingsError, setSettingsError]     = useState<string | null>(null);
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [editingTemplate, setEditingTemplate] = useState(false);
   const [savingTemplate, setSavingTemplate]   = useState(false);
@@ -62,10 +70,50 @@ export default function ContactCenter() {
   const [loadingLogs, setLoadingLogs]   = useState(true);
   const [logsExpanded, setLogsExpanded] = useState(true);
 
+  const formatSettingsError = (message: string) => {
+    if (message.toLowerCase().includes('relation') || message.toLowerCase().includes('does not exist')) {
+      return `Missing table: ${DB.centerSettings}. Create that table in Supabase.`;
+    }
+    return `Failed to load ${DB.centerSettings}: ${message}`;
+  };
+
   const fetchSettings = useCallback(async () => {
     setLoadingSettings(true);
-    const { data } = await supabase.from(DB.centerSettings).select('*').single();
-    if (data) { setSettings(data); setDraftSubject(data.reminder_subject ?? ''); setDraftBody(data.reminder_body ?? ''); }
+    setSettingsError(null);
+
+    const { data, error } = await supabase.from(DB.centerSettings).select('*').limit(1).maybeSingle();
+
+    if (error) {
+      setSettings(null);
+      setSettingsError(formatSettingsError(error.message));
+      setLoadingSettings(false);
+      return;
+    }
+
+    if (data) {
+      setSettings(data);
+      setDraftSubject(data.reminder_subject ?? '');
+      setDraftBody(data.reminder_body ?? '');
+      setLoadingSettings(false);
+      return;
+    }
+
+    const { data: inserted, error: insertError } = await supabase
+      .from(DB.centerSettings)
+      .insert(DEFAULT_SETTINGS)
+      .select('*')
+      .single();
+
+    if (insertError) {
+      setSettings(null);
+      setSettingsError(formatSettingsError(insertError.message));
+      setLoadingSettings(false);
+      return;
+    }
+
+    setSettings(inserted);
+    setDraftSubject(inserted.reminder_subject ?? '');
+    setDraftBody(inserted.reminder_body ?? '');
     setLoadingSettings(false);
   }, []);
 
@@ -136,9 +184,14 @@ export default function ContactCenter() {
   const saveTemplate = async () => {
     if (!settings) return;
     setSavingTemplate(true);
-    await supabase.from(DB.centerSettings)
+    const { error } = await supabase.from(DB.centerSettings)
       .update({ reminder_subject: draftSubject, reminder_body: draftBody })
       .eq('center_name', settings.center_name);
+    if (error) {
+      setSettingsError(formatSettingsError(error.message));
+      setSavingTemplate(false);
+      return;
+    }
     setSettings(s => s ? { ...s, reminder_subject: draftSubject, reminder_body: draftBody } : s);
     setSavingTemplate(false); setTemplateSaved(true); setEditingTemplate(false);
     logEvent('template_saved', {});
@@ -320,6 +373,11 @@ export default function ContactCenter() {
             {loadingSettings ? (
               <div className="flex items-center gap-2 py-4" style={{ color: '#9ca3af' }}>
                 <RefreshCw size={14} className="animate-spin" /><span className="text-sm">Loading…</span>
+              </div>
+            ) : settingsError ? (
+              <div className="px-4 py-3 rounded-xl text-sm font-semibold"
+                style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c' }}>
+                {settingsError}
               </div>
             ) : (
               <>

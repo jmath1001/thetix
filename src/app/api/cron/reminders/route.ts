@@ -100,6 +100,20 @@ function getTransporter() {
   });
 }
 
+async function getSettingsOrThrow() {
+  const { data, error } = await supabase.from(SETTINGS).select("*").limit(1).maybeSingle();
+
+  if (error) {
+    throw new Error(`Unable to read ${SETTINGS}: ${error.message}`);
+  }
+
+  if (!data) {
+    throw new Error(`No settings row found in ${SETTINGS}. Open Contact Center once to initialize it.`);
+  }
+
+  return data;
+}
+
 // Core send: sends student + parent emails for one session_student row,
 // marks reminder_sent, logs to reminder logs table.
 async function sendReminderForEntry({
@@ -160,8 +174,7 @@ async function sendReminderForEntry({
 
 export async function GET() {
   try {
-    const { data: settings, error: settingsError } = await supabase.from(SETTINGS).select("*").single();
-    if (settingsError || !settings) throw new Error("Settings not found");
+    const settings = await getSettingsOrThrow();
 
     const now = new Date();
     const todayStr    = now.toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
@@ -218,8 +231,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
     }
 
-    const { data: settings, error: settingsError } = await supabase.from(SETTINGS).select("*").single();
-    if (settingsError || !settings) throw new Error("Settings not found");
+    const settings = await getSettingsOrThrow();
 
     const { data: entries, error: fetchErr } = await (supabase
       .from(SS)
