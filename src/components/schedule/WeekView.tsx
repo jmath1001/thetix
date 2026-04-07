@@ -16,6 +16,8 @@ interface InlineForm {
   query: string;
   student: any | null;
   topic: string;
+  recurring: boolean;
+  recurringWeeks: number;
   saving: boolean;
   error: string | null;
 }
@@ -24,6 +26,8 @@ const emptyForm = (tutor: Tutor): InlineForm => ({
   query: '',
   student: null,
   topic: tutor.cat === 'math' ? 'Math' : 'English',
+  recurring: false,
+  recurringWeeks: 4,
   saving: false,
   error: null,
 });
@@ -46,6 +50,8 @@ interface WeekViewProps {
     time: string;
     student: any;
     topic: string;
+    recurring: boolean;
+    recurringWeeks: number;
   }) => Promise<void>;
   bulkRemoveMode: boolean;
   selectedRemovals: Record<string, { sessionId: string; studentId: string; name: string }>;
@@ -110,6 +116,8 @@ export function WeekView({
   const patchForm = (key: string, patch: Partial<InlineForm>) =>
     setForms(p => ({ ...p, [key]: { ...p[key], ...patch } }));
 
+  const clampWeeks = (value: number) => Math.max(2, Math.min(24, Number.isFinite(value) ? Math.floor(value) : 2));
+
   const getSuggestions = (key: string) => {
     const q = forms[key]?.query?.trim().toLowerCase();
     if (!q || forms[key]?.student) return [];
@@ -139,9 +147,17 @@ export function WeekView({
     }
     patchForm(key, { saving: true, error: null });
     try {
-      await onInlineBook({ tutorId: tutor.id, date, time: block.time, student: form.student, topic: form.topic });
+      await onInlineBook({
+        tutorId: tutor.id,
+        date,
+        time: block.time,
+        student: form.student,
+        topic: form.topic,
+        recurring: form.recurring,
+        recurringWeeks: form.recurring ? clampWeeks(form.recurringWeeks) : 1,
+      });
       closeForm(key);
-      logEvent('session_booked', { studentName: form.student.name, date, recurring: false, source: 'inline_week' });
+      logEvent('session_booked', { studentName: form.student.name, date, recurring: form.recurring, source: 'inline_week' });
       refetch();
     } catch (err: any) {
       patchForm(key, { saving: false, error: err?.message || 'Booking failed — please try again.' });
@@ -194,7 +210,7 @@ export function WeekView({
     if (!form) return null;
     const hints   = getSuggestions(key);
     const isTopicCompatible = topicMatchesTutor(tutor, form.topic);
-    const canSave = !!form.student && !!form.topic && !form.saving && isTopicCompatible;
+    const canSave = !!form.student && !!form.topic && !form.saving && isTopicCompatible && (!form.recurring || form.recurringWeeks >= 2);
     const topics  = topicsFor(tutor);
 
     return (
@@ -247,6 +263,41 @@ export function WeekView({
           {topics.map(t => <option key={t} value={t}>{t}</option>)}
           <option value="Other">Other</option>
         </select>
+        <div className="rounded-lg p-2" style={{ background: '#f8fafc', border: '1px solid #e5e7eb' }}>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: '#475569' }}>Recurring</span>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                onClick={() => patchForm(key, { recurring: false })}
+                className="px-2 py-1 rounded text-[9px] font-bold uppercase tracking-wide"
+                style={form.recurring ? { background: 'white', border: '1px solid #d1d5db', color: '#6b7280' } : { background: '#dc2626', border: '1px solid #dc2626', color: 'white' }}>
+                No
+              </button>
+              <button
+                type="button"
+                onClick={() => patchForm(key, { recurring: true, recurringWeeks: form.recurringWeeks < 2 ? 4 : form.recurringWeeks })}
+                className="px-2 py-1 rounded text-[9px] font-bold uppercase tracking-wide"
+                style={form.recurring ? { background: '#dc2626', border: '1px solid #dc2626', color: 'white' } : { background: 'white', border: '1px solid #d1d5db', color: '#6b7280' }}>
+                Yes
+              </button>
+            </div>
+          </div>
+          {form.recurring && (
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: '#64748b' }}>Weeks</span>
+              <input
+                type="number"
+                min={2}
+                max={24}
+                value={form.recurringWeeks}
+                onChange={e => patchForm(key, { recurringWeeks: clampWeeks(Number(e.target.value || 2)) })}
+                className="w-16 text-[10px] font-bold rounded px-2 py-1 outline-none"
+                style={{ background: 'white', border: '1px solid #d1d5db', color: '#334155' }}
+              />
+            </div>
+          )}
+        </div>
         {(form.error || !isTopicCompatible) && (
           <p className="text-[9px] font-semibold" style={{ color: '#dc2626' }}>
             {form.error ?? `${tutor.name} does not teach ${form.topic}.`}
