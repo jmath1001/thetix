@@ -55,6 +55,14 @@ interface TodayViewProps {
   /** Controlled date — owned by MasterDeployment so weekStart stays in sync */
   selectedDate: Date;
   onDateChange: (date: Date) => void;
+  onMoveStudent: (params: {
+    rowId: string;
+    studentId: string;
+    fromSessionId: string;
+    toTutorId: string;
+    toDate: string;
+    toTime: string;
+  }) => Promise<void>;
 }
 
 
@@ -62,6 +70,12 @@ interface TodayViewProps {
 
 type SidePanelTab = 'confirmation' | 'attendance';
 type AttendanceFilter = 'all' | 'present' | 'no-show' | 'unmarked';
+type DragStudentPayload = {
+  rowId: string;
+  studentId: string;
+  fromSessionId: string;
+  topic: string | null;
+};
 
 function SidePanel({
   todayIso,
@@ -313,12 +327,14 @@ export function TodayView({
   refetch,
   selectedDate,
   onDateChange,
+  onMoveStudent,
 }: TodayViewProps) {
 
   // one InlineForm per slot key
   const [forms, setForms]               = useState<Record<string, InlineForm>>({});
   // which slot's student-suggestion dropdown is open
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [draggingTopic, setDraggingTopic] = useState<string | null>(null);
 
   const todayIso  = toISODate(selectedDate);
   const todayDow  = dayOfWeek(todayIso);
@@ -371,11 +387,26 @@ export function TodayView({
   const topicsFor = (tutor: Tutor) =>
     tutor.cat === 'math' ? MATH_TOPICS : ENG_TOPICS;
 
+  const topicMatchesTutor = (tutor: Tutor, topic: string | null) => {
+    if (!topic) return true;
+    if (topic.toLowerCase() === 'other') return true;
+    return topicsFor(tutor).some(t => t.toLowerCase() === topic.toLowerCase());
+  };
+
+  const dropStateFor = (tutor: Tutor, isOutside: boolean): 'valid' | 'invalid' | null => {
+    if (isOutside || !draggingTopic) return null;
+    return topicMatchesTutor(tutor, draggingTopic) ? 'valid' : 'invalid';
+  };
+
   // ── save ─────────────────────────────────────────────────────────────────
 
   const handleSave = async (key: string, tutor: Tutor, block: any) => {
     const form = forms[key];
     if (!form?.student || !form.topic) return;
+    if (!topicMatchesTutor(tutor, form.topic)) {
+      patchForm(key, { error: `${tutor.name} does not teach ${form.topic}.` });
+      return;
+    }
     patchForm(key, { saving: true, error: null });
     try {
       await onInlineBook({
@@ -412,6 +443,34 @@ export function TodayView({
     }
   };
 
+  const handleDropOnSlot = async (
+    e: React.DragEvent,
+    targetTutor: Tutor,
+    targetDate: string,
+    targetTime: string,
+  ) => {
+    e.preventDefault();
+    if (draggingTopic && !topicMatchesTutor(targetTutor, draggingTopic)) {
+      alert(`${targetTutor.name} does not teach ${draggingTopic}.`);
+      return;
+    }
+    const raw = e.dataTransfer.getData('application/x-schedule-student');
+    if (!raw) return;
+    try {
+      const payload = JSON.parse(raw) as DragStudentPayload;
+      await onMoveStudent({
+        rowId: payload.rowId,
+        studentId: payload.studentId,
+        fromSessionId: payload.fromSessionId,
+        toTutorId: targetTutor.id,
+        toDate: targetDate,
+        toTime: targetTime,
+      });
+    } catch (err: any) {
+      alert(err?.message || 'Unable to move student to that slot.');
+    }
+  };
+
   // ── inline form (desktop) ─────────────────────────────────────────────────
 
   const renderInlineForm = (tutor: Tutor, block: any, palette: any) => {
@@ -420,7 +479,8 @@ export function TodayView({
     if (!form) return null;
 
     const hints   = getSuggestions(key);
-    const canSave = !!form.student && !!form.topic && !form.saving;
+    const isTopicCompatible = topicMatchesTutor(tutor, form.topic);
+    const canSave = !!form.student && !!form.topic && !form.saving && isTopicCompatible;
     const topics  = topicsFor(tutor);
 
     return (
@@ -488,9 +548,8 @@ export function TodayView({
                   onMouseDown={e => {
                     e.preventDefault();
                     // auto-match topic from student's subject if possible
-                    const allTopics = [...MATH_TOPICS, ...ENG_TOPICS];
                     const autoTopic = s.subject
-                      ? (allTopics.find(t => t.toLowerCase() === s.subject?.toLowerCase()) ?? form.topic)
+                      ? (topics.find(t => t.toLowerCase() === s.subject?.toLowerCase()) ?? form.topic)
                       : form.topic;
                     patchForm(key, { student: s, query: s.name, topic: autoTopic });
                     setOpenDropdown(null);
@@ -510,15 +569,17 @@ export function TodayView({
           value={form.topic}
           onChange={e => patchForm(key, { topic: e.target.value })}
           className="w-full text-xs font-semibold rounded-lg px-2.5 py-1.5 outline-none"
-          style={{ background: '#f3f4f6', border: '1px solid #e5e7eb', color: '#374151' }}
+          style={{ background: '#f3f4f6', border: isTopicCompatible ? '1px solid #e5e7eb' : '1.5px solid #ef4444', color: isTopicCompatible ? '#374151' : '#b91c1c' }}
         >
           {topics.map(t => <option key={t} value={t}>{t}</option>)}
           <option value="Other">Other</option>
         </select>
 
         {/* inline error */}
-        {form.error && (
-          <p className="text-[9px] font-semibold" style={{ color: '#dc2626' }}>{form.error}</p>
+        {(form.error || !isTopicCompatible) && (
+          <p className="text-[9px] font-semibold" style={{ color: '#dc2626' }}>
+            {form.error ?? `${tutor.name} does not teach ${form.topic}.`}
+          </p>
         )}
 
         {/* save */}
@@ -547,12 +608,12 @@ export function TodayView({
       <div
         onClick={() => openForm(tutor, block.time)}
         className="flex-1 rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all"
-        style={{ minHeight: minH, background: '#eff6ff', border: '2px dashed #60a5fa' }}
-        onMouseEnter={e => { e.currentTarget.style.background = '#dbeafe'; e.currentTarget.style.borderColor = '#2563eb'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = '#eff6ff'; e.currentTarget.style.borderColor = '#60a5fa'; }}
+        style={{ minHeight: minH, background: '#ecfdf3', border: '2px dashed #34d399' }}
+        onMouseEnter={e => { e.currentTarget.style.background = '#d1fae5'; e.currentTarget.style.borderColor = '#10b981'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = '#ecfdf3'; e.currentTarget.style.borderColor = '#34d399'; }}
       >
-        <PlusCircle size={14} style={{ color: '#2563eb' }} />
-        <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#2563eb' }}>Available</span>
+        <PlusCircle size={14} style={{ color: '#059669' }} />
+        <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#059669' }}>Available</span>
       </div>
     );
   };
@@ -731,17 +792,45 @@ export function TodayView({
                               const isFull     = hasStudents && session!.students.length >= MAX_CAPACITY;
                               const isOutside  = !isTutorAvailable(tutor, todayDow, block.time) || isOnTimeOff;
                               const isAvail    = !isOutside && !hasStudents;
+                              const dropState  = dropStateFor(tutor, isOutside);
                               const timeOffNote = isOnTimeOff ? timeOff.find(t => t.tutorId === tutor.id && t.date === todayIso)?.note : null;
 
                               return (
                                 <td key={block.id} className="p-2 align-top"
-                                  style={{ background: isOutside ? 'repeating-linear-gradient(45deg,#e9ebee,#e9ebee 4px,#dfe2e6 4px,#dfe2e6 8px)' : '#f3f4f6', borderRight: '1px solid #e5e7eb', borderBottom: '1px solid #cbd5e1', minWidth: 200 }}>
+                                  style={{
+                                    background: isOutside
+                                      ? 'repeating-linear-gradient(45deg,#e9ebee,#e9ebee 4px,#dfe2e6 4px,#dfe2e6 8px)'
+                                      : dropState === 'valid'
+                                        ? '#dcfce7'
+                                        : dropState === 'invalid'
+                                          ? '#fee2e2'
+                                          : '#f3f4f6',
+                                    borderRight: dropState === 'invalid' ? '2px solid #ef4444' : '1px solid #e5e7eb',
+                                    borderBottom: '1px solid #cbd5e1',
+                                    minWidth: 200,
+                                  }}
+                                  onDragOver={(e) => { if (!isOutside && dropState !== 'invalid') e.preventDefault(); }}
+                                  onDrop={(e) => { if (!isOutside && dropState !== 'invalid') void handleDropOnSlot(e, tutor, todayIso, block.time); }}>
                                   <div className="flex flex-col gap-1.5 min-h-[100px]">
 
                                     {/* booked students */}
                                     {hasStudents && !isOnTimeOff && session!.students.map((student: any) => (
                                       <div key={student.rowId || student.id}
                                         className="p-2.5 rounded-xl cursor-pointer transition-all hover:shadow-md"
+                                        draggable={!!student.rowId}
+                                        onDragStart={(e) => {
+                                          if (!student.rowId) return;
+                                          const payload: DragStudentPayload = {
+                                            rowId: student.rowId,
+                                            studentId: student.id,
+                                            fromSessionId: session.id,
+                                            topic: student.topic ?? null,
+                                          };
+                                          e.dataTransfer.setData('application/x-schedule-student', JSON.stringify(payload));
+                                          e.dataTransfer.effectAllowed = 'move';
+                                          setDraggingTopic(student.topic ?? null);
+                                        }}
+                                        onDragEnd={() => setDraggingTopic(null)}
                                         style={
                                           student.status === 'no-show'  ? { background: '#f8fafc', border: '1.5px solid #94a3b8', opacity: 0.65, boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.2)' }
                                           : student.status === 'present' ? { background: '#dcfce7', border: '1.5px solid #16a34a', boxShadow: '0 1px 0 rgba(22,163,74,0.18), inset 0 0 0 1px rgba(255,255,255,0.5)' }
@@ -828,10 +917,22 @@ export function TodayView({
                             const isFull      = hasStudents && session!.students.length >= MAX_CAPACITY;
                             const isOutside   = !isTutorAvailable(tutor, todayDow, block.time) || isOnTimeOff;
                             const isAvail     = !isOutside && !hasStudents;
+                            const dropState   = dropStateFor(tutor, isOutside);
 
                             return (
                               <div key={block.id} className="flex-shrink-0 w-40 p-1.5"
-                                style={{ background: isOutside ? 'repeating-linear-gradient(45deg,#e9ebee,#e9ebee 4px,#dfe2e6 4px,#dfe2e6 8px)' : '#f3f4f6', borderRight: '1px solid #e5e7eb' }}>
+                                style={{
+                                  background: isOutside
+                                    ? 'repeating-linear-gradient(45deg,#e9ebee,#e9ebee 4px,#dfe2e6 4px,#dfe2e6 8px)'
+                                    : dropState === 'valid'
+                                      ? '#dcfce7'
+                                      : dropState === 'invalid'
+                                        ? '#fee2e2'
+                                        : '#f3f4f6',
+                                  borderRight: dropState === 'invalid' ? '2px solid #ef4444' : '1px solid #e5e7eb',
+                                }}
+                                onDragOver={(e) => { if (!isOutside && dropState !== 'invalid') e.preventDefault(); }}
+                                onDrop={(e) => { if (!isOutside && dropState !== 'invalid') void handleDropOnSlot(e, tutor, todayIso, block.time); }}>
                                 <div className="text-center mb-1.5">
                                   <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#374151' }}>{block.label}</div>
                                   <div className="text-[9px] font-semibold" style={{ color: '#9ca3af' }}>{block.display}</div>
@@ -842,6 +943,20 @@ export function TodayView({
                                       {session!.students.map((student: any) => (
                                         <div key={student.rowId || student.id}
                                           className="flex items-center gap-1.5 px-1.5 py-1.5 rounded-lg transition-all"
+                                          draggable={!!student.rowId}
+                                          onDragStart={(e) => {
+                                            if (!student.rowId) return;
+                                            const payload: DragStudentPayload = {
+                                              rowId: student.rowId,
+                                              studentId: student.id,
+                                              fromSessionId: session.id,
+                                              topic: student.topic ?? null,
+                                            };
+                                            e.dataTransfer.setData('application/x-schedule-student', JSON.stringify(payload));
+                                            e.dataTransfer.effectAllowed = 'move';
+                                            setDraggingTopic(student.topic ?? null);
+                                          }}
+                                          onDragEnd={() => setDraggingTopic(null)}
                                           style={
                                             student.status === 'no-show'  ? { background: '#f8fafc', border: '1.5px solid #94a3b8', opacity: 0.65, boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.2)' }
                                             : student.status === 'present' ? { background: '#dcfce7', border: '1.5px solid #16a34a', boxShadow: '0 1px 0 rgba(22,163,74,0.18), inset 0 0 0 1px rgba(255,255,255,0.5)' }
@@ -881,9 +996,9 @@ export function TodayView({
                                   {isAvail && (
                                     <div onClick={() => openForm(tutor, block.time)}
                                       className="w-full h-full rounded-lg flex flex-col items-center justify-center gap-1 cursor-pointer active:scale-95 transition-all"
-                                      style={{ minHeight: 56, background: '#eff6ff', border: '2px dashed #60a5fa' }}>
-                                      <PlusCircle size={12} style={{ color: '#2563eb' }} />
-                                      <span className="text-[8px] font-bold uppercase tracking-wider" style={{ color: '#2563eb' }}>Available</span>
+                                      style={{ minHeight: 56, background: '#ecfdf3', border: '2px dashed #34d399' }}>
+                                      <PlusCircle size={12} style={{ color: '#059669' }} />
+                                      <span className="text-[8px] font-bold uppercase tracking-wider" style={{ color: '#059669' }}>Available</span>
                                     </div>
                                   )}
                                   {isOutside && (
@@ -916,8 +1031,9 @@ export function TodayView({
                 if (!tutor || !block) return null;
                 const form = forms[openKey];
                 const hints = getSuggestions(openKey);
-                const canSave = !!form.student && !!form.topic && !form.saving;
                 const topics = topicsFor(tutor);
+                const isTopicCompatible = topicMatchesTutor(tutor, form.topic);
+                const canSave = !!form.student && !!form.topic && !form.saving && isTopicCompatible;
                 return (
                   <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end"
                     style={{ background: 'rgba(0,0,0,0.4)' }}
@@ -980,9 +1096,8 @@ export function TodayView({
                                   style={{ color: '#111827', borderBottom: '1px solid #f3f4f6' }}
                                   onMouseDown={e => {
                                     e.preventDefault();
-                                    const allTopics = [...MATH_TOPICS, ...ENG_TOPICS];
                                     const autoTopic = s.subject
-                                      ? (allTopics.find(t => t.toLowerCase() === s.subject?.toLowerCase()) ?? form.topic)
+                                      ? (topics.find(t => t.toLowerCase() === s.subject?.toLowerCase()) ?? form.topic)
                                       : form.topic;
                                     patchForm(openKey, { student: s, query: s.name, topic: autoTopic });
                                     setOpenDropdown(null);
@@ -1000,13 +1115,15 @@ export function TodayView({
                           value={form.topic}
                           onChange={e => patchForm(openKey, { topic: e.target.value })}
                           className="w-full text-sm font-semibold rounded-xl px-4 py-3 outline-none"
-                          style={{ background: '#f3f4f6', border: '1.5px solid #e5e7eb', color: '#374151' }}>
+                          style={{ background: '#f3f4f6', border: isTopicCompatible ? '1.5px solid #e5e7eb' : '1.5px solid #ef4444', color: isTopicCompatible ? '#374151' : '#b91c1c' }}>
                           {topics.map(t => <option key={t} value={t}>{t}</option>)}
                           <option value="Other">Other</option>
                         </select>
                         {/* Error */}
-                        {form.error && (
-                          <p className="text-xs font-semibold" style={{ color: '#dc2626' }}>{form.error}</p>
+                        {(form.error || !isTopicCompatible) && (
+                          <p className="text-xs font-semibold" style={{ color: '#dc2626' }}>
+                            {form.error ?? `${tutor.name} does not teach ${form.topic}.`}
+                          </p>
                         )}
                         {/* Book button */}
                         <button

@@ -51,6 +51,14 @@ interface WeekViewProps {
   selectedRemovals: Record<string, { sessionId: string; studentId: string; name: string }>;
   setSelectedRemovals: (value: Record<string, { sessionId: string; studentId: string; name: string }> | ((prev: Record<string, { sessionId: string; studentId: string; name: string }>) => Record<string, { sessionId: string; studentId: string; name: string }>)) => void;
   refetch: () => void;
+  onMoveStudent: (params: {
+    rowId: string;
+    studentId: string;
+    fromSessionId: string;
+    toTutorId: string;
+    toDate: string;
+    toTime: string;
+  }) => Promise<void>;
 }
 
 export function WeekView({
@@ -68,11 +76,14 @@ export function WeekView({
   selectedRemovals,
   setSelectedRemovals,
   refetch,
+  onMoveStudent,
 }: WeekViewProps) {
   const [forms, setForms]               = useState<Record<string, InlineForm>>({});
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [draggingTopic, setDraggingTopic] = useState<string | null>(null);
 
   const selectionKey = (sessionId: string, studentId: string) => `${sessionId}|${studentId}`;
+  type DragStudentPayload = { rowId: string; studentId: string; fromSessionId: string; topic: string | null };
   const toggleRemovalSelection = (sessionId: string, studentId: string, name: string) => {
     const key = selectionKey(sessionId, studentId);
     setSelectedRemovals(prev => {
@@ -108,9 +119,24 @@ export function WeekView({
   const topicsFor = (tutor: Tutor) =>
     tutor.cat === 'math' ? MATH_TOPICS : ENG_TOPICS;
 
+  const topicMatchesTutor = (tutor: Tutor, topic: string | null) => {
+    if (!topic) return true;
+    if (topic.toLowerCase() === 'other') return true;
+    return topicsFor(tutor).some(t => t.toLowerCase() === topic.toLowerCase());
+  };
+
+  const dropStateFor = (tutor: Tutor, isOutside: boolean): 'valid' | 'invalid' | null => {
+    if (isOutside || !draggingTopic) return null;
+    return topicMatchesTutor(tutor, draggingTopic) ? 'valid' : 'invalid';
+  };
+
   const handleSave = async (key: string, tutor: Tutor, date: string, block: any) => {
     const form = forms[key];
     if (!form?.student || !form.topic) return;
+    if (!topicMatchesTutor(tutor, form.topic)) {
+      patchForm(key, { error: `${tutor.name} does not teach ${form.topic}.` });
+      return;
+    }
     patchForm(key, { saving: true, error: null });
     try {
       await onInlineBook({ tutorId: tutor.id, date, time: block.time, student: form.student, topic: form.topic });
@@ -134,12 +160,41 @@ export function WeekView({
     if (!bulkRemoveMode) clearSelection();
   }, [bulkRemoveMode]);
 
+  const handleDropOnSlot = async (
+    e: React.DragEvent,
+    targetTutor: Tutor,
+    targetDate: string,
+    targetTime: string,
+  ) => {
+    e.preventDefault();
+    if (draggingTopic && !topicMatchesTutor(targetTutor, draggingTopic)) {
+      alert(`${targetTutor.name} does not teach ${draggingTopic}.`);
+      return;
+    }
+    const raw = e.dataTransfer.getData('application/x-schedule-student');
+    if (!raw) return;
+    try {
+      const payload = JSON.parse(raw) as DragStudentPayload;
+      await onMoveStudent({
+        rowId: payload.rowId,
+        studentId: payload.studentId,
+        fromSessionId: payload.fromSessionId,
+        toTutorId: targetTutor.id,
+        toDate: targetDate,
+        toTime: targetTime,
+      });
+    } catch (err: any) {
+      alert(err?.message || 'Unable to move student to that slot.');
+    }
+  };
+
   const renderInlineForm = (tutor: Tutor, date: string, block: any, palette: any) => {
     const key   = slotKey(tutor.id, date, block.time);
     const form  = forms[key];
     if (!form) return null;
     const hints   = getSuggestions(key);
-    const canSave = !!form.student && !!form.topic && !form.saving;
+    const isTopicCompatible = topicMatchesTutor(tutor, form.topic);
+    const canSave = !!form.student && !!form.topic && !form.saving && isTopicCompatible;
     const topics  = topicsFor(tutor);
 
     return (
@@ -174,8 +229,7 @@ export function WeekView({
                   onMouseLeave={e => (e.currentTarget.style.background = 'white')}
                   onMouseDown={e => {
                     e.preventDefault();
-                    const allTopics = [...MATH_TOPICS, ...ENG_TOPICS];
-                    const autoTopic = s.subject ? (allTopics.find(t => t.toLowerCase() === s.subject?.toLowerCase()) ?? form.topic) : form.topic;
+                    const autoTopic = s.subject ? (topics.find(t => t.toLowerCase() === s.subject?.toLowerCase()) ?? form.topic) : form.topic;
                     patchForm(key, { student: s, query: s.name, topic: autoTopic });
                     setOpenDropdown(null);
                   }}>
@@ -189,11 +243,15 @@ export function WeekView({
         </div>
         <select value={form.topic} onChange={e => patchForm(key, { topic: e.target.value })}
           className="w-full text-xs font-semibold rounded-lg px-2.5 py-1.5 outline-none"
-          style={{ background: '#f3f4f6', border: '1px solid #e5e7eb', color: '#374151' }}>
+          style={{ background: '#f3f4f6', border: isTopicCompatible ? '1px solid #e5e7eb' : '1.5px solid #ef4444', color: isTopicCompatible ? '#374151' : '#b91c1c' }}>
           {topics.map(t => <option key={t} value={t}>{t}</option>)}
           <option value="Other">Other</option>
         </select>
-        {form.error && <p className="text-[9px] font-semibold" style={{ color: '#dc2626' }}>{form.error}</p>}
+        {(form.error || !isTopicCompatible) && (
+          <p className="text-[9px] font-semibold" style={{ color: '#dc2626' }}>
+            {form.error ?? `${tutor.name} does not teach ${form.topic}.`}
+          </p>
+        )}
         <button onClick={() => handleSave(key, tutor, date, block)} disabled={!canSave}
           className="w-full py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all"
           style={{ background: canSave ? '#6366f1' : '#e5e7eb', color: canSave ? 'white' : '#9ca3af', cursor: canSave ? 'pointer' : 'not-allowed' }}>
@@ -209,11 +267,11 @@ export function WeekView({
     return (
       <div onClick={() => openForm(tutor, date, block.time)}
         className="w-full h-full min-h-[100px] rounded-xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-all"
-        style={{ background: '#eff6ff', border: '2px dashed #60a5fa' }}
-        onMouseEnter={e => { e.currentTarget.style.background = '#dbeafe'; e.currentTarget.style.borderColor = '#2563eb'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = '#eff6ff'; e.currentTarget.style.borderColor = '#60a5fa'; }}>
-        <PlusCircle size={14} style={{ color: '#2563eb' }} />
-        <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#2563eb' }}>Available</span>
+        style={{ background: '#ecfdf3', border: '2px dashed #34d399' }}
+        onMouseEnter={e => { e.currentTarget.style.background = '#d1fae5'; e.currentTarget.style.borderColor = '#10b981'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = '#ecfdf3'; e.currentTarget.style.borderColor = '#34d399'; }}>
+        <PlusCircle size={14} style={{ color: '#059669' }} />
+        <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#059669' }}>Available</span>
       </div>
     );
   };
@@ -322,11 +380,25 @@ export function WeekView({
                                 const isFull      = hasStudents && session!.students.length >= MAX_CAPACITY;
                                 const isOutside   = !isTutorAvailable(tutor, dow, block.time) || isOnTimeOff;
                                 const isAvail     = !isOutside && !hasStudents;
+                                const dropState   = dropStateFor(tutor, isOutside);
                                 const timeOffNote = isOnTimeOff ? timeOff.find(t => t.tutorId === tutor.id && t.date === isoDate)?.note : null;
 
                                 return (
                                   <td key={block.id} className="p-2 align-top"
-                                    style={{ background: isOutside ? 'repeating-linear-gradient(45deg,#e9ebee,#e9ebee 4px,#dfe2e6 4px,#dfe2e6 8px)' : '#f3f4f6', borderRight: '1px solid #e5e7eb', borderBottom: '1px solid #cbd5e1', minWidth: 200 }}>
+                                    style={{
+                                      background: isOutside
+                                        ? 'repeating-linear-gradient(45deg,#e9ebee,#e9ebee 4px,#dfe2e6 4px,#dfe2e6 8px)'
+                                        : dropState === 'valid'
+                                          ? '#dcfce7'
+                                          : dropState === 'invalid'
+                                            ? '#fee2e2'
+                                            : '#f3f4f6',
+                                      borderRight: dropState === 'invalid' ? '2px solid #ef4444' : '1px solid #e5e7eb',
+                                      borderBottom: '1px solid #cbd5e1',
+                                      minWidth: 200,
+                                    }}
+                                    onDragOver={(e) => { if (!isOutside && dropState !== 'invalid') e.preventDefault(); }}
+                                    onDrop={(e) => { if (!isOutside && dropState !== 'invalid') void handleDropOnSlot(e, tutor, isoDate, block.time); }}>
                                     <div className="flex flex-col gap-1.5 h-full min-h-[100px]">
 
                                       {/* Booked students — same card style as TodayView */}
@@ -336,6 +408,20 @@ export function WeekView({
                                         return (
                                           <div key={student.rowId || student.id}
                                             className="p-2.5 rounded-xl cursor-pointer transition-all hover:shadow-md"
+                                            draggable={!!student.rowId && !bulkRemoveMode}
+                                            onDragStart={(e) => {
+                                              if (!student.rowId || bulkRemoveMode) return;
+                                              const payload: DragStudentPayload = {
+                                                rowId: student.rowId,
+                                                studentId: student.id,
+                                                fromSessionId: session.id,
+                                                topic: student.topic ?? null,
+                                              };
+                                              e.dataTransfer.setData('application/x-schedule-student', JSON.stringify(payload));
+                                              e.dataTransfer.effectAllowed = 'move';
+                                              setDraggingTopic(student.topic ?? null);
+                                            }}
+                                            onDragEnd={() => setDraggingTopic(null)}
                                             style={
                                               student.status === 'no-show'  ? { background: '#f8fafc', border: '1.5px solid #94a3b8', opacity: 0.65, boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.2)' }
                                               : student.status === 'present' ? { background: '#dcfce7', border: '1.5px solid #16a34a', boxShadow: '0 1px 0 rgba(22,163,74,0.18), inset 0 0 0 1px rgba(255,255,255,0.5)' }
@@ -435,10 +521,22 @@ export function WeekView({
                               const isFull      = hasStudents && session!.students.length >= MAX_CAPACITY;
                               const isOutside   = !isTutorAvailable(tutor, dow, block.time) || isOnTimeOff;
                               const isAvail     = !isOutside && !hasStudents;
+                              const dropState   = dropStateFor(tutor, isOutside);
 
                               return (
                                 <div key={block.id} className="flex-shrink-0 w-40 p-1.5"
-                                  style={{ background: isOutside ? 'repeating-linear-gradient(45deg,#e9ebee,#e9ebee 4px,#dfe2e6 4px,#dfe2e6 8px)' : '#f3f4f6', borderRight: '1px solid #e5e7eb' }}>
+                                  style={{
+                                    background: isOutside
+                                      ? 'repeating-linear-gradient(45deg,#e9ebee,#e9ebee 4px,#dfe2e6 4px,#dfe2e6 8px)'
+                                      : dropState === 'valid'
+                                        ? '#dcfce7'
+                                        : dropState === 'invalid'
+                                          ? '#fee2e2'
+                                          : '#f3f4f6',
+                                    borderRight: dropState === 'invalid' ? '2px solid #ef4444' : '1px solid #e5e7eb',
+                                  }}
+                                  onDragOver={(e) => { if (!isOutside && dropState !== 'invalid') e.preventDefault(); }}
+                                  onDrop={(e) => { if (!isOutside && dropState !== 'invalid') void handleDropOnSlot(e, tutor, isoDate, block.time); }}>
                                   <div className="text-center mb-1.5">
                                     <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#374151' }}>{block.label}</div>
                                     <div className="text-[9px] font-semibold" style={{ color: '#9ca3af' }}>{block.display}</div>
@@ -452,6 +550,20 @@ export function WeekView({
                                           return (
                                             <div key={student.rowId || student.id}
                                               className="flex items-center gap-1.5 px-1.5 py-1.5 rounded-lg transition-all"
+                                              draggable={!!student.rowId && !bulkRemoveMode}
+                                              onDragStart={(e) => {
+                                                if (!student.rowId || bulkRemoveMode) return;
+                                                const payload: DragStudentPayload = {
+                                                  rowId: student.rowId,
+                                                  studentId: student.id,
+                                                  fromSessionId: session.id,
+                                                  topic: student.topic ?? null,
+                                                };
+                                                e.dataTransfer.setData('application/x-schedule-student', JSON.stringify(payload));
+                                                e.dataTransfer.effectAllowed = 'move';
+                                                setDraggingTopic(student.topic ?? null);
+                                              }}
+                                              onDragEnd={() => setDraggingTopic(null)}
                                               style={{
                                                 ...(student.status === 'no-show'
                                                   ? { background: '#f8fafc', border: '1.5px solid #94a3b8', opacity: 0.65, boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.2)' }
@@ -510,9 +622,9 @@ export function WeekView({
                                     {isAvail && (
                                       <div onClick={() => openForm(tutor, isoDate, block.time)}
                                         className="w-full h-full min-h-[110px] rounded-lg flex flex-col items-center justify-center gap-1 cursor-pointer active:scale-95 transition-all"
-                                        style={{ background: '#eff6ff', border: '2px dashed #60a5fa' }}>
-                                        <PlusCircle size={14} style={{ color: '#2563eb' }} />
-                                        <span className="text-[8px] font-bold uppercase tracking-wider" style={{ color: '#2563eb' }}>Available</span>
+                                        style={{ background: '#ecfdf3', border: '2px dashed #34d399' }}>
+                                        <PlusCircle size={14} style={{ color: '#059669' }} />
+                                        <span className="text-[8px] font-bold uppercase tracking-wider" style={{ color: '#059669' }}>Available</span>
                                       </div>
                                     )}
                                     {isOutside && (

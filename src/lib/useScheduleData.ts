@@ -9,6 +9,8 @@ const SESSIONS       = `${p}_sessions`
 const SS             = `${p}_session_students`   // short alias used in nested selects
 const RECURRING      = `${p}_recurring_series`
 const TIME_OFF       = `${p}_tutor_time_off`
+const MATH_TOPICS    = ['Algebra', 'Geometry', 'Pre-Calculus', 'Calculus', 'Statistics', 'SAT Math', 'ACT Math', 'Math']
+const ENG_TOPICS     = ['Reading', 'Writing', 'Grammar', 'Essay', 'SAT English', 'ACT English', 'English']
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -364,6 +366,121 @@ export async function updateSessionNotes({ rowId, notes }: {
 }) {
   const { error } = await supabase.from(SS).update({ notes }).eq('id', rowId)
   if (error) throw error
+}
+
+export async function moveStudentSession({
+  rowId,
+  studentId,
+  fromSessionId,
+  toTutorId,
+  toDate,
+  toTime,
+}: {
+  rowId: string
+  studentId: string
+  fromSessionId: string
+  toTutorId: string
+  toDate: string
+  toTime: string
+}) {
+  const MOVE_MAX_CAPACITY = 3
+
+  const topicMatchesTutorCategory = (topic: string | null, cat: string | null) => {
+    if (!topic) return true
+    if (topic.toLowerCase() === 'other') return true
+    const norm = topic.toLowerCase()
+    if ((cat ?? '').toLowerCase() === 'math') return MATH_TOPICS.some(t => t.toLowerCase() === norm)
+    if ((cat ?? '').toLowerCase() === 'english') return ENG_TOPICS.some(t => t.toLowerCase() === norm)
+    return false
+  }
+
+  // Fast no-op: same slot
+  const { data: fromSession, error: fromErr } = await supabase
+    .from(SESSIONS)
+    .select('id, tutor_id, session_date, time')
+    .eq('id', fromSessionId)
+    .single()
+  if (fromErr) throw fromErr
+
+  if (
+    fromSession.tutor_id === toTutorId &&
+    fromSession.session_date === toDate &&
+    fromSession.time === toTime
+  ) {
+    return
+  }
+
+  const { data: movingRow, error: rowErr } = await supabase
+    .from(SS)
+    .select('topic')
+    .eq('id', rowId)
+    .eq('student_id', studentId)
+    .single()
+  if (rowErr) throw rowErr
+
+  const { data: targetTutor, error: tutorErr } = await supabase
+    .from(TUTORS)
+    .select('name, cat')
+    .eq('id', toTutorId)
+    .single()
+  if (tutorErr) throw tutorErr
+
+  if (!topicMatchesTutorCategory(movingRow?.topic ?? null, targetTutor?.cat ?? null)) {
+    throw new Error(`${targetTutor?.name ?? 'That tutor'} does not teach ${movingRow?.topic ?? 'this topic'}.`)
+  }
+
+  const { data: sessionsAtTime, error: satErr } = await supabase
+    .from(SESSIONS)
+    .select('id')
+    .eq('session_date', toDate)
+    .eq('time', toTime)
+  if (satErr) throw satErr
+
+  const targetSessionIds = (sessionsAtTime ?? []).map((s: any) => s.id)
+  if (targetSessionIds.length > 0) {
+    const { data: dup, error: dupErr } = await supabase
+      .from(SS)
+      .select('id')
+      .in('session_id', targetSessionIds)
+      .eq('student_id', studentId)
+      .neq('status', 'cancelled')
+      .neq('id', rowId)
+      .maybeSingle()
+    if (dupErr) throw dupErr
+    if (dup) throw new Error('Student is already booked at that date/time.')
+  }
+
+  const { data: existing, error: existingErr } = await (supabase
+    .from(SESSIONS)
+    .select(`id, ${SS}(id)`)
+    .eq('session_date', toDate)
+    .eq('tutor_id', toTutorId)
+    .eq('time', toTime)
+    .maybeSingle() as any)
+  if (existingErr) throw existingErr
+
+  let targetSessionId: string
+  if (existing) {
+    if ((existing[SS] ?? []).length >= MOVE_MAX_CAPACITY) {
+      throw new Error('Target session is full.')
+    }
+    targetSessionId = existing.id
+  } else {
+    const { data: created, error: createErr } = await supabase
+      .from(SESSIONS)
+      .insert({ session_date: toDate, tutor_id: toTutorId, time: toTime })
+      .select('id')
+      .single()
+    if (createErr) throw createErr
+    targetSessionId = created.id
+  }
+
+  const { error: moveErr } = await supabase
+    .from(SS)
+    .update({ session_id: targetSessionId })
+    .eq('id', rowId)
+    .eq('student_id', studentId)
+  if (moveErr) throw moveErr
 }
 
 // ── Recurring series helpers ──────────────────────────────────────────────────

@@ -7,6 +7,7 @@ import {
   useScheduleData,
   bookStudent,
   removeStudentFromSession,
+  moveStudentSession,
   getWeekStart,
   getWeekDates,
   toISODate,
@@ -354,6 +355,10 @@ export default function MasterDeployment() {
           onInlineBook={async ({ tutorId, date, time, student, topic }) => {
             await bookStudent({ tutorId, date, time, student, topic, notes: '', recurring: false, recurringWeeks: 1 });
           }}
+          onMoveStudent={async ({ rowId, studentId, fromSessionId, toTutorId, toDate, toTime }) => {
+            await moveStudentSession({ rowId, studentId, fromSessionId, toTutorId, toDate, toTime });
+            refetch();
+          }}
         />
       )}
 
@@ -374,6 +379,10 @@ export default function MasterDeployment() {
           setSelectedRemovals={setSelectedRemovals}
           onInlineBook={async ({ tutorId, date, time, student, topic }) => {
             await bookStudent({ tutorId, date, time, student, topic, notes: '', recurring: false, recurringWeeks: 1 });
+          }}
+          onMoveStudent={async ({ rowId, studentId, fromSessionId, toTutorId, toDate, toTime }) => {
+            await moveStudentSession({ rowId, studentId, fromSessionId, toTutorId, toDate, toTime });
+            refetch();
           }}
         />
       )}
