@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { X, Trash2, UserPlus, ChevronDown, ChevronUp, AlertTriangle, CalendarOff, Plus, Loader2, Mail, Phone, Save } from 'lucide-react';
+import { X, Trash2, UserPlus, ChevronDown, ChevronUp, AlertTriangle, CalendarOff, Plus, Loader2, Mail, Phone, Save, CheckSquare, Square } from 'lucide-react';
 import { SESSION_BLOCKS } from '@/components/constants';
 import { supabase } from '@/lib/supabaseClient';
 import type { Tutor } from '@/lib/useScheduleData';
@@ -202,14 +202,16 @@ function TimeOffPanel({ tutor, timeOffList, onRefetch }: {
 }
 
 // ── Tutor Row ─────────────────────────────────────────────────────────────────
-function TutorRow({ tutor, timeOffList, onSave, onDelete, onRefetch }: {
-  tutor: TutorWithContact; timeOffList: TimeOff[];
+function TutorRow({ tutor, selected, onToggle, timeOffList, onSave, onDelete, onRefetch }: {
+  tutor: TutorWithContact; selected: boolean; onToggle: () => void;
+  timeOffList: TimeOff[];
   onSave: (u: TutorWithContact) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onRefetch: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [tab, setTab] = useState<'details' | 'timeoff'>('details');
+  const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState<TutorWithContact>(tutor);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -221,159 +223,217 @@ function TutorRow({ tutor, timeOffList, onSave, onDelete, onRefetch }: {
     JSON.stringify(tutor.availabilityBlocks) !== JSON.stringify(draft.availabilityBlocks);
 
   const timeOffCount = timeOffList.filter(t => t.tutor_id === tutor.id).length;
+  const catLabel = draft.cat === 'math' ? 'Math / Sci' : 'Eng / Hist';
+  const catColor = draft.cat === 'math' ? '#1d4ed8' : '#be185d';
+  const catBg = draft.cat === 'math' ? '#dbeafe' : '#fce7f3';
 
   return (
-    <div className="rounded-2xl overflow-hidden transition-all"
-      style={{ border: expanded ? '1.5px solid #fca5a5' : '1.5px solid #e2e8f0', boxShadow: expanded ? '0 4px 16px rgba(220,38,38,0.08)' : '0 1px 4px rgba(0,0,0,0.04)' }}>
+    <>
+      {/* Main row */}
+      <div className="grid items-center transition-all"
+        style={{
+          gridTemplateColumns: '36px 36px 2fr 80px 150px 100px 84px',
+          borderBottom: expanded ? 'none' : '1px solid #f1f5f9',
+          background: selected ? '#fff5f5' : expanded ? '#fafafa' : '#fff',
+          minHeight: 52,
+        }}>
 
-      {/* Header */}
-      <div className="px-5 py-4 flex items-center gap-3 cursor-pointer select-none bg-white"
-        style={{ background: expanded ? '#fff5f5' : 'white' }}
-        onClick={() => setExpanded(e => !e)}>
-
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black text-white shrink-0"
-          style={{ background: '#dc2626' }}>
-          {initials(draft.name)}
+        {/* Checkbox */}
+        <div className="flex items-center justify-center" onClick={e => e.stopPropagation()}>
+          <button onClick={onToggle} className="text-[#94a3b8] hover:text-[#dc2626] transition-colors">
+            {selected ? <CheckSquare size={14} style={{ color: '#dc2626' }} /> : <Square size={14} />}
+          </button>
         </div>
 
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-black text-[#0f172a] leading-none">{draft.name || 'Unnamed'}</p>
-          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            <span className="text-[9px] font-black px-2 py-0.5 rounded-md"
-              style={draft.cat === 'math'
-                ? { background: '#dbeafe', color: '#1d4ed8' }
-                : { background: '#fce7f3', color: '#be185d' }}>
-              {draft.cat === 'math' ? 'Math / Sci' : 'Eng / Hist'}
-            </span>
-            {draft.subjects.length > 0 && (
-              <span className="text-[10px] text-[#64748b] truncate max-w-[240px]">{draft.subjects.join(', ')}</span>
-            )}
-          </div>
-          {draft.email && (
-            <p className="text-[10px] text-[#94a3b8] mt-0.5 flex items-center gap-1">
-              <Mail size={9} /> {draft.email}
-            </p>
+        {/* Avatar */}
+        <div className="flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black text-white shrink-0"
+            style={{ background: '#dc2626' }}>{initials(draft.name)}</div>
+        </div>
+
+        {/* Name */}
+        <div className="flex items-center gap-2 min-w-0 cursor-pointer pr-2" onClick={() => !isEditing && setExpanded(e => !e)}>
+          {isEditing ? (
+            <input type="text" value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })}
+              className={inputCls} placeholder="Full name" autoFocus onClick={e => e.stopPropagation()} />
+          ) : (
+            <span className="text-[13px] font-bold text-[#0f172a] truncate">{draft.name || 'Unnamed'}</span>
           )}
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          {timeOffCount > 0 && (
-            <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
-              style={{ background: '#fef3c7', color: '#d97706', border: '1px solid #fde68a' }}>
-              {timeOffCount} off
-            </span>
+        {/* Category */}
+        <div className="flex items-center">
+          <span className="text-[9px] font-black px-2 py-0.5 rounded-md whitespace-nowrap"
+            style={{ background: catBg, color: catColor }}>
+            {catLabel}
+          </span>
+        </div>
+
+        {/* Subjects */}
+        <div>
+          {draft.subjects.length > 0 ? (
+            <span className="text-[10px] text-[#64748b] truncate block">{draft.subjects.slice(0, 2).join(', ')}{draft.subjects.length > 2 ? `, +${draft.subjects.length - 2}` : ''}</span>
+          ) : (
+            <span className="text-[10px] text-[#cbd5e1] italic">No subjects</span>
           )}
-          {dirty && (
-            <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
-              style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>
-              Unsaved
-            </span>
+        </div>
+
+        {/* Contact */}
+        <div>
+          {draft.email ? (
+            <span className="text-[10px] text-[#64748b] truncate flex items-center gap-1"><Mail size={9} /> {draft.email}</span>
+          ) : (
+            <span className="text-[10px] text-[#cbd5e1] italic">No contact</span>
           )}
-          {expanded ? <ChevronUp size={14} className="text-[#94a3b8]" /> : <ChevronDown size={14} className="text-[#94a3b8]" />}
+        </div>
+
+        {/* Time off count */}
+        <div className="flex items-center justify-center">
+          {timeOffCount > 0 ? (
+            <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
+              style={{ background: '#fef3c7', color: '#d97706' }}>{timeOffCount}</span>
+          ) : (
+            <span className="text-[10px] text-[#cbd5e1]">—</span>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1 pr-3" onClick={e => e.stopPropagation()}>
+          <button onClick={() => { setIsEditing(true); setExpanded(true); setTab('details'); }}
+            className="px-2 py-1 rounded-md text-[10px] font-bold text-[#64748b] transition-all"
+            style={{ background: '#f1f5f9', border: '1px solid #e2e8f0' }}>Edit</button>
+          <button onClick={() => { setConfirmDelete(true); }}
+            className={`p-1 rounded-md transition-all ${confirmDelete ? 'bg-red-50 text-red-500' : 'text-[#cbd5e1] hover:text-red-400'}`}>
+            {confirmDelete ? '?' : <Trash2 size={11} />}
+          </button>
+          <button onClick={() => setExpanded(e => !e)} className="p-1 text-[#94a3b8]">
+            {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </button>
         </div>
       </div>
 
+      {/* Expanded panel */}
       {expanded && (
-        <div style={{ borderTop: '1px solid #f1f5f9' }}>
-          {/* Tabs */}
-          <div className="flex" style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+        <div style={{ borderBottom: '1px solid #f1f5f9', background: '#fafafa', borderLeft: '3px solid #dc2626' }}>
+          <div className="flex px-5 gap-0" style={{ background: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }}>
             {(['details', 'timeoff'] as const).map(t => (
               <button key={t} onClick={() => setTab(t)}
-                className="flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all"
-                style={{
-                  color: tab === t ? '#dc2626' : '#94a3b8',
-                  borderBottom: tab === t ? '2px solid #dc2626' : '2px solid transparent',
-                  background: 'transparent',
-                }}>
+                className="py-3 mr-6 text-[10px] font-black uppercase tracking-widest border-b-2 -mb-px transition-colors"
+                style={tab === t ? { color: '#dc2626', borderColor: '#dc2626' } : { color: '#94a3b8', borderColor: 'transparent' }}>
                 {t === 'details' ? 'Details & Availability' : `Time Off${timeOffCount > 0 ? ` (${timeOffCount})` : ''}`}
               </button>
             ))}
           </div>
 
-          <div className="p-5 bg-white space-y-5">
+          <div className="p-5">
             {tab === 'details' ? (
-              <>
+              <div className="space-y-5">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-[#64748b]">Name</label>
-                    <input value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })}
-                      placeholder="Full name" className={inputCls} />
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest">Name</label>
+                    {isEditing
+                      ? <input type="text" value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} className={inputCls} />
+                      : <p className="text-sm font-semibold text-[#0f172a]">{draft.name || <span className="text-[#cbd5e1] italic text-xs">—</span>}</p>}
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-[#64748b]">Category</label>
-                    <div className="flex gap-2">
-                      {(['math', 'english'] as const).map(c => (
-                        <button key={c} onClick={() => setDraft({ ...draft, cat: c })}
-                          className="flex-1 py-2.5 rounded-xl text-xs font-black transition-all"
-                          style={draft.cat === c
-                            ? { background: '#dc2626', color: 'white', border: '1.5px solid #dc2626' }
-                            : { background: 'white', color: '#475569', border: '1.5px solid #e2e8f0' }}>
-                          {c === 'math' ? 'Math / Sci' : 'Eng / Hist'}
-                        </button>
-                      ))}
-                    </div>
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest">Category</label>
+                    {isEditing ? (
+                      <div className="flex gap-2">
+                        {(['math', 'english'] as const).map(c => (
+                          <button key={c} onClick={() => setDraft({ ...draft, cat: c })}
+                            className="flex-1 py-2.5 rounded-lg text-xs font-black transition-all"
+                            style={draft.cat === c
+                              ? { background: '#dc2626', color: 'white', border: '1.5px solid #dc2626' }
+                              : { background: 'white', color: '#475569', border: '1.5px solid #e2e8f0' }}>
+                            {c === 'math' ? 'Math / Sci' : 'Eng / Hist'}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm font-semibold text-[#0f172a]">{catLabel}</p>
+                    )}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-[#64748b]">Email</label>
-                    <div className="relative">
-                      <Mail size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
-                      <input type="email" value={draft.email ?? ''} onChange={e => setDraft({ ...draft, email: e.target.value })}
-                        placeholder="tutor@email.com"
-                        className="w-full pl-8 pr-3 py-2.5 rounded-xl text-sm border border-[#e2e8f0] bg-[#f8fafc] text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none focus:border-[#dc2626] focus:ring-2 focus:ring-[#fecdd3] transition-all" />
-                    </div>
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest">Email</label>
+                    {isEditing
+                      ? <input type="email" value={draft.email ?? ''} onChange={e => setDraft({ ...draft, email: e.target.value })} className={inputCls} />
+                      : <p className="text-sm font-semibold text-[#0f172a]">{draft.email || <span className="text-[#cbd5e1] italic text-xs">—</span>}</p>}
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-[#64748b]">Phone</label>
-                    <div className="relative">
-                      <Phone size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
-                      <input type="tel" value={draft.phone ?? ''} onChange={e => setDraft({ ...draft, phone: e.target.value })}
-                        placeholder="(555) 000-0000"
-                        className="w-full pl-8 pr-3 py-2.5 rounded-xl text-sm border border-[#e2e8f0] bg-[#f8fafc] text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none focus:border-[#dc2626] focus:ring-2 focus:ring-[#fecdd3] transition-all" />
-                    </div>
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest">Phone</label>
+                    {isEditing
+                      ? <input type="tel" value={draft.phone ?? ''} onChange={e => setDraft({ ...draft, phone: e.target.value })} className={inputCls} />
+                      : <p className="text-sm font-semibold text-[#0f172a]">{draft.phone || <span className="text-[#cbd5e1] italic text-xs">—</span>}</p>}
                   </div>
                 </div>
 
-                <SubjectCheckboxes selected={draft.subjects} onChange={subjects => setDraft({ ...draft, subjects })} />
+                {isEditing ? (
+                  <>
+                    <SubjectCheckboxes selected={draft.subjects} onChange={subjects => setDraft({ ...draft, subjects })} />
+                    <AvailabilityGrid
+                      blocks={draft.availabilityBlocks}
+                      onChange={b => setDraft({
+                        ...draft,
+                        availabilityBlocks: b,
+                        availability: Array.from(new Set(b.map(x => parseInt(x.split('-')[0])))).sort((a, b) => a - b),
+                      })}
+                    />
+                  </>
+                ) : (
+                  <>
+                    {draft.subjects.length > 0 && (
+                      <div>
+                        <p className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest mb-2.5">Subjects</p>
+                        <div className="flex flex-wrap gap-2">
+                          {draft.subjects.map(s => (
+                            <span key={s} className="text-[10px] px-2.5 py-1.5 rounded-md bg-[#dbeafe] text-[#1d4ed8] font-semibold">{s}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {draft.availabilityBlocks.length > 0 && (
+                      <div>
+                        <p className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest mb-2.5">Availability</p>
+                        <p className="text-sm font-semibold text-[#0f172a]">{draft.availabilityBlocks.length} time slots scheduled</p>
+                      </div>
+                    )}
+                  </>
+                )}
 
-                <AvailabilityGrid
-                  blocks={draft.availabilityBlocks}
-                  onChange={b => setDraft({
-                    ...draft,
-                    availabilityBlocks: b,
-                    availability: Array.from(new Set(b.map(x => parseInt(x.split('-')[0])))).sort((a, b) => a - b),
-                  })}
-                />
-
-                <div className="flex justify-between items-center pt-2 border-t border-[#f1f5f9]">
-                  <button
-                    onClick={() => confirmDelete ? onDelete(tutor.id) : setConfirmDelete(true)}
-                    onBlur={() => setConfirmDelete(false)}
-                    className="flex items-center gap-1.5 text-xs font-semibold transition-all px-3 py-2 rounded-lg"
-                    style={{ color: confirmDelete ? '#dc2626' : '#94a3b8', background: confirmDelete ? '#fef2f2' : 'transparent' }}>
-                    <Trash2 size={12} />
-                    {confirmDelete ? 'Confirm delete?' : 'Delete tutor'}
-                  </button>
-                  <button
-                    disabled={!dirty || saving}
-                    onClick={async () => { setSaving(true); await onSave(draft); setSaving(false); }}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black transition-all active:scale-95"
-                    style={dirty
-                      ? { background: '#dc2626', color: 'white', boxShadow: '0 2px 8px rgba(220,38,38,0.25)' }
-                      : { background: '#f1f5f9', color: '#94a3b8', cursor: 'not-allowed' }}>
-                    {saving ? <><Loader2 size={12} className="animate-spin" /> Saving…</> : <><Save size={12} /> Save Changes</>}
-                  </button>
-                </div>
-              </>
+                {isEditing && (
+                  <div className="flex justify-end gap-3 pt-4 border-t border-[#e2e8f0]">
+                    <button onClick={() => { setIsEditing(false); setDraft(tutor); }}
+                      className="px-5 py-2 text-xs font-bold text-[#64748b] rounded-lg" style={{ background: '#f1f5f9', border: '1px solid #e2e8f0' }}>Cancel</button>
+                    <button onClick={async () => { setSaving(true); await onSave(draft); setSaving(false); setIsEditing(false); }} disabled={!dirty || saving}
+                      className="flex items-center gap-2 px-5 py-2 text-white rounded-lg text-xs font-black disabled:opacity-50"
+                      style={{ background: '#dc2626' }}>
+                      {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} Save
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <TimeOffPanel tutor={tutor} timeOffList={timeOffList} onRefetch={onRefetch} />
             )}
           </div>
         </div>
       )}
-    </div>
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)' }} onClick={() => setConfirmDelete(false)}>
+          <div className="bg-white rounded-xl p-5 max-w-sm" onClick={e => e.stopPropagation()}>
+            <p className="text-sm font-bold text-[#0f172a] mb-4">Delete {draft.name}?</p>
+            <p className="text-[13px] text-[#64748b] mb-5">This action cannot be undone.</p>
+            <div className="flex gap-2">
+              <button onClick={() => setConfirmDelete(false)} className="px-4 py-2 text-xs font-bold rounded-lg" style={{ background: '#f1f5f9', color: '#475569' }}>Cancel</button>
+              <button onClick={async () => { await onDelete(tutor.id); setConfirmDelete(false); }} className="px-4 py-2 text-xs font-bold rounded-lg text-white" style={{ background: '#dc2626' }}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -386,6 +446,9 @@ export default function TutorManagementPage() {
   const [newTutor, setNewTutor] = useState<Omit<TutorWithContact, 'id'>>(EMPTY_TUTOR);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [confirmBulk, setConfirmBulk] = useState(false);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -424,6 +487,17 @@ export default function TutorManagementPage() {
     else fetchAll();
   };
 
+  const handleBulkDelete = async () => {
+    if (!confirmBulk) { setConfirmBulk(true); setTimeout(() => setConfirmBulk(false), 3000); return; }
+    setBulkDeleting(true);
+    await supabase.from(TUTORS).delete().in('id', Array.from(selected));
+    logEvent('tutors_bulk_deleted', { count: selected.size });
+    setSelected(new Set());
+    setConfirmBulk(false);
+    setBulkDeleting(false);
+    fetchAll();
+  };
+
   const handleAdd = async () => {
     if (!newTutor.name.trim()) return;
     setSaving(true); setError(null);
@@ -437,6 +511,12 @@ export default function TutorManagementPage() {
     else { setAdding(false); setNewTutor(EMPTY_TUTOR); fetchAll(); logEvent('tutor_created', { tutorName: newTutor.name }); }
   };
 
+  const allSelected = tutors.length > 0 && tutors.every(t => selected.has(t.id));
+  const toggleAll = () => {
+    if (allSelected) { setSelected(new Set()); }
+    else { setSelected(new Set(tutors.map(t => t.id))); }
+  };
+
   if (loading) return (
     <div className="w-full min-h-screen flex items-center justify-center" style={{ background: '#f8fafc' }}>
       <div className="flex flex-col items-center gap-3">
@@ -447,24 +527,32 @@ export default function TutorManagementPage() {
   );
 
   return (
-    <div className="w-full min-h-screen pb-20" style={{ background: '#f1f5f9', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}>
+    <div className="min-h-screen pb-20" style={{ background: '#f1f5f9', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}>
 
-      {/* Header */}
+      {/* Top bar */}
       <div className="sticky top-0 z-40 bg-white" style={{ borderBottom: '1px solid #e2e8f0' }}>
-        <div className="max-w-7xl mx-auto h-12 flex items-center justify-between px-5 gap-4">
+        <div className="max-w-7xl mx-auto px-5 h-12 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <UserPlus size={15} style={{ color: '#dc2626' }} />
             <span className="text-sm font-black text-[#0f172a]">Tutors</span>
-            <span className="text-[10px] font-bold text-[#94a3b8] bg-[#f8fafc] px-2 py-0.5 rounded-full border border-[#e2e8f0]">
-              {tutors.length}
-            </span>
+            {!loading && <span className="text-[10px] font-bold text-[#94a3b8] bg-[#f8fafc] px-2 py-0.5 rounded-full border border-[#e2e8f0]">{tutors.length}</span>}
           </div>
-          <button
-            onClick={() => { setAdding(a => !a); setNewTutor(EMPTY_TUTOR); }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black text-white transition-all"
-            style={{ background: adding ? '#64748b' : '#dc2626' }}>
-            {adding ? <><X size={13} /> Cancel</> : <><UserPlus size={13} /> Add Tutor</>}
-          </button>
+          <div className="flex items-center gap-2">
+            {selected.size > 0 && (
+              <button onClick={handleBulkDelete} disabled={bulkDeleting}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black text-white transition-all disabled:opacity-50"
+                style={{ background: confirmBulk ? '#991b1b' : '#dc2626' }}>
+                {bulkDeleting ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
+                {confirmBulk ? `Confirm delete ${selected.size}` : `Delete ${selected.size}`}
+              </button>
+            )}
+            <button
+              onClick={() => { setAdding(a => !a); setNewTutor(EMPTY_TUTOR); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black text-white transition-all"
+              style={{ background: adding ? '#64748b' : '#dc2626' }}>
+              {adding ? <><X size={13} /> Cancel</> : <><UserPlus size={13} /> Add Tutor</>}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -558,7 +646,7 @@ export default function TutorManagementPage() {
           </div>
         )}
 
-        {/* Tutor list */}
+        {/* Tutors list */}
         {tutors.length === 0 && !adding ? (
           <div className="py-24 text-center bg-white rounded-2xl" style={{ border: '1.5px dashed #e2e8f0' }}>
             <UserPlus size={28} className="mx-auto mb-3 text-[#cbd5e1]" />
@@ -566,16 +654,37 @@ export default function TutorManagementPage() {
             <p className="text-xs text-[#cbd5e1] mt-1">Add one above to get started</p>
           </div>
         ) : (
-          <div className="rounded-xl overflow-hidden" style={{ border: '1.5px solid #94a3b8', background: '#ffffff' }}>
-            <div className="hidden md:grid" style={{ gridTemplateColumns: '2fr 1fr 2fr 1.4fr 0.8fr 0.8fr', background: '#0f172a', color: 'white' }}>
-              {['Tutor', 'Category', 'Subjects', 'Contact', 'Time Off', 'Actions'].map(h => (
-                <div key={h} className="px-4 py-2.5 text-[10px] font-black uppercase tracking-widest">{h}</div>
+          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #e2e8f0', background: '#fff' }}>
+            {/* Table header - hidden on mobile */}
+            <div className="hidden md:grid px-4 py-3" style={{ gridTemplateColumns: '36px 36px 2fr 80px 150px 100px 84px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+              <div className="flex items-center justify-center">
+                <button onClick={toggleAll} className="text-[#94a3b8] hover:text-[#dc2626] transition-colors">
+                  {allSelected ? <CheckSquare size={14} style={{ color: '#dc2626' }} /> : <Square size={14} />}
+                </button>
+              </div>
+              {['', 'Name', 'Category', 'Subjects', 'Contact', 'Time Off', ''].map((h, i) => (
+                <div key={i} className="text-[9px] font-black uppercase tracking-widest text-[#94a3b8] flex items-center">{h}</div>
               ))}
             </div>
-            <div className="space-y-2 p-2" style={{ background: '#f8fafc' }}>
-              {tutors.map(t => (
-                <TutorRow key={t.id} tutor={t} timeOffList={timeOffList}
-                  onSave={handleSave} onDelete={handleDelete} onRefetch={fetchAll} />
+
+            {/* Table rows */}
+            <div style={{ background: '#fff' }}>
+              {tutors.map((t, i) => (
+                <TutorRow
+                  key={t.id}
+                  tutor={t}
+                  selected={selected.has(t.id)}
+                  onToggle={() => {
+                    const newSelected = new Set(selected);
+                    if (newSelected.has(t.id)) newSelected.delete(t.id);
+                    else newSelected.add(t.id);
+                    setSelected(newSelected);
+                  }}
+                  timeOffList={timeOffList}
+                  onSave={handleSave}
+                  onDelete={handleDelete}
+                  onRefetch={fetchAll}
+                />
               ))}
             </div>
           </div>
