@@ -1,5 +1,5 @@
 "use client"
-import { X, UserX, CheckCircle2, Clock, Mail, Phone, ExternalLink, User, ChevronDown, ChevronUp, FileText, Save, Loader2 } from 'lucide-react';
+import { X, UserX, CheckCircle2, Clock, Mail, Phone, ExternalLink, User, FileText, Save, Loader2, Copy, Check } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import {
   bookStudent,
@@ -35,6 +35,35 @@ interface ModalContentProps extends AttendanceModalProps {
   sessionTime: string;
 }
 
+function CopyBtn({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    await navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <button onClick={copy}
+      className="shrink-0 w-5 h-5 rounded-md flex items-center justify-center transition-all"
+      style={{ background: copied ? '#dcfce7' : '#f1f5f9', color: copied ? '#16a34a' : '#94a3b8' }}
+      title="Copy">
+      {copied ? <Check size={10} /> : <Copy size={10} />}
+    </button>
+  );
+}
+
+function ContactRow({ href, icon, label, copyValue }: { href: string; icon: React.ReactNode; label: string; copyValue?: string }) {
+  return (
+    <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(203,213,225,0.5)' }}>
+      <span style={{ color: '#94a3b8' }} className="shrink-0">{icon}</span>
+      <a href={href} className="flex-1 text-[12.5px] font-medium truncate" style={{ color: '#1e293b', textDecoration: 'none' }}>
+        {label}
+      </a>
+      {copyValue && <CopyBtn value={copyValue} />}
+    </div>
+  );
+}
+
 function ModalContent({
   s, student, studentRecord, altTutors, hasContactInfo, sessionTime,
   selectedSession, setSelectedSession, patchSelectedSession,
@@ -43,7 +72,6 @@ function ModalContent({
   const currentStatus = student.status;
   const currentConf = student.confirmationStatus ?? null;
 
-  const [contactOpen, setContactOpen] = useState(false);
   const [notesEditing, setNotesEditing] = useState(false);
   const [notesDraft, setNotesDraft] = useState<string>(student.notes ?? '');
   const [notesSaving, setNotesSaving] = useState(false);
@@ -92,127 +120,110 @@ function ModalContent({
     } catch (err: any) { alert(err.message || 'Reassignment failed'); }
   };
 
-  // Derived display
   const initials = student.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
   const blockLabel = s.block?.label ?? sessionTime;
+  const cr = studentRecord;
 
-  const statusConfig = {
-    present:   { label: 'Present',   bg: '#f0fdf4', border: '#16a34a', text: '#15803d' },
-    'no-show': { label: 'No-show',   bg: '#fef2f2', border: '#dc2626', text: '#b91c1c' },
-    scheduled: { label: 'Scheduled', bg: '#f8fafc', border: '#94a3b8', text: '#475569' },
+  const attendanceCfg = {
+    present:   { label: 'Present',   active: { bg: '#f0fdf4', border: '#16a34a', text: '#15803d' } },
+    'no-show': { label: 'No-show',   active: { bg: '#fff1f2', border: '#f43f5e', text: '#be123c' } },
+    scheduled: { label: 'Unmarked',  active: { bg: '#f8fafc', border: '#94a3b8', text: '#475569' } },
   } as const;
-
-  const confConfig = {
-    confirmed: { bg: '#f0fdf4', border: '#16a34a', text: '#15803d' },
-    null:      { bg: '#fef2f2', border: '#fca5a5', text: '#9f1239' },
-  };
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
 
-      {/* ══ HEADER ══════════════════════════════════════════════════════════ */}
-      <div className="shrink-0 px-5 py-4 flex items-start justify-between gap-4"
-        style={{ borderBottom: '1px solid #f1f5f9' }}>
-        <div className="flex items-center gap-3.5 min-w-0">
-          {/* Avatar */}
-          <div className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center text-sm font-black text-white"
-            style={{ background: '#dc2626' }}>
+      {/* HEADER */}
+      <div className="shrink-0 px-5 pt-5 pb-4 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black text-white"
+            style={{ background: 'linear-gradient(135deg, #dc2626, #9f1239)' }}>
             {initials}
           </div>
           <div className="min-w-0">
-            <h2 className="text-[17px] font-black text-[#0f172a] leading-tight tracking-tight truncate">
-              {student.name}
-            </h2>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-xs font-semibold text-[#64748b]">{student.topic}</span>
-              {student.grade && (
-                <>
-                  <span className="text-[#cbd5e1]">·</span>
-                  <span className="text-xs text-[#94a3b8]">Grade {student.grade}</span>
-                </>
-              )}
+            <h2 className="text-[16px] font-black text-[#0f172a] leading-tight truncate">{student.name}</h2>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-[11px] font-semibold text-[#64748b]">{student.topic}</span>
+              {student.grade && <>
+                <span className="text-[#cbd5e1] text-[10px]">·</span>
+                <span className="text-[11px] text-[#94a3b8]">Gr. {student.grade}</span>
+              </>}
             </div>
           </div>
         </div>
         <button onClick={() => setSelectedSession(null)}
-          className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+          className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all"
           style={{ background: '#f1f5f9', color: '#94a3b8' }}
           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#e2e8f0'; }}
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#f1f5f9'; }}>
-          <X size={14} />
+          <X size={13} />
         </button>
       </div>
 
-      {/* Session context bar */}
-      <div className="shrink-0 px-5 py-2.5 flex items-center gap-2 flex-wrap"
-        style={{ background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
-        <span className="text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider text-white"
+      {/* SESSION CONTEXT */}
+      <div className="shrink-0 mx-5 mb-3 px-3 py-2 rounded-lg flex items-center gap-2 flex-wrap"
+        style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+        <span className="text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider text-white"
           style={{ background: '#dc2626' }}>{s.dayName}</span>
-        <span className="text-xs text-[#64748b]">{formatDate(s.date)}</span>
+        <span className="text-[11px] text-[#475569]">{formatDate(s.date)}</span>
         <span className="text-[#e2e8f0]">·</span>
-        <span className="text-xs text-[#64748b]">{blockLabel}</span>
+        <span className="text-[11px] text-[#64748b]">{blockLabel}</span>
         <span className="text-[#e2e8f0]">·</span>
-        <span className="text-xs font-semibold text-[#475569]">{s.tutorName}</span>
+        <span className="text-[11px] font-semibold text-[#334155]">{s.tutorName}</span>
       </div>
 
-      {/* Tab bar */}
-      <div className="shrink-0 flex px-5" style={{ borderBottom: '1px solid #f1f5f9' }}>
+      {/* TAB BAR */}
+      <div className="shrink-0 flex px-5 gap-0" style={{ borderBottom: '1px solid #f1f5f9' }}>
         {(['session', 'notes'] as const).map(tab => (
           <button key={tab} onClick={() => setModalTab(tab)}
-            className="py-3 mr-6 text-xs font-black uppercase tracking-widest border-b-2 -mb-px flex items-center gap-1.5 transition-colors"
-            style={modalTab === tab
-              ? { color: '#dc2626', borderColor: '#dc2626' }
-              : { color: '#94a3b8', borderColor: 'transparent' }}>
+            className="py-2.5 mr-5 text-[10px] font-black uppercase tracking-widest border-b-2 -mb-px flex items-center gap-1.5 transition-all"
+            style={modalTab === tab ? { color: '#dc2626', borderColor: '#dc2626' } : { color: '#94a3b8', borderColor: 'transparent' }}>
             {tab === 'notes' ? 'Notes' : 'Session'}
-            {tab === 'notes' && student.notes && (
-              <span className="w-1.5 h-1.5 rounded-full bg-[#dc2626]" />
-            )}
+            {tab === 'notes' && student.notes && <span className="w-1.5 h-1.5 rounded-full bg-[#dc2626]" />}
           </button>
         ))}
       </div>
 
-      {/* ══ BODY ════════════════════════════════════════════════════════════ */}
+      {/* BODY */}
       <div className="flex-1 overflow-y-auto">
-
-        {/* ── SESSION TAB ── */}
         {modalTab === 'session' && (
-          <div className="p-5 space-y-5">
+          <div className="p-5 space-y-4">
 
-            {/* Confirmation + Attendance in a unified 5-button row */}
+            {/* CONFIRMATION */}
             <div>
-              <p className="text-[10px] font-black text-[#94a3b8] uppercase tracking-widest mb-2">Status</p>
-
-              {/* Confirmation row */}
-              <div className="flex gap-2 mb-2">
+              <p className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest mb-2">Confirmation</p>
+              <div className="grid grid-cols-2 gap-2">
                 {([
-                  { val: 'confirmed' as const, label: 'Confirmed', ...confConfig.confirmed },
-                  { val: null,                 label: 'Not yet',   ...confConfig.null },
-                ]).map(({ val, label, bg, border, text }) => {
+                  { val: 'confirmed' as const, label: 'Confirmed', icon: <CheckCircle2 size={12} />, activeColor: '#16a34a', activeBg: '#f0fdf4', activeBorder: '#16a34a' },
+                  { val: null, label: 'Not yet', icon: <Clock size={12} />, activeColor: '#be123c', activeBg: '#fff1f2', activeBorder: '#f43f5e' },
+                ]).map(({ val, label, icon, activeColor, activeBg, activeBorder }) => {
                   const active = currentConf === val;
                   return (
                     <button key={String(val)} onClick={() => handleConfirmation(val)}
-                      className="flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider border-2 flex items-center justify-center gap-1.5 transition-all active:scale-[0.97]"
+                      className="py-2 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
                       style={active
-                        ? { background: bg, borderColor: border, color: text }
-                        : { background: 'white', borderColor: '#e2e8f0', color: '#cbd5e1' }}>
-                      {val === 'confirmed' ? <CheckCircle2 size={13}/> : <Clock size={13}/>}
-                      {label}
+                        ? { background: activeBg, border: `1.5px solid ${activeBorder}`, color: activeColor }
+                        : { background: '#f8fafc', border: '1.5px solid #e2e8f0', color: '#94a3b8' }}>
+                      {icon}{label}
                     </button>
                   );
                 })}
               </div>
+            </div>
 
-              {/* Attendance row */}
-              <div className="flex gap-2">
+            {/* ATTENDANCE */}
+            <div>
+              <p className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest mb-2">Attendance</p>
+              <div className="grid grid-cols-3 gap-2">
                 {(['present', 'no-show', 'scheduled'] as const).map(status => {
-                  const cfg = statusConfig[status];
+                  const cfg = attendanceCfg[status];
                   const active = currentStatus === status;
                   return (
                     <button key={status} onClick={() => handleAttendance(status)}
-                      className="flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider border-2 transition-all active:scale-[0.97]"
+                      className="py-2 rounded-lg text-[11px] font-bold transition-all active:scale-[0.98]"
                       style={active
-                        ? { background: cfg.bg, borderColor: cfg.border, color: cfg.text }
-                        : { background: 'white', borderColor: '#e2e8f0', color: '#cbd5e1' }}>
+                        ? { background: cfg.active.bg, border: `1.5px solid ${cfg.active.border}`, color: cfg.active.text }
+                        : { background: '#f8fafc', border: '1.5px solid #e2e8f0', color: '#94a3b8' }}>
                       {cfg.label}
                     </button>
                   );
@@ -220,153 +231,90 @@ function ModalContent({
               </div>
             </div>
 
-            {/* ── CONTACT ── */}
-            {hasContactInfo && (
-              <div className="rounded-2xl overflow-hidden" style={{ border: '1.5px solid #f1f5f9' }}>
-                {/* Header row — always clickable */}
-                <button onClick={() => setContactOpen(p => !p)}
-                  className="w-full flex items-center justify-between px-4 py-3 transition-colors"
-                  style={{ background: contactOpen ? '#f8fafc' : 'white' }}>
-                  <span className="text-[10px] font-black text-[#64748b] uppercase tracking-widest">Contact</span>
-                  {contactOpen ? <ChevronUp size={13} className="text-[#94a3b8]"/> : <ChevronDown size={13} className="text-[#94a3b8]"/>}
-                </button>
+            {/* CONTACT */}
+            <div>
+              <p className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest mb-2">Contact</p>
+              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #e2e8f0', background: '#fafafa' }}>
 
-                {/* Collapsed: single-line chips */}
-                {!contactOpen && (
-                  <div className="px-4 pb-3 flex flex-wrap gap-2" style={{ borderTop: '1px solid #f8fafc' }}>
-                    {studentRecord?.bluebook_url && (
-                      <a href={studentRecord.bluebook_url} target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors"
-                        style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>
-                        <ExternalLink size={10}/> Bluebook
+                {/* Bluebook */}
+                <div className="px-3 pt-3 pb-2">
+                  <p className="text-[9px] font-bold text-[#94a3b8] uppercase tracking-wider mb-1.5">Bluebook</p>
+                  {cr?.bluebook_url ? (
+                    <div className="flex items-center gap-2 px-2.5 py-2 rounded-lg" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                      <ExternalLink size={11} style={{ color: '#16a34a' }} className="shrink-0" />
+                      <a href={cr.bluebook_url} target="_blank" rel="noopener noreferrer"
+                        className="flex-1 text-[12px] font-semibold truncate" style={{ color: '#15803d', textDecoration: 'none' }}>
+                        Open in SharePoint
                       </a>
-                    )}
-                    {studentRecord?.email && (
-                      <a href={`mailto:${studentRecord.email}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] text-[#475569] transition-colors"
-                        style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                        <Mail size={10} className="text-[#94a3b8]"/>
-                        <span className="max-w-[140px] truncate">{studentRecord.email}</span>
-                      </a>
-                    )}
-                    {studentRecord?.phone && (
-                      <a href={`tel:${studentRecord.phone}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] text-[#475569]"
-                        style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                        <Phone size={10} className="text-[#94a3b8]"/>{studentRecord.phone}
-                      </a>
-                    )}
-                    {!studentRecord?.email && !studentRecord?.phone && studentRecord?.parent_email && (
-                      <a href={`mailto:${studentRecord.parent_email}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] text-[#475569]"
-                        style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                        <Mail size={10} className="text-[#94a3b8]"/>
-                        <span className="max-w-[140px] truncate">{studentRecord.parent_email}</span>
-                      </a>
+                      <CopyBtn value={cr.bluebook_url} />
+                    </div>
+                  ) : (
+                    <div className="px-2.5 py-2 rounded-lg text-[12px] text-[#94a3b8]" style={{ background: '#f1f5f9', border: '1px solid #e2e8f0' }}>
+                      No link on file
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ height: 1, background: '#f1f5f9', margin: '0 12px' }} />
+
+                {/* Student */}
+                <div className="px-3 pt-2 pb-2">
+                  <p className="text-[9px] font-bold text-[#94a3b8] uppercase tracking-wider mb-1.5 flex items-center gap-1"><User size={8} /> Student</p>
+                  <div className="space-y-1">
+                    {cr?.email && <ContactRow href={`mailto:${cr.email}`} icon={<Mail size={11} />} label={cr.email} copyValue={cr.email} />}
+                    {cr?.phone && <ContactRow href={`tel:${cr.phone}`} icon={<Phone size={11} />} label={cr.phone} copyValue={cr.phone} />}
+                    {!cr?.email && !cr?.phone && (
+                      <div className="px-2.5 py-2 rounded-lg text-[12px] text-[#94a3b8]" style={{ background: '#f1f5f9', border: '1px solid #e2e8f0' }}>No student contact on file</div>
                     )}
                   </div>
-                )}
+                </div>
 
-                {/* Expanded: full details */}
-                {contactOpen && (
-                  <div className="px-4 pb-4 space-y-4" style={{ borderTop: '1px solid #f1f5f9' }}>
-                    {/* Bluebook — featured */}
-                    {studentRecord?.bluebook_url && (
-                      <a href={studentRecord.bluebook_url} target="_blank" rel="noopener noreferrer"
-                        className="mt-3 flex items-center gap-3 px-4 py-3 rounded-xl w-full transition-colors"
-                        style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0' }}>
-                        <div className="w-9 h-9 rounded-xl bg-[#16a34a] flex items-center justify-center text-white text-[10px] font-black shrink-0">XL</div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-black text-[#15803d]">Bluebook</p>
-                          <p className="text-[10px] text-[#16a34a]">Open in SharePoint →</p>
-                        </div>
-                        <ExternalLink size={13} className="text-[#16a34a] shrink-0"/>
-                      </a>
-                    )}
+                <div style={{ height: 1, background: '#f1f5f9', margin: '0 12px' }} />
 
-                    {/* Student */}
-                    {(studentRecord?.email || studentRecord?.phone) && (
-                      <div>
-                        <p className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest mb-1.5 flex items-center gap-1"><User size={8}/> Student</p>
-                        <div className="space-y-1">
-                          {studentRecord?.email && (
-                            <a href={`mailto:${studentRecord.email}`}
-                              className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors"
-                              style={{ background: '#f8fafc' }}>
-                              <Mail size={12} className="text-[#94a3b8] shrink-0"/>
-                              <span className="text-[13px] text-[#1e293b] truncate">{studentRecord.email}</span>
-                            </a>
-                          )}
-                          {studentRecord?.phone && (
-                            <a href={`tel:${studentRecord.phone}`}
-                              className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors"
-                              style={{ background: '#f8fafc' }}>
-                              <Phone size={12} className="text-[#94a3b8] shrink-0"/>
-                              <span className="text-[13px] text-[#1e293b]">{studentRecord.phone}</span>
-                            </a>
-                          )}
-                        </div>
+                {/* Parent */}
+                <div className="px-3 pt-2 pb-3">
+                  <p className="text-[9px] font-bold text-[#94a3b8] uppercase tracking-wider mb-1.5">Parent / Guardian</p>
+                  <div className="space-y-1">
+                    {cr?.parent_name && (
+                      <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(203,213,225,0.5)' }}>
+                        <User size={11} style={{ color: '#94a3b8' }} className="shrink-0" />
+                        <span className="flex-1 text-[12.5px] font-medium text-[#1e293b]">{cr.parent_name}</span>
+                        <CopyBtn value={cr.parent_name} />
                       </div>
                     )}
-
-                    {/* Parent */}
-                    {(studentRecord?.parent_name || studentRecord?.parent_email || studentRecord?.parent_phone) && (
-                      <div>
-                        <p className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest mb-1.5">Parent / Guardian</p>
-                        <div className="space-y-1">
-                          {studentRecord?.parent_name && (
-                            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl" style={{ background: '#f8fafc' }}>
-                              <User size={12} className="text-[#94a3b8] shrink-0"/>
-                              <span className="text-[13px] text-[#1e293b]">{studentRecord.parent_name}</span>
-                            </div>
-                          )}
-                          {studentRecord?.parent_email && (
-                            <a href={`mailto:${studentRecord.parent_email}`}
-                              className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors"
-                              style={{ background: '#f8fafc' }}>
-                              <Mail size={12} className="text-[#94a3b8] shrink-0"/>
-                              <span className="text-[13px] text-[#1e293b] truncate">{studentRecord.parent_email}</span>
-                            </a>
-                          )}
-                          {studentRecord?.parent_phone && (
-                            <a href={`tel:${studentRecord.parent_phone}`}
-                              className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors"
-                              style={{ background: '#f8fafc' }}>
-                              <Phone size={12} className="text-[#94a3b8] shrink-0"/>
-                              <span className="text-[13px] text-[#1e293b]">{studentRecord.parent_phone}</span>
-                            </a>
-                          )}
-                        </div>
-                      </div>
+                    {cr?.parent_email && <ContactRow href={`mailto:${cr.parent_email}`} icon={<Mail size={11} />} label={cr.parent_email} copyValue={cr.parent_email} />}
+                    {cr?.parent_phone && <ContactRow href={`tel:${cr.parent_phone}`} icon={<Phone size={11} />} label={cr.parent_phone} copyValue={cr.parent_phone} />}
+                    {!cr?.parent_name && !cr?.parent_email && !cr?.parent_phone && (
+                      <div className="px-2.5 py-2 rounded-lg text-[12px] text-[#94a3b8]" style={{ background: '#f1f5f9', border: '1px solid #e2e8f0' }}>No parent contact on file</div>
                     )}
                   </div>
-                )}
+                </div>
               </div>
-            )}
+            </div>
 
-            {/* ── REASSIGN ── */}
+            {/* REASSIGN */}
             {altTutors.length > 0 && (
               <div>
-                <p className="text-[10px] font-black text-[#94a3b8] uppercase tracking-widest mb-2">Reassign to</p>
-                <div className="space-y-2">
+                <p className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest mb-2">Reassign to</p>
+                <div className="space-y-1.5">
                   {altTutors.map(t => {
                     const alt = sessions.find(ss => ss.date === s.date && ss.tutorId === t.id && ss.time === sessionTime);
                     const used = alt ? alt.students.length : 0;
                     return (
-                      <div key={t.id} className="flex items-center justify-between px-3.5 py-3 rounded-xl"
-                        style={{ background: '#f8fafc', border: '1.5px solid #f1f5f9' }}>
+                      <div key={t.id} className="flex items-center justify-between px-3 py-2.5 rounded-xl"
+                        style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-[#fee2e2] text-[#dc2626] flex items-center justify-center text-xs font-black">
+                          <div className="w-7 h-7 rounded-lg bg-[#fee2e2] text-[#dc2626] flex items-center justify-center text-xs font-black">
                             {t.name.charAt(0)}
                           </div>
                           <div>
-                            <p className="text-sm font-bold text-[#1e293b]">{t.name}</p>
+                            <p className="text-[13px] font-bold text-[#1e293b]">{t.name}</p>
                             <p className="text-[10px] text-[#94a3b8]">{used}/{MAX_CAPACITY} students</p>
                           </div>
                         </div>
                         <button onClick={() => handleReassign(t)}
-                          className="px-3.5 py-1.5 rounded-lg text-xs font-black text-white uppercase tracking-wider transition-all active:scale-95"
-                          style={{ background: '#0f172a' }}>
+                          className="px-3 py-1.5 rounded-lg text-[11px] font-bold text-white transition-all active:scale-95"
+                          style={{ background: '#1e293b' }}>
                           Move
                         </button>
                       </div>
@@ -376,58 +324,55 @@ function ModalContent({
               </div>
             )}
 
-            {/* ── REMOVE ── */}
+            {/* REMOVE */}
             <button onClick={handleRemove}
-              className="w-full py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"
-              style={{ border: '1.5px dashed #fecaca', color: '#dc2626', background: 'transparent' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#fef2f2'; }}
+              className="w-full py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
+              style={{ border: '1px dashed #fca5a5', color: '#ef4444', background: 'transparent' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#fff1f2'; }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
-              <UserX size={13} strokeWidth={2}/> Remove from Session
+              <UserX size={12} strokeWidth={2} /> Remove from Session
             </button>
           </div>
         )}
 
-        {/* ── NOTES TAB ── */}
+        {/* NOTES TAB */}
         {modalTab === 'notes' && (
           <div className="p-5">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] font-black text-[#94a3b8] uppercase tracking-widest">Session Notes</p>
+              <p className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest">Session Notes</p>
               <div className="flex items-center gap-2">
                 {notesEditing ? (
                   <>
                     <button onClick={() => { setNotesDraft(student.notes ?? ''); setNotesEditing(false); }}
-                      className="px-3 py-1.5 rounded-lg text-xs font-bold text-[#64748b] transition-colors"
-                      style={{ background: '#f1f5f9' }}>
+                      className="px-3 py-1.5 rounded-lg text-[11px] font-bold text-[#64748b]" style={{ background: '#f1f5f9' }}>
                       Cancel
                     </button>
                     <button onClick={handleSaveNotes} disabled={notesSaving}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black text-white disabled:opacity-40 transition-all"
-                      style={{ background: '#0f172a' }}>
-                      {notesSaving ? <Loader2 size={11} className="animate-spin"/> : <Save size={11}/>} Save
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-black text-white disabled:opacity-40"
+                      style={{ background: '#1e293b' }}>
+                      {notesSaving ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />} Save
                     </button>
                   </>
                 ) : (
                   <button onClick={() => setNotesEditing(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-[#dc2626] transition-colors"
-                    style={{ background: '#fef2f2' }}>
-                    <FileText size={11}/> Edit
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold"
+                    style={{ background: '#fef2f2', color: '#dc2626' }}>
+                    <FileText size={11} /> Edit
                   </button>
                 )}
               </div>
             </div>
-
             {notesEditing ? (
               <textarea value={notesDraft} onChange={e => setNotesDraft(e.target.value)}
                 placeholder="Add session notes…" autoFocus rows={8}
-                className="w-full px-4 py-3 text-sm rounded-2xl resize-none outline-none transition-all"
-                style={{ background: 'white', border: '1.5px solid #dc2626', color: '#1e293b', fontFamily: 'inherit', lineHeight: 1.6 }}
-              />
+                className="w-full px-4 py-3 text-sm rounded-xl resize-none outline-none"
+                style={{ background: 'white', border: '1.5px solid #dc2626', color: '#1e293b', fontFamily: 'inherit', lineHeight: 1.6 }} />
             ) : (
               <div onClick={() => setNotesEditing(true)}
-                className="px-4 py-3 rounded-2xl cursor-text transition-colors min-h-[160px]"
-                style={{ background: '#f8fafc', border: '1.5px solid #f1f5f9' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#e2e8f0'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#f1f5f9'; }}>
+                className="px-4 py-3 rounded-xl cursor-text min-h-[160px] transition-all"
+                style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#cbd5e1'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#e2e8f0'; }}>
                 {student.notes
                   ? <p className="text-sm text-[#1e293b] whitespace-pre-wrap leading-relaxed">{student.notes}</p>
                   : <p className="text-sm text-[#cbd5e1] italic">No notes yet — click to add</p>}
@@ -449,7 +394,20 @@ export function AttendanceModal(props: AttendanceModalProps) {
   const sessionTime = s.time ?? s.block?.time;
   const sessionDow = dayOfWeek(s.date);
   const originalTutor = props.tutors.find(t => t.id === s.tutorId);
-  const studentRecord = props.students.find(st => st.id === student.id);
+  const studentId = student?.id ?? student?.student_id ?? student?.studentId ?? null;
+  const studentName = student?.name?.trim?.().toLowerCase?.();
+  const studentRecord = props.students.find(st =>
+    (studentId != null && String(st.id) === String(studentId)) ||
+    (studentName && String(st.name ?? '').trim().toLowerCase() === studentName)
+  );
+  const contactInfo = {
+    email: studentRecord?.email ?? studentRecord?.student_email ?? student?.email ?? student?.student_email ?? null,
+    phone: studentRecord?.phone ?? studentRecord?.student_phone ?? student?.phone ?? student?.student_phone ?? null,
+    bluebook_url: studentRecord?.bluebook_url ?? studentRecord?.bluebookUrl ?? student?.bluebook_url ?? student?.bluebookUrl ?? null,
+    parent_name: studentRecord?.parent_name ?? studentRecord?.parentName ?? student?.parent_name ?? student?.parentName ?? null,
+    parent_email: studentRecord?.parent_email ?? studentRecord?.parentEmail ?? student?.parent_email ?? student?.parentEmail ?? null,
+    parent_phone: studentRecord?.parent_phone ?? studentRecord?.parentPhone ?? student?.parent_phone ?? student?.parentPhone ?? null,
+  };
 
   const altTutors = props.tutors.filter(t => {
     if (t.id === s.tutorId) return false;
@@ -462,31 +420,29 @@ export function AttendanceModal(props: AttendanceModalProps) {
   });
 
   const hasContactInfo = !!(
-    studentRecord?.email || studentRecord?.phone || studentRecord?.bluebook_url ||
-    studentRecord?.parent_name || studentRecord?.parent_email || studentRecord?.parent_phone
+    contactInfo?.email || contactInfo?.phone || contactInfo?.bluebook_url ||
+    contactInfo?.parent_name || contactInfo?.parent_email || contactInfo?.parent_phone
   );
 
   const contentProps: ModalContentProps = {
-    ...props, s, student, studentRecord, altTutors, hasContactInfo, sessionTime,
+    ...props, s, student, studentRecord: contactInfo, altTutors, hasContactInfo, sessionTime,
   };
 
   return (
-    <div className="fixed inset-0 z-50" style={{ background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)' }}>
-      {/* Desktop */}
+    <div className="fixed inset-0 z-50" style={{ background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(8px)' }}>
       <div className="hidden md:flex items-center justify-center h-full p-6">
-        <div className="w-full rounded-2xl overflow-hidden shadow-xl flex flex-col bg-white"
-          style={{ maxWidth: 460, maxHeight: 'min(660px, 92vh)', border: '1px solid #e2e8f0' }}>
-          <ModalContent {...contentProps}/>
+        <div className="w-full rounded-2xl overflow-hidden flex flex-col"
+          style={{ maxWidth: 440, maxHeight: 'min(680px, 92vh)', background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.8)', boxShadow: '0 24px 48px rgba(0,0,0,0.18), 0 0 0 1px rgba(255,255,255,0.5)' }}>
+          <ModalContent {...contentProps} />
         </div>
       </div>
-      {/* Mobile bottom sheet */}
       <div className="md:hidden flex flex-col h-full">
-        <div className="flex-1" onClick={() => setSelectedSession(null)}/>
-        <div className="bg-white rounded-t-2xl shadow-xl flex flex-col" style={{ maxHeight: '92vh' }}>
+        <div className="flex-1" onClick={() => setSelectedSession(null)} />
+        <div className="rounded-t-2xl flex flex-col" style={{ maxHeight: '92vh', background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.8)', boxShadow: '0 -8px 32px rgba(0,0,0,0.12)' }}>
           <div className="flex justify-center pt-3 pb-1 shrink-0">
-            <div className="w-9 h-1 rounded-full bg-[#e2e8f0]"/>
+            <div className="w-8 h-1 rounded-full bg-[#e2e8f0]" />
           </div>
-          <ModalContent {...contentProps}/>
+          <ModalContent {...contentProps} />
         </div>
       </div>
     </div>

@@ -234,16 +234,6 @@ export function WeekView({
 
   return (
     <div className="max-w-[1600px] mx-auto p-3 md:p-6 space-y-10 md:space-y-14">
-      {bulkRemoveMode && (
-        <div className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-xs text-violet-700">
-          {selectedCount > 0
-            ? `${selectedCount} booking${selectedCount !== 1 ? 's' : ''} selected. Click cards to toggle.`
-            : 'Select booked student cards to remove multiple entries at once.'}
-          {selectedCount > 0 && (
-            <button onClick={clearSelection} className="ml-4 font-semibold text-violet-700 underline">Clear</button>
-          )}
-        </div>
-      )}
       {activeDates.map((date) => {
         const isoDate   = toISODate(date);
         const dow       = dayOfWeek(isoDate);
