@@ -69,7 +69,7 @@ export default function ContactCenter() {
 
   const [logs, setLogs]                 = useState<Log[]>([]);
   const [loadingLogs, setLoadingLogs]   = useState(true);
-  const [logsExpanded, setLogsExpanded] = useState(true);
+  const [logsExpanded, setLogsExpanded] = useState(false);
 
   const formatSettingsError = (message: string) => {
     if (message.toLowerCase().includes('relation') || message.toLowerCase().includes('does not exist')) {
@@ -267,19 +267,19 @@ export default function ContactCenter() {
   }, {});
 
   return (
-    <div className="min-h-screen" style={{ background: '#f3f6fb', fontFamily: 'Manrope, Sora, Inter, ui-sans-serif, system-ui, sans-serif' }}>
+    <div className="min-h-screen" style={{ background: '#f1f5f9', fontFamily: 'Manrope, Sora, Inter, ui-sans-serif, system-ui, sans-serif' }}>
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-10 space-y-6 md:space-y-7">
 
-        <div className="rounded-3xl px-6 py-6 md:px-8 md:py-7"
-          style={{ background: 'linear-gradient(110deg, #0f172a 0%, #1e293b 100%)', boxShadow: '0 12px 34px rgba(15,23,42,0.2)' }}>
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-[#93c5fd]">Communication</p>
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white mt-1">Contact Center</h1>
-          <p className="text-sm mt-1.5 text-[#cbd5e1]">Send reminders, edit the template, and review send history.</p>
+        <div className="rounded-xl px-6 py-5 md:px-7 md:py-6"
+          style={{ background: '#ffffff', border: '1px solid #dbe3ee', boxShadow: '0 8px 22px rgba(15,23,42,0.06)' }}>
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#64748b]">Communication</p>
+          <h1 className="text-2xl md:text-[30px] font-extrabold tracking-tight text-[#0f172a] mt-1">Contact Center</h1>
+          <p className="text-sm mt-1.5 text-[#64748b]">Send reminders, edit the template, and review send history.</p>
         </div>
 
         {/* Dispatch panel */}
-        <div className="rounded-3xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.88)', border: '1px solid #e2e8f0', boxShadow: '0 20px 50px rgba(15,23,42,0.08)', backdropFilter: 'blur(6px)' }}>
-          <div className="flex items-center justify-between px-5 md:px-6 py-4" style={{ background: 'linear-gradient(90deg, #2563eb 0%, #1d4ed8 65%, #1e3a8a 100%)', borderBottom: '1px solid #1e3a8a' }}>
+        <div className="rounded-xl overflow-hidden" style={{ background: '#ffffff', border: '1px solid #dbe3ee', boxShadow: '0 10px 26px rgba(15,23,42,0.06)' }}>
+          <div className="flex items-center justify-between px-5 md:px-6 py-4" style={{ background: '#0f172a', borderBottom: '1px solid #020617' }}>
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.16)' }}>
                 <Send size={15} color="rgba(255,255,255,0.95)" />
@@ -389,8 +389,8 @@ export default function ContactCenter() {
         </div>
 
         {/* Email template */}
-        <div className="rounded-3xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.88)', border: '1px solid #e2e8f0', boxShadow: '0 16px 40px rgba(15,23,42,0.08)', backdropFilter: 'blur(6px)' }}>
-          <div className="flex items-center justify-between px-5 md:px-6 py-4" style={{ background: 'linear-gradient(90deg, #1e293b 0%, #0f172a 100%)', borderBottom: '1px solid #020617' }}>
+        <div className="rounded-xl overflow-hidden" style={{ background: '#ffffff', border: '1px solid #dbe3ee', boxShadow: '0 10px 26px rgba(15,23,42,0.06)' }}>
+          <div className="flex items-center justify-between px-5 md:px-6 py-4" style={{ background: '#0f172a', borderBottom: '1px solid #020617' }}>
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}>
                 <Mail size={15} color="rgba(255,255,255,0.9)" />
@@ -440,9 +440,9 @@ export default function ContactCenter() {
         </div>
 
         {/* Send history */}
-        <div className="rounded-3xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.88)', border: '1px solid #e2e8f0', boxShadow: '0 16px 40px rgba(15,23,42,0.08)', backdropFilter: 'blur(6px)' }}>
+        <div className="rounded-xl overflow-hidden" style={{ background: '#ffffff', border: '1px solid #dbe3ee', boxShadow: '0 10px 26px rgba(15,23,42,0.06)' }}>
           <button className="w-full flex items-center justify-between px-5 md:px-6 py-4"
-            style={{ background: 'linear-gradient(90deg, #1e293b 0%, #0f172a 100%)', borderBottom: logsExpanded ? '1px solid #020617' : 'none' }}
+            style={{ background: '#0f172a', borderBottom: logsExpanded ? '1px solid #020617' : 'none' }}
             onClick={() => setLogsExpanded(v => !v)}>
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}>
@@ -500,7 +500,7 @@ export default function ContactCenter() {
 
         {editingTemplate && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(4px)' }}>
-            <div className="w-full max-w-3xl rounded-2xl overflow-hidden" style={{ background: 'white', border: '1px solid #e2e8f0', boxShadow: '0 24px 64px rgba(15,23,42,0.35)' }}>
+            <div className="w-full max-w-3xl rounded-xl overflow-hidden" style={{ background: 'white', border: '1px solid #dbe3ee', boxShadow: '0 24px 64px rgba(15,23,42,0.35)' }}>
               <div className="flex items-center justify-between px-5 py-4" style={{ background: '#0f172a' }}>
                 <div className="flex items-center gap-2.5">
                   <Mail size={15} color="rgba(255,255,255,0.9)" />
