@@ -7,6 +7,7 @@ import {
   updateAttendance,
   updateConfirmationStatus,
   updateSessionNotes,
+  updateSessionTopic,
   formatDate,
   dayOfWeek,
   type Tutor,
@@ -75,10 +76,17 @@ function ModalContent({
   const [notesEditing, setNotesEditing] = useState(false);
   const [notesDraft, setNotesDraft] = useState<string>(student.notes ?? '');
   const [notesSaving, setNotesSaving] = useState(false);
+  const [topicEditing, setTopicEditing] = useState(false);
+  const [topicDraft, setTopicDraft] = useState<string>(student.topic ?? '');
+  const [topicSaving, setTopicSaving] = useState(false);
 
   useEffect(() => {
     if (!notesEditing) setNotesDraft(student.notes ?? '');
   }, [student.notes, notesEditing]);
+
+  useEffect(() => {
+    if (!topicEditing) setTopicDraft(student.topic ?? '');
+  }, [student.topic, topicEditing]);
 
   const handleAttendance = async (status: 'scheduled' | 'present' | 'no-show') => {
     patchSelectedSession({ status });
@@ -100,6 +108,16 @@ function ModalContent({
       refetch(); setNotesEditing(false);
     } catch (err) { console.error(err); }
     setNotesSaving(false);
+  };
+
+  const handleSaveTopic = async () => {
+    setTopicSaving(true);
+    try {
+      await updateSessionTopic({ rowId: student.rowId, topic: topicDraft });
+      patchSelectedSession({ topic: topicDraft });
+      refetch(); setTopicEditing(false);
+    } catch (err) { console.error(err); }
+    setTopicSaving(false);
   };
 
   const handleRemove = async () => {
@@ -172,6 +190,40 @@ function ModalContent({
         <span className="text-[11px] text-[#64748b]">{blockLabel}</span>
         <span className="text-[#e2e8f0]">·</span>
         <span className="text-[11px] font-semibold text-[#334155]">{s.tutorName}</span>
+      </div>
+
+      {/* SUBJECT/TOPIC - TOP */}
+      <div className="shrink-0 mx-5 mb-3 px-3 py-2.5 rounded-lg flex items-center justify-between"
+        style={{ background: '#fef2f2', border: '1px solid #fca5a5' }}>
+        <div>
+          <p className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest mb-1">Subject</p>
+          <p className="text-[13px] font-bold text-[#1e293b]">{topicEditing ? (
+            <input type="text" value={topicDraft} onChange={e => setTopicDraft(e.target.value)}
+              autoFocus className="px-2 py-1 text-sm rounded border-[1.5px]"
+              style={{ borderColor: '#dc2626', color: '#1e293b' }} />
+          ) : (
+            student.topic || '—'
+          )}</p>
+        </div>
+        {topicEditing ? (
+          <div className="flex gap-2 shrink-0">
+            <button onClick={() => { setTopicDraft(student.topic ?? ''); setTopicEditing(false); }}
+              className="px-2.5 py-1 rounded text-[10px] font-bold text-[#64748b]" style={{ background: '#f1f5f9' }}>
+              Cancel
+            </button>
+            <button onClick={handleSaveTopic} disabled={topicSaving}
+              className="flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-black text-white disabled:opacity-40"
+              style={{ background: '#dc2626' }}>
+              {topicSaving ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
+            </button>
+          </div>
+        ) : (
+          <button onClick={() => setTopicEditing(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-bold shrink-0"
+            style={{ background: '#fff1f2', color: '#dc2626' }}>
+            Edit
+          </button>
+        )}
       </div>
 
       {/* TAB BAR */}

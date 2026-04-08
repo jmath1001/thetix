@@ -380,6 +380,13 @@ export async function updateSessionNotes({ rowId, notes }: {
   if (error) throw error
 }
 
+export async function updateSessionTopic({ rowId, topic }: {
+  rowId: string; topic: string
+}) {
+  const { error } = await supabase.from(SS).update({ topic }).eq('id', rowId)
+  if (error) throw error
+}
+
 export async function moveStudentSession({
   rowId,
   studentId,
