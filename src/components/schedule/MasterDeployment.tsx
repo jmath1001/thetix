@@ -67,6 +67,14 @@ export default function MasterDeployment() {
     setWeekStart(getWeekStart(date));
   }, []);
 
+  useEffect(() => {
+    if (!todayView) return;
+    const selectedWeek = getWeekStart(todayDate);
+    if (toISODate(selectedWeek) !== toISODate(weekStart)) {
+      setWeekStart(selectedWeek);
+    }
+  }, [todayView, todayDate, weekStart]);
+
   const handleScheduleBuilderConfirm = useCallback(async (
     bookings: { student: Student; slot: any; topic: string }[]
   ) => {

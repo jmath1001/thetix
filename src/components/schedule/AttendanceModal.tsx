@@ -71,10 +71,13 @@ function ModalContent({
 }: ModalContentProps) {
   const currentStatus = student.status;
   const currentConf = student.confirmationStatus ?? null;
+  const sessionDow = dayOfWeek(s.date);
 
   const [notesEditing, setNotesEditing] = useState(false);
   const [notesDraft, setNotesDraft] = useState<string>(student.notes ?? '');
   const [notesSaving, setNotesSaving] = useState(false);
+  const [showRecurringModal, setShowRecurringModal] = useState(false);
+  const [recurringDays, setRecurringDays] = useState<number>(4);
 
   useEffect(() => {
     if (!notesEditing) setNotesDraft(student.notes ?? '');
@@ -123,6 +126,8 @@ function ModalContent({
   const initials = student.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
   const blockLabel = s.block?.label ?? sessionTime;
   const cr = studentRecord;
+  const existingSeriesId = student?.seriesId ?? student?.series_id ?? null;
+  const isRecurringBooking = !!existingSeriesId;
 
   const attendanceCfg = {
     present:   { label: 'Present',   active: { bg: '#f0fdf4', border: '#16a34a', text: '#15803d' } },
@@ -191,7 +196,7 @@ function ModalContent({
 
             {/* ATTENDANCE */}
             <div>
-              <p className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest mb-2">Attendance</p>
+              <p className="text-[9px] font-black text-[#475569] uppercase tracking-widest mb-2">Attendance</p>
               <div className="grid grid-cols-3 gap-2">
                 {(['present', 'no-show', 'scheduled'] as const).map(status => {
                   const cfg = attendanceCfg[status];
@@ -211,12 +216,12 @@ function ModalContent({
 
             {/* CONTACT */}
             <div>
-              <p className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest mb-2">Contact</p>
-              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #e2e8f0', background: '#fafafa' }}>
+              <p className="text-[9px] font-black text-[#475569] uppercase tracking-widest mb-2">Contact</p>
+              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #cbd5e1', background: '#f1f5f9' }}>
 
                 {/* Bluebook */}
                 <div className="px-3 pt-3 pb-2">
-                  <p className="text-[9px] font-bold text-[#94a3b8] uppercase tracking-wider mb-1.5">Bluebook</p>
+                  <p className="text-[9px] font-bold text-[#334155] uppercase tracking-wider mb-1.5">Bluebook</p>
                   {cr?.bluebook_url ? (
                     <div className="flex items-center gap-2 px-2.5 py-2 rounded-lg" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
                       <ExternalLink size={11} style={{ color: '#16a34a' }} className="shrink-0" />
@@ -237,7 +242,7 @@ function ModalContent({
 
                 {/* Student */}
                 <div className="px-3 pt-2 pb-2">
-                  <p className="text-[9px] font-bold text-[#94a3b8] uppercase tracking-wider mb-1.5 flex items-center gap-1"><User size={8} /> Student</p>
+                  <p className="text-[9px] font-bold text-[#334155] uppercase tracking-wider mb-1.5 flex items-center gap-1"><User size={8} /> Student</p>
                   <div className="space-y-1">
                     {cr?.email && <ContactRow href={`mailto:${cr.email}`} icon={<Mail size={11} />} label={cr.email} copyValue={cr.email} />}
                     {cr?.phone && <ContactRow href={`tel:${cr.phone}`} icon={<Phone size={11} />} label={cr.phone} copyValue={cr.phone} />}
@@ -251,11 +256,11 @@ function ModalContent({
 
                 {/* Parent */}
                 <div className="px-3 pt-2 pb-3">
-                  <p className="text-[9px] font-bold text-[#94a3b8] uppercase tracking-wider mb-1.5">Parent / Guardian</p>
+                  <p className="text-[9px] font-bold text-[#334155] uppercase tracking-wider mb-1.5">Parent / Guardian</p>
                   <div className="space-y-1">
                     {(cr?.mom_name || cr?.mom_email || cr?.mom_phone) && (
                       <div className="border-l-2 border-[#f59e0b] pl-2.5 py-1.5">
-                        <p className="text-[8px] font-bold text-[#f59e0b] uppercase tracking-wider mb-1">Mother</p>
+                        <p className="text-[8px] font-bold text-[#d97706] uppercase tracking-wider mb-1\">Mother</p>
                         <div className="space-y-1">
                           {cr?.mom_name && (
                             <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(203,213,225,0.5)' }}>
@@ -271,7 +276,7 @@ function ModalContent({
                     )}
                     {(cr?.dad_name || cr?.dad_email || cr?.dad_phone) && (
                       <div className="border-l-2 border-[#3b82f6] pl-2.5 py-1.5">
-                        <p className="text-[8px] font-bold text-[#3b82f6] uppercase tracking-wider mb-1">Father</p>
+                        <p className="text-[8px] font-bold text-[#2563eb] uppercase tracking-wider mb-1\">Father</p>
                         <div className="space-y-1">
                           {cr?.dad_name && (
                             <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(203,213,225,0.5)' }}>
@@ -305,7 +310,7 @@ function ModalContent({
             {/* REASSIGN */}
             {altTutors.length > 0 && (
               <div>
-                <p className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest mb-2">Reassign to</p>
+                <p className="text-[9px] font-black text-[#475569] uppercase tracking-widest mb-2">Reassign to</p>
                 <div className="space-y-1.5">
                   {altTutors.map(t => {
                     const alt = sessions.find(ss => ss.date === s.date && ss.tutorId === t.id && ss.time === sessionTime);
@@ -342,6 +347,24 @@ function ModalContent({
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
               <UserX size={12} strokeWidth={2} /> Remove from Session
             </button>
+            {/* CONVERT TO RECURRING */}
+            {!isRecurringBooking && (
+              <button onClick={() => setShowRecurringModal(true)}
+                className="w-full py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
+                style={{ border: '1.5px solid #7c3aed', color: '#7c3aed', background: 'transparent' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#f5f3ff'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
+                ↻ Make Recurring
+              </button>
+            )}
+            {isRecurringBooking && (
+              <button
+                disabled
+                className="w-full py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-2"
+                style={{ border: '1.5px solid #cbd5e1', color: '#94a3b8', background: '#f8fafc', cursor: 'not-allowed' }}>
+                Already Recurring
+              </button>
+            )}
           </div>
         )}
 
@@ -349,7 +372,7 @@ function ModalContent({
         {modalTab === 'confirmation' && (
           <div className="p-5 space-y-4">
             <div>
-              <p className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest mb-2">Confirmation</p>
+              <p className="text-[9px] font-black text-[#475569] uppercase tracking-widest mb-2">Confirmation</p>
               <div className="grid grid-cols-2 gap-2">
                 {([
                   { val: 'confirmed' as const, label: 'Confirmed', icon: <CheckCircle2 size={12} />, activeColor: '#16a34a', activeBg: '#f0fdf4', activeBorder: '#16a34a' },
@@ -375,7 +398,7 @@ function ModalContent({
         {modalTab === 'notes' && (
           <div className="p-5">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest">Session Notes</p>
+              <p className="text-[9px] font-black text-[#475569] uppercase tracking-widest">Session Notes</p>
               <div className="flex items-center gap-2">
                 {notesEditing ? (
                   <>
@@ -417,6 +440,67 @@ function ModalContent({
           </div>
         )}
       </div>
+
+      {/* RECURRING SERIES MODAL */}
+      {showRecurringModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.3)' }}>
+          <div style={{ background: 'white', borderRadius: 16, padding: 24, maxWidth: 400, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: 0 }}>Make Recurring</h3>
+              <button onClick={() => setShowRecurringModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: 13, color: '#475569', marginBottom: 16, lineHeight: 1.6 }}>
+              Repeat this session every week for how many weeks?
+            </p>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+              <input type="number" min="1" max="12" value={recurringDays} onChange={(e) => setRecurringDays(Math.max(1, parseInt(e.target.value) || 1))}
+                style={{ flex: 1, padding: '10px 12px', borderRadius: 10, border: '1.5px solid #cbd5e1', fontSize: 14, fontWeight: 700, color: '#0f172a' }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#475569' }}>weeks</span>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setShowRecurringModal(false)}
+                style={{ flex: 1, padding: '10px 16px', borderRadius: 10, border: '1.5px solid #cbd5e1', background: 'white', color: '#475569', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button onClick={async () => {
+                try {
+                  const res = await fetch('/api/recurring-series', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      studentId: student.id,
+                      tutorId: s.tutorId,
+                      topic: student.topic,
+                      startDate: s.date,
+                      weeks: recurringDays,
+                      time: sessionTime,
+                      dayOfWeek: sessionDow,
+                    }),
+                  });
+                  if (res.ok) {
+                    setShowRecurringModal(false);
+                    refetch();
+                  } else {
+                    const body = await res.json().catch(() => null);
+                    alert(body?.error || 'Failed to create recurring series');
+                  }
+                } catch (err) {
+                  console.error(err);
+                  alert('Error creating recurring series');
+                }
+              }}
+                style={{ flex: 1, padding: '10px 16px', borderRadius: 10, border: 'none', background: '#7c3aed', color: 'white', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -68,9 +68,9 @@ interface TodayViewProps {
 }
 
 
-// ─── Side panel (Confirmation + Attendance tabs) ─────────────────────────────
+// ─── Side panel (Attendance + Confirmation tabs) ─────────────────────────────
 
-type SidePanelTab = 'confirmation' | 'attendance';
+type SidePanelTab = 'attendance' | 'confirmation';
 type AttendanceFilter = 'all' | 'present' | 'no-show' | 'unmarked';
 type DragStudentPayload = {
   rowId: string;
@@ -98,7 +98,7 @@ function SidePanel({
   setSelectedSessionWithNotes: (s: any) => void;
   refetch: () => void;
 }) {
-  const [tab, setTab] = useState<SidePanelTab>('confirmation');
+  const [tab, setTab] = useState<SidePanelTab>('attendance');
   const [attFilter, setAttFilter] = useState<AttendanceFilter>('all');
   const [toggling, setToggling] = useState<string | null>(null);
 
@@ -152,8 +152,8 @@ function SidePanel({
         {/* Tab bar */}
         <div className="flex shrink-0" style={{ background: '#f3f4f6', borderBottom: '1px solid #e5e7eb' }}>
           {([
-            { key: 'confirmation', label: 'Confirm', count: pendingStudents.length, countBg: '#4f46e5' },
             { key: 'attendance',   label: 'Attend',  count: attCounts.all,          countBg: '#1f2937' },
+            { key: 'confirmation', label: 'Confirm', count: pendingStudents.length, countBg: '#4f46e5' },
           ] as const).map(t => (
             <button
               key={t.key}
