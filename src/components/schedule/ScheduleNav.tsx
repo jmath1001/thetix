@@ -1,5 +1,6 @@
 "use client"
 import { ChevronLeft, ChevronRight, CalendarDays, ChevronDown, PlusCircle, X, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import { type Tutor } from '@/lib/useScheduleData';
 import { formatWeekRange } from './scheduleConstants';
 
@@ -14,7 +15,6 @@ interface ScheduleNavProps {
   tutors: Tutor[];
   selectedTutorFilter: string | null;
   setSelectedTutorFilter: (v: string | null) => void;
-  onOpenTutorModal: () => void;
   onOpenEnrollModal: () => void;
   bulkRemoveMode?: boolean;
   selectedBulkCount?: number;
@@ -22,6 +22,8 @@ interface ScheduleNavProps {
   onToggleBulkRemoveMode?: () => void;
   onBulkRemove?: () => void;
   onClearBulkSelection?: () => void;
+  onClearWeekNonRecurring?: () => void;
+  isClearingWeek?: boolean;
   commandBarSlot?: React.ReactNode;
 }
 
@@ -36,7 +38,6 @@ export function ScheduleNav({
   tutors,
   selectedTutorFilter,
   setSelectedTutorFilter,
-  onOpenTutorModal,
   onOpenEnrollModal,
   bulkRemoveMode,
   selectedBulkCount = 0,
@@ -44,8 +45,12 @@ export function ScheduleNav({
   onToggleBulkRemoveMode,
   onBulkRemove,
   onClearBulkSelection,
+  onClearWeekNonRecurring,
+  isClearingWeek,
   commandBarSlot,
 }: ScheduleNavProps) {
+  const [clearMenuOpen, setClearMenuOpen] = useState(false);
+
   return (
     <div className="sticky top-0 z-30 border-b"
       style={{ background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(16px)', borderColor: '#e0e7ff' }}>
@@ -109,41 +114,71 @@ export function ScheduleNav({
           </div>
         )}
 
-        {!todayView && onToggleBulkRemoveMode && onBulkRemove && (
-          <>
+        {!todayView && onToggleBulkRemoveMode && onBulkRemove && onClearWeekNonRecurring && (
+          <div className="relative shrink-0">
             <button
-              onClick={onToggleBulkRemoveMode}
-              className="w-7 h-7 md:w-auto md:h-auto md:px-2.5 md:py-1.5 flex items-center justify-center md:gap-1 rounded-lg text-xs font-semibold transition-all shrink-0"
-              style={{ background: bulkRemoveMode ? '#312e81' : 'white', border: '1px solid #a5b4fc', color: bulkRemoveMode ? 'white' : '#4f46e5' }}>
+              onClick={() => setClearMenuOpen(v => !v)}
+              disabled={!!isClearingWeek || !!isBulkRemoving}
+              className="w-7 h-7 md:w-auto md:h-auto md:px-2.5 md:py-1.5 flex items-center justify-center md:gap-1 rounded-lg text-xs font-semibold transition-all"
+              style={{
+                background: bulkRemoveMode ? '#312e81' : 'white',
+                border: `1px solid ${bulkRemoveMode ? '#312e81' : '#fca5a5'}`,
+                color: bulkRemoveMode ? 'white' : '#b91c1c',
+                cursor: (isClearingWeek || isBulkRemoving) ? 'not-allowed' : 'pointer',
+              }}>
               <Trash2 size={12} />
-              <span className="hidden md:inline">{bulkRemoveMode ? 'Exit Remove' : 'Bulk Remove'}</span>
+              <span className="hidden md:inline">
+                {bulkRemoveMode ? `Bulk Remove (${selectedBulkCount})` : (isClearingWeek ? 'Clearing…' : 'Clear')}
+              </span>
+              <ChevronDown size={12} />
             </button>
-            {bulkRemoveMode && (
-              <>
+
+            {clearMenuOpen && (
+              <div className="absolute right-0 mt-1 z-40 rounded-lg overflow-hidden"
+                style={{ background: 'white', border: '1px solid #e2e8f0', boxShadow: '0 8px 24px rgba(15,23,42,0.16)', minWidth: 180 }}>
                 <button
-                  onClick={onBulkRemove}
-                  disabled={!selectedBulkCount || !!isBulkRemoving}
-                  className="w-7 h-7 md:w-auto md:h-auto md:px-2.5 md:py-1.5 flex items-center justify-center md:gap-1 rounded-lg text-xs font-bold transition-all shrink-0"
-                  style={{
-                    background: selectedBulkCount ? '#4f46e5' : '#eef2ff',
-                    border: '1px solid #a5b4fc',
-                    color: selectedBulkCount ? 'white' : '#818cf8',
-                    cursor: selectedBulkCount ? 'pointer' : 'not-allowed',
-                  }}>
-                  <Trash2 size={12} />
-                  <span className="hidden md:inline">{isBulkRemoving ? 'Removing…' : `Delete ${selectedBulkCount}`}</span>
+                  onClick={() => { setClearMenuOpen(false); onClearWeekNonRecurring(); }}
+                  disabled={!!isClearingWeek}
+                  className="w-full text-left px-3 py-2 text-xs font-semibold"
+                  style={{ color: '#b91c1c', background: 'white', borderBottom: '1px solid #f1f5f9' }}>
+                  {isClearingWeek ? 'Clearing Week…' : 'Clear Week'}
                 </button>
-                {!!selectedBulkCount && onClearBulkSelection && (
-                  <button
-                    onClick={onClearBulkSelection}
-                    className="hidden md:inline text-[10px] font-bold uppercase tracking-wider shrink-0"
-                    style={{ color: '#4f46e5' }}>
-                    Clear
-                  </button>
+
+                <button
+                  onClick={() => { setClearMenuOpen(false); onToggleBulkRemoveMode(); }}
+                  className="w-full text-left px-3 py-2 text-xs font-semibold"
+                  style={{ color: bulkRemoveMode ? '#312e81' : '#334155', background: 'white', borderBottom: bulkRemoveMode ? '1px solid #f1f5f9' : 'none' }}>
+                  {bulkRemoveMode ? 'Exit Bulk Remove' : 'Enter Bulk Remove'}
+                </button>
+
+                {bulkRemoveMode && (
+                  <>
+                    <button
+                      onClick={() => { setClearMenuOpen(false); onBulkRemove(); }}
+                      disabled={!selectedBulkCount || !!isBulkRemoving}
+                      className="w-full text-left px-3 py-2 text-xs font-bold"
+                      style={{
+                        color: selectedBulkCount ? '#4f46e5' : '#94a3b8',
+                        background: 'white',
+                        borderBottom: !!selectedBulkCount ? '1px solid #f1f5f9' : 'none',
+                        cursor: selectedBulkCount ? 'pointer' : 'not-allowed',
+                      }}>
+                      {isBulkRemoving ? 'Removing…' : `Delete Selected (${selectedBulkCount})`}
+                    </button>
+
+                    {!!selectedBulkCount && onClearBulkSelection && (
+                      <button
+                        onClick={() => { setClearMenuOpen(false); onClearBulkSelection(); }}
+                        className="w-full text-left px-3 py-2 text-xs font-semibold"
+                        style={{ color: '#475569', background: 'white' }}>
+                        Clear Selection
+                      </button>
+                    )}
+                  </>
                 )}
-              </>
+              </div>
             )}
-          </>
+          </div>
         )}
 
         <div className="w-px h-5 shrink-0" style={{ background: '#a5b4fc' }} />
@@ -176,12 +211,6 @@ export function ScheduleNav({
 
         <div className="w-px h-5 shrink-0" style={{ background: '#a5b4fc' }} />
 
-        <button onClick={onOpenTutorModal}
-          className="w-7 h-7 md:w-auto md:h-auto md:px-2.5 md:py-1.5 flex items-center justify-center md:gap-1 rounded-lg text-xs font-semibold transition-all shrink-0"
-          style={{ background: 'white', border: '1px solid #a5b4fc', color: '#4f46e5' }}>
-          <PlusCircle size={12} />
-          <span className="hidden md:inline">Tutors</span>
-        </button>
         <button onClick={onOpenEnrollModal}
           className="w-7 h-7 md:w-auto md:h-auto md:px-3 md:py-1.5 flex items-center justify-center md:gap-1 rounded-lg text-xs font-bold text-white transition-all active:scale-95 shrink-0"
           style={{ background: '#4f46e5', boxShadow: '0 1px 4px rgba(79,70,229,0.35)' }}>

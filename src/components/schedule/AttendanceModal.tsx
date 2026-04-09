@@ -18,8 +18,8 @@ interface AttendanceModalProps {
   selectedSession: any;
   setSelectedSession: (s: any) => void;
   patchSelectedSession: (patch: Record<string, any>) => void;
-  modalTab: 'session' | 'notes';
-  setModalTab: (t: 'session' | 'notes') => void;
+  modalTab: 'attendance' | 'confirmation' | 'notes';
+  setModalTab: (t: 'attendance' | 'confirmation' | 'notes') => void;
   tutors: Tutor[];
   students: any[];
   sessions: any[];
@@ -174,11 +174,11 @@ function ModalContent({
 
       {/* TAB BAR */}
       <div className="shrink-0 flex px-5 gap-0" style={{ borderBottom: '1px solid #f1f5f9' }}>
-        {(['session', 'notes'] as const).map(tab => (
+        {(['attendance', 'confirmation', 'notes'] as const).map(tab => (
           <button key={tab} onClick={() => setModalTab(tab)}
             className="py-2.5 mr-5 text-[10px] font-black uppercase tracking-widest border-b-2 -mb-px flex items-center gap-1.5 transition-all"
             style={modalTab === tab ? { color: '#4f46e5', borderColor: '#4f46e5' } : { color: '#94a3b8', borderColor: 'transparent' }}>
-            {tab === 'notes' ? 'Notes' : 'Session'}
+            {tab === 'attendance' ? 'Attendance' : tab === 'confirmation' ? 'Confirmation' : 'Notes'}
             {tab === 'notes' && student.notes && <span className="w-1.5 h-1.5 rounded-full bg-[#4f46e5]" />}
           </button>
         ))}
@@ -186,30 +186,8 @@ function ModalContent({
 
       {/* BODY */}
       <div className="flex-1 overflow-y-auto">
-        {modalTab === 'session' && (
+        {modalTab === 'attendance' && (
           <div className="p-5 space-y-4">
-
-            {/* CONFIRMATION */}
-            <div>
-              <p className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest mb-2">Confirmation</p>
-              <div className="grid grid-cols-2 gap-2">
-                {([
-                  { val: 'confirmed' as const, label: 'Confirmed', icon: <CheckCircle2 size={12} />, activeColor: '#16a34a', activeBg: '#f0fdf4', activeBorder: '#16a34a' },
-                  { val: null, label: 'Not yet', icon: <Clock size={12} />, activeColor: '#be123c', activeBg: '#fff1f2', activeBorder: '#f43f5e' },
-                ]).map(({ val, label, icon, activeColor, activeBg, activeBorder }) => {
-                  const active = currentConf === val;
-                  return (
-                    <button key={String(val)} onClick={() => handleConfirmation(val)}
-                      className="py-2 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
-                      style={active
-                        ? { background: activeBg, border: `1.5px solid ${activeBorder}`, color: activeColor }
-                        : { background: '#f8fafc', border: '1.5px solid #e2e8f0', color: '#94a3b8' }}>
-                      {icon}{label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
 
             {/* ATTENDANCE */}
             <div>
@@ -335,6 +313,32 @@ function ModalContent({
           </div>
         )}
 
+        {/* CONFIRMATION TAB */}
+        {modalTab === 'confirmation' && (
+          <div className="p-5 space-y-4">
+            <div>
+              <p className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest mb-2">Confirmation</p>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  { val: 'confirmed' as const, label: 'Confirmed', icon: <CheckCircle2 size={12} />, activeColor: '#16a34a', activeBg: '#f0fdf4', activeBorder: '#16a34a' },
+                  { val: null, label: 'Not yet', icon: <Clock size={12} />, activeColor: '#be123c', activeBg: '#fff1f2', activeBorder: '#f43f5e' },
+                ]).map(({ val, label, icon, activeColor, activeBg, activeBorder }) => {
+                  const active = currentConf === val;
+                  return (
+                    <button key={String(val)} onClick={() => handleConfirmation(val)}
+                      className="py-2 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
+                      style={active
+                        ? { background: activeBg, border: `1.5px solid ${activeBorder}`, color: activeColor }
+                        : { background: '#f8fafc', border: '1.5px solid #e2e8f0', color: '#94a3b8' }}>
+                      {icon}{label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* NOTES TAB */}
         {modalTab === 'notes' && (
           <div className="p-5">
@@ -369,7 +373,7 @@ function ModalContent({
                 style={{ background: 'white', border: '1.5px solid #4f46e5', color: '#1e293b', fontFamily: 'inherit', lineHeight: 1.6 }} />
             ) : (
               <div onClick={() => setNotesEditing(true)}
-                className="px-4 py-3 rounded-xl cursor-text min-h-[160px] transition-all"
+                className="px-4 py-3 rounded-xl cursor-text min-h-40 transition-all"
                 style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#cbd5e1'; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#e2e8f0'; }}>

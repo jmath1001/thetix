@@ -8,6 +8,7 @@ import {
   bookStudent,
   removeStudentFromSession,
   moveStudentSession,
+  clearWeekNonRecurring,
   getWeekStart,
   getWeekDates,
   toISODate,
@@ -55,10 +56,11 @@ export default function MasterDeployment() {
   const [isTutorModalOpen, setIsTutorModalOpen] = useState(false);
   const [selectedTutorFilter, setSelectedTutorFilter] = useState<string | null>(null);
   const [todayView, setTodayView] = useState(true);
-  const [modalTab, setModalTab] = useState<'session' | 'notes'>('session');
+  const [modalTab, setModalTab] = useState<'attendance' | 'confirmation' | 'notes'>('attendance');
   const [bulkRemoveMode, setBulkRemoveMode] = useState(false);
   const [selectedRemovals, setSelectedRemovals] = useState<Record<string, { sessionId: string; studentId: string; name: string }>>({});
   const [isBulkRemoving, setIsBulkRemoving] = useState(false);
+  const [isClearingWeek, setIsClearingWeek] = useState(false);
 
   const handleTodayDateChange = useCallback((date: Date) => {
     setTodayDate(date);
@@ -143,6 +145,28 @@ export default function MasterDeployment() {
       setIsBulkRemoving(false);
     }
   }, [selectedBulkCount, selectedRemovals, refetch]);
+
+  const handleClearWeekNonRecurring = useCallback(async () => {
+    const from = toISODate(weekStart);
+    if (!window.confirm(`Clear all non-recurring bookings for the week starting ${from}? Recurring bookings will be preserved.`)) {
+      return;
+    }
+
+    setIsClearingWeek(true);
+    try {
+      const result = await clearWeekNonRecurring({ weekStart: from });
+      setSelectedRemovals({});
+      setBulkRemoveMode(false);
+      refetch();
+      logEvent('week_cleared_non_recurring', { weekStart: from, ...result });
+      alert(`Cleared ${result.deletedBookings} non-recurring booking${result.deletedBookings === 1 ? '' : 's'} for this week.`);
+    } catch (err: any) {
+      console.error('Clear week failed', err);
+      alert(err?.message || 'Failed to clear this week. Please try again.');
+    } finally {
+      setIsClearingWeek(false);
+    }
+  }, [weekStart, refetch]);
 
   // Filtered by enrollCat — for BookingForm
   const allAvailableSeats = useMemo(() => {
@@ -255,7 +279,7 @@ export default function MasterDeployment() {
 
   const setSelectedSessionWithNotes = (s: any) => {
     setSelectedSession(s);
-    setModalTab('session');
+    setModalTab('attendance');
   };
 
   const patchSelectedSession = useCallback((patch: Record<string, any>) => {
@@ -306,7 +330,6 @@ export default function MasterDeployment() {
         tutors={tutors}
         selectedTutorFilter={selectedTutorFilter}
         setSelectedTutorFilter={setSelectedTutorFilter}
-        onOpenTutorModal={() => setIsTutorModalOpen(true)}
         onOpenEnrollModal={() => setIsEnrollModalOpen(true)}
         bulkRemoveMode={bulkRemoveMode}
         selectedBulkCount={selectedBulkCount}
@@ -314,6 +337,8 @@ export default function MasterDeployment() {
         onToggleBulkRemoveMode={() => setBulkRemoveMode(prev => !prev)}
         onBulkRemove={handleBulkRemove}
         onClearBulkSelection={() => setSelectedRemovals({})}
+        onClearWeekNonRecurring={handleClearWeekNonRecurring}
+        isClearingWeek={isClearingWeek}
         commandBarSlot={
           <>
             <CommandBar
@@ -327,12 +352,24 @@ export default function MasterDeployment() {
               weekStart={weekStartIso}
               nextWeekStart={toISODate(nextWeekStart)}
             />
-            <span title="Auto schedule builder is in progress." style={{ display: 'inline-flex' }}>
+            <span title="Open schedule builder" style={{ display: 'inline-flex' }}>
               <button
-                type="button"
-                disabled
-                aria-label="Auto schedule builder is in progress"
-                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 8, background: '#f3f4f6', border: '1px solid #d1d5db', color: '#9ca3af', fontSize: 12, fontWeight: 700, cursor: 'not-allowed', whiteSpace: 'nowrap', opacity: 0.95 }}
+                onClick={() => setIsScheduleBuilderOpen(true)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  padding: '4px 11px',
+                  borderRadius: 8,
+                  background: 'linear-gradient(135deg,#f59e0b,#ea580c)',
+                  border: '1px solid #c2410c',
+                  color: 'white',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  boxShadow: '0 4px 12px rgba(194,65,12,0.35)',
+                }}
               >
                 <Zap size={12} /> Build
               </button>

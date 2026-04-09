@@ -625,3 +625,53 @@ export async function updateConfirmationStatus({ rowId, status }: {
     .update({ confirmation_status: status }).eq('id', rowId)
   if (error) throw error
 }
+
+export async function clearWeekNonRecurring({ weekStart }: {
+  weekStart: Date | string
+}): Promise<{ deletedBookings: number; deletedSessions: number }> {
+  const from = typeof weekStart === 'string' ? weekStart : toISODate(weekStart)
+  const weekEnd = new Date(from + 'T00:00:00')
+  weekEnd.setDate(weekEnd.getDate() + 6)
+  const to = toISODate(weekEnd)
+
+  const { data: weekSessions, error: sessionsErr } = await supabase
+    .from(SESSIONS)
+    .select('id')
+    .gte('session_date', from)
+    .lte('session_date', to)
+  if (sessionsErr) throw sessionsErr
+
+  const sessionIds = (weekSessions ?? []).map((s: any) => s.id)
+  if (sessionIds.length === 0) return { deletedBookings: 0, deletedSessions: 0 }
+
+  const { data: deleteRows, error: deleteErr } = await supabase
+    .from(SS)
+    .delete()
+    .in('session_id', sessionIds)
+    .is('series_id', null)
+    .select('id')
+  if (deleteErr) throw deleteErr
+
+  const { data: remaining, error: remainingErr } = await (supabase
+    .from(SESSIONS)
+    .select(`id, ${SS}(id)`)
+    .in('id', sessionIds) as any)
+  if (remainingErr) throw remainingErr
+
+  const emptySessionIds = (remaining ?? [])
+    .filter((s: any) => (s[SS] ?? []).length === 0)
+    .map((s: any) => s.id)
+
+  if (emptySessionIds.length > 0) {
+    const { error: cleanupErr } = await supabase
+      .from(SESSIONS)
+      .delete()
+      .in('id', emptySessionIds)
+    if (cleanupErr) throw cleanupErr
+  }
+
+  return {
+    deletedBookings: (deleteRows ?? []).length,
+    deletedSessions: emptySessionIds.length,
+  }
+}

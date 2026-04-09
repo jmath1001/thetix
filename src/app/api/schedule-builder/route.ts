@@ -1,185 +1,275 @@
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface SeatInput {
+  index: number
+  tutorId: string
+  tutorName: string
+  tutorSubjects: string[]
+  tutorCat: string
+  day: string
+  dayNum: number
+  date: string
+  time: string
+  seatsLeft: number
+  label?: string
+}
+
+interface StudentNeed {
+  studentId: string
+  studentName: string
+  subject: string
+  availabilityBlocks: string[]   // "dayNum-HH:MM" format
+  allowSameDayDouble?: boolean   // default false
+}
+
+interface ExistingBooking {
+  studentId: string
+  existingSlots: string[]        // "date-HH:MM" format
+}
+
+interface RequestBody {
+  needs: StudentNeed[]           // one entry per subject per student
+  availableSeats: SeatInput[]
+  existingBookings: ExistingBooking[]
+  weekStart: string
+  weekEnd: string
+}
+
+interface Assignment {
+  studentId: string
+  subject: string
+  slotIndex: number | null
+  status: 'matched' | 'fallback' | 'unmatched'
+  reason: string
+}
+
+// ── Subject matching ──────────────────────────────────────────────────────────
+
+function subjectMatches(subject: string, tutorSubjects: string[]): boolean {
+  if (!subject) return false
+  const s = subject.toLowerCase().trim()
+  return tutorSubjects.some(ts => {
+    const t = ts.toLowerCase().trim()
+    return t === s || t.includes(s) || s.includes(t)
+  })
+}
+
+// ── Availability check ────────────────────────────────────────────────────────
+
+function studentAvailable(availabilityBlocks: string[], dayNum: number, time: string): boolean {
+  if (!availabilityBlocks || availabilityBlocks.length === 0) return true
+  return availabilityBlocks.includes(`${dayNum}-${time}`)
+}
+
+// ── No-gap check ──────────────────────────────────────────────────────────────
+// Given a tutor's already-assigned times on a day (sorted), check if adding
+// a new time would create a gap. C2 session times: 11:00, 13:30, 15:30, 17:30, 19:30
+// A gap = two assigned times with an unassigned time between them.
+
+const SESSION_ORDER = ['11:00', '13:30', '15:30', '17:30', '19:30']
+
+function wouldCreateGap(
+  existingTimesOnDay: string[],
+  newTime: string,
+  allSeatTimesOnDay: string[] // all times that have a seat (assigned or available)
+): boolean {
+  if (existingTimesOnDay.length === 0) return false
+
+  const assigned = [...existingTimesOnDay, newTime]
+  const occupied = SESSION_ORDER.filter(t => assigned.includes(t))
+  if (occupied.length < 2) return false
+
+  const min = occupied[0]
+  const max = occupied[occupied.length - 1]
+  const minIdx = SESSION_ORDER.indexOf(min)
+  const maxIdx = SESSION_ORDER.indexOf(max)
+
+  // Every session slot between min and max must be either assigned or available
+  for (let i = minIdx + 1; i < maxIdx; i++) {
+    const t = SESSION_ORDER[i]
+    if (!assigned.includes(t) && !allSeatTimesOnDay.includes(t)) {
+      // There's a gap that can't be filled
+      return true
+    }
+  }
+  return false
+}
+
+// ── Scoring ───────────────────────────────────────────────────────────────────
+
+function scoreSlot(
+  seat: SeatInput,
+  need: StudentNeed,
+  capacityMap: Record<number, number>,
+  assignedCounts: Record<number, number>,
+  daysAlreadyBookedThisRun: Set<number>, // days already assigned to this student in this run
+): number {
+  let score = 0
+  const remaining = (capacityMap[seat.index] ?? 0) - (assignedCounts[seat.index] ?? 0)
+
+  // Availability match
+  const hasAvail = studentAvailable(need.availabilityBlocks, seat.dayNum, seat.time)
+  if (hasAvail) score += 10
+
+  // Prefer filling existing slots over opening new ones
+  const filled = (capacityMap[seat.index] ?? 0) - remaining
+  score += filled * 5  // 0 filled = 0, 1 filled = 5, 2 filled = 10
+
+  // Prefer different days from already-assigned sessions this run
+  if (!daysAlreadyBookedThisRun.has(seat.dayNum)) score += 8
+  else score -= 15  // strong penalty for same day (still allowed as fallback)
+
+  // Prefer mid-week (Tue/Wed/Thu) over Mon/Sat for balance
+  const dayBalance: Record<number, number> = { 1: 0, 2: 3, 3: 4, 4: 3, 6: 1 }
+  score += dayBalance[seat.dayNum] ?? 0
+
+  return score
+}
+
+// ── Main engine ───────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  const { studentsToSchedule, availableSeats, weekStart, weekEnd, studentExistingBookings } = await req.json()
+  const body: RequestBody = await req.json()
+  const { needs, availableSeats, existingBookings, weekStart, weekEnd } = body
 
-  if (!studentsToSchedule?.length || !availableSeats?.length) {
+  if (!needs?.length || !availableSeats?.length) {
     return NextResponse.json({ assignments: [] })
   }
 
-  const existingBookingsByStudent: Record<string, Set<string>> = {}
-  ;(studentExistingBookings ?? []).forEach((entry: any) => {
-    if (!entry?.studentId || !Array.isArray(entry.existingSlots)) return
-    existingBookingsByStudent[entry.studentId] = new Set(entry.existingSlots)
+  // Build existing booking lookup: studentId → Set<"date-time">
+  const existingByStudent: Record<string, Set<string>> = {}
+  for (const eb of existingBookings ?? []) {
+    existingByStudent[eb.studentId] = new Set(eb.existingSlots)
+  }
+
+  // Capacity map: slotIndex → remaining seats
+  const capacityMap: Record<number, number> = {}
+  for (const s of availableSeats) {
+    capacityMap[s.index] = s.seatsLeft
+  }
+
+  // Track how many we've assigned to each slot this run
+  const assignedCounts: Record<number, number> = {}
+
+  // Track which tutor+day combos have assigned times (for no-gap check)
+  // key: "tutorId-date" → string[]
+  const tutorDayAssigned: Record<string, string[]> = {}
+
+  // Track all available times per tutor+day (for gap feasibility check)
+  // key: "tutorId-date" → string[]
+  const tutorDayAvailable: Record<string, string[]> = {}
+  for (const s of availableSeats) {
+    const key = `${s.tutorId}-${s.date}`
+    if (!tutorDayAvailable[key]) tutorDayAvailable[key] = []
+    if (!tutorDayAvailable[key].includes(s.time)) tutorDayAvailable[key].push(s.time)
+  }
+
+  // Track days booked per student in THIS run (for spread preference)
+  // key: studentId → Set<dayNum>
+  const studentDaysThisRun: Record<string, Set<number>> = {}
+
+  // Track date+time booked per student in THIS run (for same-slot conflict)
+  // key: studentId → Set<"date-time">
+  const studentSlotsThisRun: Record<string, Set<string>> = {}
+
+  // Sort needs: most constrained first (fewest valid slots)
+  const getRemainingCapacity = (index: number) =>
+    (capacityMap[index] ?? 0) - (assignedCounts[index] ?? 0)
+
+  const sortedNeeds = [...needs].sort((a, b) => {
+    const aValid = availableSeats.filter(s =>
+      subjectMatches(a.subject, s.tutorSubjects) && getRemainingCapacity(s.index) > 0
+    ).length
+    const bValid = availableSeats.filter(s =>
+      subjectMatches(b.subject, s.tutorSubjects) && getRemainingCapacity(s.index) > 0
+    ).length
+    return aValid - bValid
   })
 
-  // ── Server-side capacity tracking ────────────────────────────────────────
-  // This is the source of truth — GPT just picks subjects, we enforce capacity
-  const capacityMap: Record<number, number> = {}
-  availableSeats.forEach((s: any) => { capacityMap[s.index] = s.seatsLeft })
-  const assigned: Record<number, number> = {}
+  const assignments: Assignment[] = []
 
-  const getRemainingCapacity = (index: number) =>
-    (capacityMap[index] ?? 0) - (assigned[index] ?? 0)
+  for (const need of sortedNeeds) {
+    const daysBooked = studentDaysThisRun[need.studentId] ?? new Set<number>()
+    const slotsBooked = studentSlotsThisRun[need.studentId] ?? new Set<string>()
+    const existingSlots = existingByStudent[need.studentId] ?? new Set<string>()
 
-  const claimSlot = (index: number) => {
-    assigned[index] = (assigned[index] ?? 0) + 1
-  }
+    // Filter to base candidates (ignoring student availability first)
+    const baseCandidates = availableSeats
+      .filter(s => {
+        // Subject must match
+        if (!subjectMatches(need.subject, s.tutorSubjects)) return false
 
-  // ── Subject matching — done in JS, not by GPT ────────────────────────────
-  function subjectMatches(subject: string, tutorSubjects: string[]): boolean {
-    if (!subject) return false
-    const s = subject.toLowerCase().trim()
-    return tutorSubjects.some(ts => {
-      const t = ts.toLowerCase().trim()
-      return t === s || t.includes(s) || s.includes(t)
-    })
-  }
+        // Must have remaining capacity
+        if (getRemainingCapacity(s.index) <= 0) return false
 
-  function studentAvailable(availabilityBlocks: string[], dayNum: number, time: string): boolean {
-    if (!availabilityBlocks || availabilityBlocks.length === 0) return true
-    return availabilityBlocks.includes(`${dayNum}-${time}`)
-  }
+        // Cannot conflict with existing DB bookings (same date+time)
+        if (existingSlots.has(`${s.date}-${s.time}`)) return false
 
-  // ── Ask GPT only for subject preference ranking ───────────────────────────
-  // GPT picks the best slot INDEX per student — we verify capacity
-  const systemPrompt = `
-You are a scheduling engine for a tutoring center.
-Week: ${weekStart ?? 'this week'} to ${weekEnd ?? 'end of week'}.
+        // Cannot conflict with other assignments in this run (same date+time)
+        if (slotsBooked.has(`${s.date}-${s.time}`)) return false
 
-For each student, pick the best slot index from the available seats.
+        // No-gap check
+        const tutorDayKey = `${s.tutorId}-${s.date}`
+        const alreadyOnDay = tutorDayAssigned[tutorDayKey] ?? []
+        const availableOnDay = tutorDayAvailable[tutorDayKey] ?? []
+        if (wouldCreateGap(alreadyOnDay, s.time, availableOnDay)) return false
 
-Rules:
-1. Tutor subjects must match student subject
-2. Prefer slots matching student availabilityBlocks (format: "dayNum-HH:MM", dayNum: 1=Mon 2=Tue 3=Wed 4=Thu 6=Sat)
-3. If availabilityBlocks is empty, any slot works
-4. Do not assign a student to any slot that conflicts with an existing booking on the same date and time
-5. Prefer a balanced distribution across the week and avoid scheduling everyone on Monday
-6. Prefer partially filled slots (lower seatsLeft means more students already there)
-
-Subject matching:
-- Algebra/Geometry/Precalculus/Calculus/Statistics/SAT Math/ACT Math/Physics/Chemistry/Biology → math tutors
-- English/Writing/Literature/History/ACT English/SAT Reading → english tutors
-- Match exact subject name to tutor subjects array first, then by category
-
-Return ONLY valid JSON, no markdown:
-{
-  "assignments": [
-    { "studentId": "<id>", "slotIndex": <number or null>, "reason": "<one sentence>" }
-  ]
-}
-`
-
-  const userMessage = `
-Students (${studentsToSchedule.length}):
-${JSON.stringify(studentsToSchedule.map((s: any) => ({
-  id: s.id,
-  name: s.name,
-  subject: s.subject,
-  availabilityBlocks: s.availabilityBlocks ?? [],
-})), null, 2)}
-
-Available slots (${availableSeats.length}):
-${JSON.stringify(availableSeats.map((s: any) => ({
-  index: s.index,
-  tutorName: s.tutorName,
-  tutorSubjects: s.tutorSubjects,
-  day: s.day,
-  date: s.date,
-  time: s.time,
-  seatsLeft: s.seatsLeft,
-  label: s.label,
-})), null, 2)}
-
-Return JSON only.
-`
-
-  let gptAssignments: { studentId: string; slotIndex: number | null; reason: string }[] = []
-
-  try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userMessage },
-      ],
-      max_tokens: 1000,
-      temperature: 0.1,
-    })
-
-    const text = response.choices[0].message.content?.trim() ?? ''
-    const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    const parsed = JSON.parse(clean)
-    gptAssignments = parsed.assignments ?? []
-  } catch (err) {
-    console.error('GPT call failed or returned invalid JSON:', err)
-    // Fall through — server-side fallback below will handle all students
-  }
-
-  // ── Server-side validation + capacity enforcement ─────────────────────────
-  const finalAssignments = studentsToSchedule.map((student: any) => {
-    const gpt = gptAssignments.find((a: any) => a.studentId === student.id)
-
-    // Try GPT's pick first
-    if (gpt && gpt.slotIndex != null) {
-      const seat = availableSeats.find((s: any) => s.index === gpt.slotIndex)
-      if (
-        seat &&
-        subjectMatches(student.subject, seat.tutorSubjects) &&
-        getRemainingCapacity(gpt.slotIndex) > 0 &&
-        !(existingBookingsByStudent[student.id]?.has(`${seat.date}-${seat.time}`))
-      ) {
-        claimSlot(gpt.slotIndex)
-        const hasAvail = studentAvailable(student.availabilityBlocks, seat.dayNum, seat.time)
-        return { studentId: student.id, slotIndex: gpt.slotIndex, status: hasAvail ? 'matched' : 'fallback', reason: gpt.reason ?? (hasAvail ? 'Subject and availability match' : 'Subject match — availability not ideal') }
-      }
-    }
-
-    // GPT's pick was invalid or over capacity — find next best server-side
-    const dayPriority: Record<number, number> = { 1: 2, 2: 1, 3: 0, 4: 1, 6: 2 }
-
-    const candidates = availableSeats
-      .filter((s: any) =>
-        subjectMatches(student.subject, s.tutorSubjects) &&
-        getRemainingCapacity(s.index) > 0 &&
-        !(existingBookingsByStudent[student.id]?.has(`${s.date}-${s.time}`))
-      )
-      .map((s: any) => ({
-        ...s,
-        hasAvail: studentAvailable(student.availabilityBlocks, s.dayNum, s.time),
-        remaining: getRemainingCapacity(s.index),
-      }))
-      .sort((a: any, b: any) => {
-        // Prefer availability match
-        if (a.hasAvail !== b.hasAvail) return a.hasAvail ? -1 : 1
-        // Prefer partially filled
-        const fillA = (capacityMap[a.index] ?? 0) - a.remaining
-        const fillB = (capacityMap[b.index] ?? 0) - b.remaining
-        if (fillB !== fillA) return fillB - fillA
-        // Prefer mid-week consistency rather than always Monday
-        if ((dayPriority[a.dayNum] ?? 0) !== (dayPriority[b.dayNum] ?? 0)) {
-          return (dayPriority[a.dayNum] ?? 0) - (dayPriority[b.dayNum] ?? 0)
-        }
-        // Prefer more even distribution by date/time after balance
-        return (a.date ?? '').localeCompare(b.date ?? '') || (a.time ?? '').localeCompare(b.time ?? '')
+        return true
       })
 
-    if (candidates.length > 0) {
-      const best = candidates[0]
-      claimSlot(best.index)
-      return {
-        studentId: student.id,
-        slotIndex: best.index,
-        status: best.hasAvail ? 'matched' : 'fallback',
-        reason: gpt ? 'GPT slot was full — reassigned to next best' : (best.hasAvail ? 'Subject and availability match' : 'Subject match — availability not considered'),
-      }
+    // Student availability is a hard constraint when blocks are provided
+    const candidates = baseCandidates.filter(s =>
+      studentAvailable(need.availabilityBlocks, s.dayNum, s.time)
+    )
+
+    if (candidates.length === 0) {
+      assignments.push({
+        studentId: need.studentId,
+        subject: need.subject,
+        slotIndex: null,
+        status: 'unmatched',
+        reason: baseCandidates.length > 0 && (need.availabilityBlocks?.length ?? 0) > 0
+          ? `No ${need.subject} slot matches student availability this week`
+          : `No available ${need.subject} tutor with capacity this week`,
+      })
+      continue
     }
 
-    return { studentId: student.id, slotIndex: null, status: 'unmatched', reason: `No ${student.subject} tutor available with capacity this week` }
-  })
+    // Score and pick best
+    const scored = candidates
+      .map(s => ({
+        seat: s,
+        score: scoreSlot(s, need, capacityMap, assignedCounts, daysBooked),
+      }))
+      .sort((a, b) => b.score - a.score)
 
-  return NextResponse.json({ assignments: finalAssignments })
+    const best = scored[0].seat
+
+    // Claim the slot
+    assignedCounts[best.index] = (assignedCounts[best.index] ?? 0) + 1
+
+    // Update tutor-day tracking for gap constraint
+    const tutorDayKey = `${best.tutorId}-${best.date}`
+    if (!tutorDayAssigned[tutorDayKey]) tutorDayAssigned[tutorDayKey] = []
+    tutorDayAssigned[tutorDayKey].push(best.time)
+
+    // Update student tracking
+    if (!studentDaysThisRun[need.studentId]) studentDaysThisRun[need.studentId] = new Set()
+    studentDaysThisRun[need.studentId].add(best.dayNum)
+
+    if (!studentSlotsThisRun[need.studentId]) studentSlotsThisRun[need.studentId] = new Set()
+    studentSlotsThisRun[need.studentId].add(`${best.date}-${best.time}`)
+
+    assignments.push({
+      studentId: need.studentId,
+      subject: need.subject,
+      slotIndex: best.index,
+      status: 'matched',
+      reason: 'Subject and availability match',
+    })
+  }
+
+  return NextResponse.json({ assignments })
 }
