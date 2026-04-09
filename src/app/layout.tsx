@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "C2 Coppell",
+  title: process.env.NEXT_PUBLIC_CENTER_NAME ?? "Scheduler",
   description: "Tutor scheduling and management",
 };
 

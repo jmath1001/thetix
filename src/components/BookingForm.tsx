@@ -43,21 +43,21 @@ function StudentRow({ student, selected, onSelect, isUnassigned }: {
   return (
     <button onClick={() => onSelect(student)}
       className="w-full p-3 text-left transition-all flex items-center gap-3 border-b border-[#f0ece8]"
-      style={{ background: selected ? '#fef2f2' : 'transparent' }}>
+      style={{ background: selected ? '#eef2ff' : 'transparent' }}>
       <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold"
-        style={{ background: selected ? '#dc2626' : '#f0ece8', color: selected ? 'white' : '#78716c' }}>
+        style={{ background: selected ? '#4f46e5' : '#f0ece8', color: selected ? 'white' : '#78716c' }}>
         {student.name.charAt(0)}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className="text-sm font-semibold truncate text-[#1c1917]">{student.name}</p>
           {isUnassigned && !selected && (
-            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-[#fef2f2] text-[#dc2626] border border-[#fca5a5] shrink-0">NEW</span>
+            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-[#eef2ff] text-[#4f46e5] border border-[#a5b4fc] shrink-0">NEW</span>
           )}
         </div>
         <p className="text-[10px] text-[#a8a29e] uppercase font-medium">Grade {student.grade || 'N/A'}</p>
       </div>
-      {selected && <Check size={14} className="text-[#dc2626] shrink-0" strokeWidth={3} />}
+      {selected && <Check size={14} className="text-[#4f46e5] shrink-0" strokeWidth={3} />}
     </button>
   );
 }
@@ -174,14 +174,14 @@ export function BookingForm({
       )}
       {prefilledSlot ? (
         <div className="max-w-md mx-auto py-6">
-          <div className="p-5 rounded-2xl border-2 border-[#dc2626] bg-[#fffafb] flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-[#dc2626] flex flex-col items-center justify-center text-white shrink-0">
+          <div className="p-5 rounded-2xl border-2 border-[#4f46e5] bg-[#f5f3ff] flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-[#4f46e5] flex flex-col items-center justify-center text-white shrink-0">
               <span className="text-[9px] font-bold uppercase opacity-80">{prefilledSlot.dayName.slice(0, 3)}</span>
               <span className="text-xs font-black text-center px-1">{(prefilledSlot as any).block?.label ?? formatTime(prefilledSlot.time)}</span>
             </div>
             <div>
               <p className="text-base font-bold text-[#1c1917]">{prefilledSlot.tutor.name}</p>
-              <p className="text-sm text-[#dc2626] font-medium">{prefilledSlot.dayName} · {(prefilledSlot as any).block?.display ?? formatTime(prefilledSlot.time)}</p>
+              <p className="text-sm text-[#4f46e5] font-medium">{prefilledSlot.dayName} · {(prefilledSlot as any).block?.display ?? formatTime(prefilledSlot.time)}</p>
             </div>
           </div>
         </div>
@@ -199,20 +199,20 @@ export function BookingForm({
                   const assignedCount = 3 - slot.seatsLeft;
                   return (
                     <button key={idx} onClick={() => setSelectedSlot(slot)}
-                      className={`p-3.5 rounded-xl border-2 text-left transition-all relative ${isSelected ? 'border-[#dc2626] bg-[#fffafb] shadow-lg shadow-red-100' : 'border-[#f0ece8] hover:border-[#fca5a5]'}`}>
+                      className={`p-3.5 rounded-xl border-2 text-left transition-all relative ${isSelected ? 'border-[#4f46e5] bg-[#f5f3ff] shadow-lg shadow-indigo-100' : 'border-[#f0ece8] hover:border-[#a5b4fc]'}`}>
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-1.5">
-                          <Clock size={11} className={isSelected ? 'text-[#dc2626]' : 'text-[#a8a29e]'} />
-                          <span className={`text-sm font-bold ${isSelected ? 'text-[#dc2626]' : 'text-[#1c1917]'}`}>{slot.block?.label ?? formatTime(slot.time)}</span>
+                          <Clock size={11} className={isSelected ? 'text-[#4f46e5]' : 'text-[#a8a29e]'} />
+                          <span className={`text-sm font-bold ${isSelected ? 'text-[#4f46e5]' : 'text-[#1c1917]'}`}>{slot.block?.label ?? formatTime(slot.time)}</span>
                         </div>
-                        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${isSelected ? 'bg-[#dc2626] text-white' : 'bg-[#f0ece8] text-[#78716c]'}`}>{assignedCount}/3</span>
+                        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${isSelected ? 'bg-[#4f46e5] text-white' : 'bg-[#f0ece8] text-[#78716c]'}`}>{assignedCount}/3</span>
                       </div>
                       <p className="text-xs font-bold text-[#1c1917] truncate">{slot.tutor.name}</p>
                       <p className="text-[9px] text-[#a8a29e] uppercase mt-0.5">{slot.tutor.subjects?.[0]}</p>
-                      <p className="text-[9px] font-bold mt-1.5" style={{ color: slot.seatsLeft === 1 ? '#dc2626' : '#a8a29e' }}>
+                      <p className="text-[9px] font-bold mt-1.5" style={{ color: slot.seatsLeft === 1 ? '#4f46e5' : '#a8a29e' }}>
                         {slot.seatsLeft === 0 ? 'Full' : `${slot.seatsLeft} spot${slot.seatsLeft !== 1 ? 's' : ''} left`}
                       </p>
-                      {isSelected && <div className="absolute top-2 right-2"><Check size={14} className="text-[#dc2626]" strokeWidth={3} /></div>}
+                      {isSelected && <div className="absolute top-2 right-2"><Check size={14} className="text-[#4f46e5]" strokeWidth={3} /></div>}
                     </button>
                   );
                 })}
@@ -227,7 +227,7 @@ export function BookingForm({
               </p>
               {studentHasAvailability && !showAllSlots && (
                 <button onClick={() => setShowAllSlots(true)}
-                  className="mt-3 text-xs font-bold text-[#dc2626] underline underline-offset-2">
+                  className="mt-3 text-xs font-bold text-[#4f46e5] underline underline-offset-2">
                   Show all slots anyway
                 </button>
               )}
@@ -243,22 +243,22 @@ export function BookingForm({
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-3 bg-white px-4 py-2.5 rounded-xl border border-[#e7e3dd]">
           <div className="flex items-center gap-2">
-            <Repeat size={13} className={recurring ? 'text-[#dc2626]' : 'text-[#a8a29e]'} />
+            <Repeat size={13} className={recurring ? 'text-[#4f46e5]' : 'text-[#a8a29e]'} />
             <span className="text-xs font-bold text-[#1c1917]">Recurring</span>
           </div>
           <div className="flex gap-1 ml-auto">
             {[2, 4, 8].map(w => (
               <button key={w} onClick={() => { setRecurring(true); setRecurringWeeks(w); }}
-                className={`px-2.5 py-1 rounded text-[10px] font-bold border ${recurring && recurringWeeks === w ? 'bg-[#dc2626] border-[#dc2626] text-white' : 'bg-white border-[#e7e3dd] text-[#78716c]'}`}>
+                className={`px-2.5 py-1 rounded text-[10px] font-bold border ${recurring && recurringWeeks === w ? 'bg-[#4f46e5] border-[#4f46e5] text-white' : 'bg-white border-[#e7e3dd] text-[#78716c]'}`}>
                 {w}w
               </button>
             ))}
-            {recurring && <button onClick={() => setRecurring(false)} className="ml-1 p-1 text-[#dc2626] hover:bg-red-50 rounded"><X size={11} /></button>}
+            {recurring && <button onClick={() => setRecurring(false)} className="ml-1 p-1 text-[#4f46e5] hover:bg-indigo-50 rounded"><X size={11} /></button>}
           </div>
         </div>
         <button disabled={!canConfirm}
           onClick={() => onConfirm({ student: selectedStudent, slot: prefilledSlot || selectedSlot, recurring, recurringWeeks, subject: selectedStudent?.subject, topic, notes })}
-          className={`w-full py-3.5 rounded-xl font-black text-sm uppercase tracking-widest transition-all active:scale-[0.98] ${canConfirm ? 'bg-[#dc2626] text-white hover:bg-[#b91c1c] shadow-lg shadow-red-100' : 'bg-[#e7e3dd] text-[#a8a29e] cursor-not-allowed'}`}>
+          className={`w-full py-3.5 rounded-xl font-black text-sm uppercase tracking-widest transition-all active:scale-[0.98] ${canConfirm ? 'bg-[#4f46e5] text-white hover:bg-[#3730a3] shadow-lg shadow-indigo-100' : 'bg-[#e7e3dd] text-[#a8a29e] cursor-not-allowed'}`}>
           {canConfirm ? `Book ${topic} · ${selectedStudent.name}` : 'Select Student, Topic & Slot'}
         </button>
       </div>
@@ -267,14 +267,14 @@ export function BookingForm({
 
   return (
     <>
-      <div className="hidden md:flex w-full max-w-5xl bg-white rounded-2xl overflow-hidden border border-[#e7e3dd] shadow-2xl flex-row" style={{ maxHeight: '85vh' }}>
-        <div className="w-72 bg-[#faf9f7] border-r border-[#e7e3dd] flex flex-col">
-          <div className="p-5 bg-white border-b border-[#e7e3dd]">
-            <h3 className="text-lg font-bold text-[#1c1917] mb-1">Center Scheduler</h3>
-            <p className="text-xs text-[#a8a29e] mb-3">Select a student to schedule</p>
+      <div className="hidden md:flex w-full max-w-5xl overflow-hidden rounded-[28px] border border-[#334155] bg-white shadow-[0_30px_80px_rgba(15,23,42,0.28)] flex-row" style={{ maxHeight: '85vh' }}>
+        <div className="flex w-72 flex-col border-r border-[#cbd5e1] bg-[#f8fafc]">
+          <div className="border-b border-[#cbd5e1] bg-[#0f172a] p-5">
+            <h3 className="mb-1 text-lg font-black text-white">Center Scheduler</h3>
+            <p className="mb-3 text-xs font-medium text-[#cbd5e1]">Select a student to schedule</p>
             <div className="relative">
-              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a8a29e]" />
-              <input className="w-full pl-9 pr-3 py-2 bg-[#f0ece8]/50 rounded-xl text-sm text-[#1c1917] focus:ring-2 focus:ring-[#dc2626] outline-none border-none"
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
+              <input className="w-full rounded-xl border border-[#475569] bg-[#111827] py-2.5 pl-9 pr-3 text-sm font-medium text-white outline-none transition-all placeholder:text-[#94a3b8] focus:border-[#818cf8] focus:ring-4 focus:ring-[#312e81]/30"
                 placeholder="Search students..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
             </div>
           </div>
@@ -284,20 +284,20 @@ export function BookingForm({
             )) : <div className="p-10 text-center text-xs text-[#a8a29e] italic">No students found</div>}
           </div>
           {selectedStudent && (
-            <div className="p-4 bg-white border-t border-[#e7e3dd] space-y-3">
+            <div className="space-y-3 border-t border-[#cbd5e1] bg-white p-4">
               <div className="relative" ref={dropdownRef}>
-                <label className="text-[10px] font-black text-[#dc2626] uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><BookOpen size={10} /> Subject / Topic</label>
+                <label className="mb-1.5 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#334155]"><BookOpen size={10} /> Subject / Topic</label>
                 <div className="relative">
-                  <input className="w-full px-3 py-2.5 rounded-xl text-sm text-[#1c1917] border-2 border-[#e7e3dd] focus:border-[#dc2626] outline-none transition-all pr-10"
+                  <input className="w-full rounded-xl border border-[#94a3b8] bg-[#f8fafc] px-3.5 py-2.5 pr-10 text-sm font-medium text-[#0f172a] outline-none transition-all placeholder:text-[#64748b] focus:border-[#4f46e5] focus:ring-4 focus:ring-[#eef2ff]"
                     placeholder="Search or type subject..." 
                     value={topic} 
                     onFocus={() => setShowSubjectDropdown(true)}
                     onChange={e => {setTopic(e.target.value); setShowSubjectDropdown(true);}} />
-                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a8a29e] pointer-events-none" />
+                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#475569]" />
                 </div>
                 
                 {showSubjectDropdown && (
-                  <div className="absolute bottom-full left-0 w-full mb-1 bg-white border border-[#e7e3dd] rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto">
+                  <div className="absolute bottom-full left-0 z-50 mb-2 max-h-56 w-full overflow-y-auto rounded-2xl border border-[#cbd5e1] bg-white shadow-[0_24px_50px_rgba(15,23,42,0.22)]">
                     {filteredSubjectOptions.length > 0 ? (
                       filteredSubjectOptions.map(s => (
                         <button key={s} 
@@ -308,20 +308,20 @@ export function BookingForm({
                             setTopic(s); 
                             setShowSubjectDropdown(false);
                           }}
-                          className="w-full px-3 py-2.5 text-left text-sm text-[#1c1917] hover:bg-[#dc2626] hover:text-white transition-colors border-b border-[#f0ece8] last:border-0 font-bold">
+                          className="w-full border-b border-[#e2e8f0] px-3.5 py-3 text-left text-sm font-bold text-[#0f172a] transition-colors last:border-0 hover:bg-[#eef2ff] hover:text-[#312e81]">
                           {s}
                         </button>
                       ))
                     ) : (
-                      <div className="px-3 py-2 text-[11px] text-[#dc2626] italic font-bold">Press Enter to use custom topic</div>
+                      <div className="px-3.5 py-3 text-[11px] font-bold italic text-[#475569]">Press Enter to use a custom topic</div>
                     )}
                   </div>
                 )}
               </div>
               <div>
-                <label className="text-[10px] font-black text-[#a8a29e] uppercase tracking-widest mb-1.5 block">Notes</label>
+                <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[0.18em] text-[#334155]">Notes</label>
                 <textarea
-                  className="w-full px-3 py-2 rounded-xl text-sm text-[#1c1917] border-2 border-[#e7e3dd] focus:border-[#dc2626] outline-none transition-all resize-none"
+                  className="w-full resize-none rounded-xl border border-[#94a3b8] bg-[#f8fafc] px-3.5 py-2.5 text-sm font-medium text-[#0f172a] outline-none transition-all placeholder:text-[#64748b] focus:border-[#4f46e5] focus:ring-4 focus:ring-[#eef2ff]"
                   placeholder="Any notes for this session…"
                   rows={2}
                   value={notes}
@@ -333,29 +333,29 @@ export function BookingForm({
         </div>
 
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="px-6 py-4 border-b border-[#f0ece8] flex justify-between items-center bg-white">
+          <div className="flex items-center justify-between border-b border-[#1e293b] bg-[#0f172a] px-6 py-4">
             <div className="flex items-center gap-4">
-              <h4 className="font-bold text-[#1c1917]">{prefilledSlot ? 'Confirm Details' : 'Available Openings'}</h4>
+              <h4 className="font-black text-white">{prefilledSlot ? 'Confirm Details' : 'Available Openings'}</h4>
               {!prefilledSlot && (
-                <div className="flex gap-1 bg-[#f0ece8] p-1 rounded-lg">
+                <div className="flex gap-1 rounded-xl border border-[#334155] bg-[#111827] p-1">
                   {(['math', 'english'] as const).map(cat => (
                     <button key={cat} onClick={() => setEnrollCat(cat)}
-                      className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${enrollCat === cat ? 'bg-white text-[#dc2626] shadow-sm' : 'text-[#78716c]'}`}>
+                      className={`rounded-lg px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] transition-all ${enrollCat === cat ? 'bg-white text-[#312e81] shadow-sm' : 'text-[#cbd5e1]'}`}>
                       {cat}
                     </button>
                   ))}
                 </div>
               )}
             </div>
-            <button onClick={onCancel} className="p-1.5 hover:bg-[#fef2f2] rounded-full text-[#a8a29e] hover:text-[#dc2626]"><X size={20} /></button>
+            <button onClick={onCancel} className="rounded-full p-2 text-[#cbd5e1] transition-colors hover:bg-[rgba(255,255,255,0.08)] hover:text-white"><X size={20} /></button>
           </div>
           {!prefilledSlot && (
-            <div className="px-6 py-2.5 flex gap-1.5 overflow-x-auto border-b border-[#f0ece8] no-scrollbar">
+            <div className="flex gap-1.5 overflow-x-auto border-b border-[#cbd5e1] bg-[#f8fafc] px-6 py-3 no-scrollbar">
               <button onClick={() => setSubjectFilter(null)}
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold shrink-0 transition-all ${!subjectFilter ? 'bg-[#1c1917] text-white' : 'bg-[#f0ece8] text-[#78716c]'}`}>All</button>
+                className={`shrink-0 rounded-lg px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] transition-all ${!subjectFilter ? 'bg-[#0f172a] text-white' : 'bg-white text-[#475569] border border-[#cbd5e1]'}`}>All</button>
               {catSubjects.map(subj => (
                 <button key={subj} onClick={() => setSubjectFilter(subjectFilter === subj ? null : subj)}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold shrink-0 transition-all ${subjectFilter === subj ? 'bg-[#dc2626] text-white' : 'bg-[#f0ece8] text-[#78716c]'}`}>
+                  className={`shrink-0 rounded-lg px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] transition-all ${subjectFilter === subj ? 'bg-[#4f46e5] text-white' : 'border border-[#cbd5e1] bg-white text-[#475569]'}`}>
                   {subj}
                 </button>
               ))}
@@ -367,14 +367,14 @@ export function BookingForm({
       </div>
 
       <div className="md:hidden fixed inset-0 z-50 flex flex-col bg-white" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#e7e3dd] bg-[#faf9f7] shrink-0">
+        <div className="flex shrink-0 items-center justify-between border-b border-[#1e293b] bg-[#0f172a] px-4 py-3">
           <div>
-            <p className="text-sm font-black text-[#1c1917]">Schedule Student</p>
-            <p className="text-[10px] text-[#a8a29e]">
+            <p className="text-sm font-black text-white">Schedule Student</p>
+            <p className="text-[10px] text-[#cbd5e1]">
               {mobileTab === 0 ? 'Pick a student' : mobileTab === 1 ? 'Pick a slot' : 'Confirm booking'}
             </p>
           </div>
-          <button onClick={onCancel} className="w-9 h-9 rounded-full flex items-center justify-center bg-white border border-[#e7e3dd] text-[#78716c]">
+          <button onClick={onCancel} className="flex h-9 w-9 items-center justify-center rounded-full border border-[#334155] bg-[#111827] text-[#e2e8f0]">
             <X size={18} />
           </button>
         </div>
@@ -382,7 +382,7 @@ export function BookingForm({
         <div className="flex border-b border-[#e7e3dd] bg-white shrink-0">
           {['Student', 'Slot', 'Confirm'].map((label, i) => (
             <button key={i} onClick={() => setMobileTab(i)}
-              className={`flex-1 py-2.5 text-[11px] font-black uppercase tracking-wider transition-all ${mobileTab === i ? 'text-[#dc2626] border-b-2 border-[#dc2626]' : 'text-[#a8a29e]'}`}>
+              className={`flex-1 py-2.5 text-[11px] font-black uppercase tracking-wider transition-all ${mobileTab === i ? 'text-[#4f46e5] border-b-2 border-[#4f46e5]' : 'text-[#a8a29e]'}`}>
               {i + 1}. {label}
             </button>
           ))}
@@ -394,7 +394,7 @@ export function BookingForm({
               <div className="p-3 bg-[#faf9f7] border-b border-[#e7e3dd] shrink-0">
                 <div className="relative">
                   <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a8a29e]" />
-                  <input className="w-full pl-9 pr-3 py-2.5 bg-white rounded-xl text-sm text-[#1c1917] border border-[#e7e3dd] outline-none focus:border-[#dc2626]"
+                  <input className="w-full pl-9 pr-3 py-2.5 bg-white rounded-xl text-sm text-[#1c1917] border border-[#e7e3dd] outline-none focus:border-[#4f46e5]"
                     placeholder="Search students..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
                 </div>
               </div>
@@ -406,15 +406,15 @@ export function BookingForm({
               {selectedStudent && (
                 <div className="p-3 bg-white border-t border-[#e7e3dd] shrink-0 space-y-2">
                   <div className="relative" ref={dropdownRef}>
-                    <label className="text-[10px] font-black text-[#dc2626] uppercase tracking-widest flex items-center gap-1.5"><BookOpen size={10} /> Session Topic</label>
-                    <input className="w-full px-3 py-2.5 rounded-xl text-sm text-[#1c1917] border-2 border-[#e7e3dd] focus:border-[#dc2626] outline-none"
+                    <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#334155]"><BookOpen size={10} /> Session Topic</label>
+                    <input className="w-full rounded-xl border border-[#94a3b8] bg-[#f8fafc] px-3.5 py-2.5 text-sm font-medium text-[#0f172a] outline-none transition-all placeholder:text-[#64748b] focus:border-[#4f46e5] focus:ring-4 focus:ring-[#eef2ff]"
                       placeholder="e.g. Geometry, SAT Prep" 
                       value={topic} 
                       onFocus={() => setShowSubjectDropdown(true)}
                       onChange={e => {setTopic(e.target.value); setShowSubjectDropdown(true);}} />
                     
                     {showSubjectDropdown && (
-                      <div className="absolute bottom-full left-0 w-full mb-1 bg-white border border-[#e7e3dd] rounded-xl shadow-xl z-50 max-h-40 overflow-y-auto">
+                      <div className="absolute bottom-full left-0 z-50 mb-2 max-h-40 w-full overflow-y-auto rounded-2xl border border-[#cbd5e1] bg-white shadow-[0_24px_50px_rgba(15,23,42,0.22)]">
                         {filteredSubjectOptions.map(s => (
                           <button key={s} 
                             onMouseDown={(e) => {
@@ -422,7 +422,7 @@ export function BookingForm({
                                 setTopic(s); 
                                 setShowSubjectDropdown(false);
                             }}
-                            className="w-full px-3 py-3 text-left text-sm text-[#1c1917] font-bold border-b border-[#f0ece8] active:bg-[#dc2626] active:text-white">
+                            className="w-full border-b border-[#e2e8f0] px-3.5 py-3 text-left text-sm font-bold text-[#0f172a] last:border-0 active:bg-[#4f46e5] active:text-white">
                             {s}
                           </button>
                         ))}
@@ -430,7 +430,7 @@ export function BookingForm({
                     )}
                   </div>
                   <button onClick={() => setMobileTab(1)}
-                    className="w-full py-3 rounded-xl font-black text-sm text-white bg-[#dc2626] flex items-center justify-center gap-2 active:scale-[0.98]">
+                    className="w-full py-3 rounded-xl font-black text-sm text-white bg-[#4f46e5] flex items-center justify-center gap-2 active:scale-[0.98]">
                     Next: Pick Slot <ChevronRight size={16} />
                   </button>
                 </div>
@@ -445,7 +445,7 @@ export function BookingForm({
                   <div className="flex gap-1 bg-[#f0ece8] p-1 rounded-lg self-start w-fit">
                     {(['math', 'english'] as const).map(cat => (
                       <button key={cat} onClick={() => setEnrollCat(cat)}
-                        className={`px-3 py-1.5 rounded-md text-[11px] font-bold uppercase transition-all ${enrollCat === cat ? 'bg-white text-[#dc2626] shadow-sm' : 'text-[#78716c]'}`}>
+                        className={`px-3 py-1.5 rounded-md text-[11px] font-bold uppercase transition-all ${enrollCat === cat ? 'bg-white text-[#4f46e5] shadow-sm' : 'text-[#78716c]'}`}>
                         {cat}
                       </button>
                     ))}
@@ -456,7 +456,7 @@ export function BookingForm({
               {selectedSlot && (
                 <div className="p-3 bg-white border-t border-[#e7e3dd] shrink-0">
                   <button onClick={() => setMobileTab(2)}
-                    className="w-full py-3 rounded-xl font-black text-sm text-white bg-[#dc2626] flex items-center justify-center gap-2 active:scale-[0.98]">
+                    className="w-full py-3 rounded-xl font-black text-sm text-white bg-[#4f46e5] flex items-center justify-center gap-2 active:scale-[0.98]">
                     Next: Confirm <ChevronRight size={16} />
                   </button>
                 </div>
@@ -468,14 +468,14 @@ export function BookingForm({
             <div className="flex-1 overflow-y-auto flex flex-col">
               <div className="p-4 space-y-3 flex-1">
                 <p className="text-[10px] font-black text-[#a8a29e] uppercase tracking-widest">Booking Summary</p>
-                <div className="p-4 rounded-2xl bg-[#fffafb] border-2 border-[#dc2626] space-y-2">
+                <div className="p-4 rounded-2xl bg-[#f5f3ff] border-2 border-[#4f46e5] space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] text-[#a8a29e] uppercase font-bold">Student</span>
                     <span className="text-sm font-black text-[#1c1917]">{selectedStudent?.name ?? '—'}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] text-[#a8a29e] uppercase font-bold">Topic</span>
-                    <span className="text-sm font-bold text-[#dc2626]">{topic || '—'}</span>
+                    <span className="text-sm font-bold text-[#4f46e5]">{topic || '—'}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] text-[#a8a29e] uppercase font-bold">Slot</span>
@@ -496,15 +496,15 @@ export function BookingForm({
 
 export function BookingToast({ data, onClose }: { data: BookingConfirmData; onClose: () => void }) {
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] bg-white border border-[#e7e3dd] px-5 py-4 rounded-2xl flex items-center gap-4 shadow-2xl min-w-[300px] max-w-[90vw]">
-      <div className="w-10 h-10 rounded-full bg-[#fef2f2] flex items-center justify-center text-[#dc2626] shrink-0">
+    <div className="fixed bottom-6 left-1/2 z-60 flex min-w-75 max-w-[90vw] -translate-x-1/2 items-center gap-4 rounded-2xl border border-[#e7e3dd] bg-white px-5 py-4 shadow-2xl">
+      <div className="w-10 h-10 rounded-full bg-[#eef2ff] flex items-center justify-center text-[#4f46e5] shrink-0">
         <Check size={20} strokeWidth={3} />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold text-[#1c1917]">{data.student.name} Booked!</p>
         <p className="text-[11px] text-[#a8a29e] truncate">{data.slot.dayName} · {data.topic} · {data.slot.tutor.name}{data.recurring ? ` · ${data.recurringWeeks}wk` : ''}</p>
       </div>
-      <button onClick={onClose} className="text-[#a8a29e] hover:text-[#dc2626] shrink-0"><X size={16} /></button>
+      <button onClick={onClose} className="text-[#a8a29e] hover:text-[#4f46e5] shrink-0"><X size={16} /></button>
     </div>
   );
 }

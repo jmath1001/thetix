@@ -32,7 +32,10 @@ const MAX_CAPACITY = 3;
 const isTutorAvailable = (tutor: any, dow: number, time: string) =>
   tutor.availability_blocks?.includes(`${dow}-${time}`);
 
-const inputCls = "w-full px-3 py-2 bg-[#f8fafc] rounded-lg text-sm text-[#0f172a] outline-none focus:ring-2 focus:ring-[#dc2626] border border-[#e2e8f0] focus:border-[#dc2626] placeholder:text-[#94a3b8] transition-colors";
+const inputCls = "w-full rounded-xl border border-[#94a3b8] bg-white px-3.5 py-2.5 text-sm font-medium text-[#0f172a] shadow-[0_1px_2px_rgba(15,23,42,0.06)] outline-none transition-all placeholder:text-[#64748b] focus:border-[#dc2626] focus:ring-4 focus:ring-[#fee2e2]";
+const fieldCardCls = "rounded-lg border border-[#cbd5e1] bg-white px-3.5 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.06)]";
+const fieldLabelCls = "text-[9px] font-black uppercase tracking-[0.22em] text-[#64748b]";
+const fieldValueCls = "mt-2 text-sm font-semibold text-[#0f172a]";
 
 const AVATAR_PALETTE = ['#dc2626','#d97706','#16a34a','#2563eb','#7c3aed','#db2777','#0891b2','#65a30d'];
 function avatarColor(name: string) { return AVATAR_PALETTE[name.charCodeAt(0) % AVATAR_PALETTE.length]; }
@@ -90,22 +93,22 @@ function MetricsPanel({ students, allSessions, tutors }: { students: any[]; allS
   const rateColor = (v: number | null) => !v ? '#94a3b8' : v >= 0.8 ? '#16a34a' : v >= 0.6 ? '#f59e0b' : '#dc2626';
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${open ? '#fecaca' : '#e2e8f0'}` }}>
+    <div className="overflow-hidden rounded-xl bg-white shadow-[0_18px_38px_rgba(15,23,42,0.08)]" style={{ border: `1px solid ${open ? '#fda4af' : '#cbd5e1'}` }}>
       <button onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-5 py-3 transition-all"
-        style={{ background: open ? '#fff5f5' : '#fafafa' }}>
+        className="flex w-full items-center justify-between px-5 py-4 transition-all"
+        style={{ background: open ? '#fff1f2' : '#f8fafc' }}>
         <div className="flex items-center gap-2.5">
           <BarChart2 size={13} style={{ color: open ? '#dc2626' : '#94a3b8' }} />
           <div className="text-left">
-            <p className="text-xs font-black text-[#1e293b]">Analytics</p>
-            <p className="text-[10px] text-[#94a3b8]">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#0f172a]">Analytics</p>
+            <p className="text-[10px] font-medium text-[#475569]">
               {metrics.total > 0 ? `${metrics.total} sessions · ${pct(metrics.attendanceRate)} attendance · ${pct(metrics.noShowRate)} no-show` : 'No past data yet'}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {metrics.atRisk.length > 0 && (
-            <span className="text-[9px] font-black px-2 py-0.5 rounded-full flex items-center gap-1" style={{ background: '#fef2f2', color: '#dc2626' }}>
+            <span className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em]" style={{ background: '#7f1d1d', color: '#fff1f2' }}>
               <AlertTriangle size={8} /> {metrics.atRisk.length} at risk
             </span>
           )}
@@ -113,24 +116,24 @@ function MetricsPanel({ students, allSessions, tutors }: { students: any[]; allS
         </div>
       </button>
       {open && (
-        <div style={{ borderTop: '1px solid #f1f5f9' }}>
-          <div className="grid grid-cols-2 md:grid-cols-4" style={{ borderBottom: '1px solid #f1f5f9' }}>
+        <div style={{ borderTop: '1px solid #e2e8f0' }}>
+          <div className="grid grid-cols-2 md:grid-cols-4" style={{ borderBottom: '1px solid #e2e8f0' }}>
             {[
               { label: 'Attendance', value: pct(metrics.attendanceRate), sub: `${metrics.present}/${metrics.total}`, color: rateColor(metrics.attendanceRate) },
               { label: 'No-show', value: pct(metrics.noShowRate), sub: `${metrics.noShow} sessions`, color: metrics.noShowRate && metrics.noShowRate > 0.2 ? '#dc2626' : '#16a34a' },
               { label: 'Booked This Week', value: pct(metrics.bookingCoverage), sub: `${metrics.bookedCount}/${students.length}`, color: rateColor(metrics.bookingCoverage) },
               { label: 'At Risk', value: String(metrics.atRisk.length), sub: '>40% no-show rate', color: metrics.atRisk.length > 0 ? '#dc2626' : '#16a34a' },
             ].map((k, i) => (
-              <div key={k.label} className="px-5 py-4" style={{ borderRight: i < 3 ? '1px solid #f1f5f9' : 'none' }}>
-                <p className="text-[9px] font-black uppercase tracking-widest text-[#94a3b8] mb-1">{k.label}</p>
+              <div key={k.label} className="bg-white px-5 py-4" style={{ borderRight: i < 3 ? '1px solid #e2e8f0' : 'none' }}>
+                <p className="mb-1 text-[9px] font-black uppercase tracking-[0.2em] text-[#64748b]">{k.label}</p>
                 <p className="text-2xl font-black leading-none" style={{ color: k.color }}>{k.value}</p>
-                <p className="text-[10px] text-[#94a3b8] mt-1">{k.sub}</p>
+                <p className="mt-1 text-[10px] font-medium text-[#475569]">{k.sub}</p>
               </div>
             ))}
           </div>
-          <div className="grid md:grid-cols-3" style={{ borderBottom: '1px solid #f1f5f9' }}>
-            <div className="p-4" style={{ borderRight: '1px solid #f1f5f9' }}>
-              <p className="text-[9px] font-black uppercase tracking-widest text-[#94a3b8] mb-3">No-shows by Day</p>
+          <div className="grid bg-[#fcfdff] md:grid-cols-3" style={{ borderBottom: '1px solid #e2e8f0' }}>
+            <div className="p-4" style={{ borderRight: '1px solid #e2e8f0' }}>
+              <p className="mb-3 text-[9px] font-black uppercase tracking-[0.2em] text-[#64748b]">No-shows by Day</p>
               <div className="space-y-2">
                 {metrics.dowStats.filter(d => d.total > 0).map(d => (
                   <div key={d.dow} className="flex items-center gap-2">
@@ -141,8 +144,8 @@ function MetricsPanel({ students, allSessions, tutors }: { students: any[]; allS
                 ))}
               </div>
             </div>
-            <div className="p-4" style={{ borderRight: '1px solid #f1f5f9' }}>
-              <p className="text-[9px] font-black uppercase tracking-widest text-[#94a3b8] mb-3">{metrics.atRisk.length > 0 ? 'At-Risk Students' : 'Lowest Attendance'}</p>
+            <div className="p-4" style={{ borderRight: '1px solid #e2e8f0' }}>
+              <p className="mb-3 text-[9px] font-black uppercase tracking-[0.2em] text-[#64748b]">{metrics.atRisk.length > 0 ? 'At-Risk Students' : 'Lowest Attendance'}</p>
               <div className="space-y-2">
                 {(metrics.atRisk.length > 0 ? metrics.atRisk : metrics.studentStats.slice(0, 5)).map((s: any) => (
                   <div key={s.id} className="flex items-center gap-2">
@@ -155,7 +158,7 @@ function MetricsPanel({ students, allSessions, tutors }: { students: any[]; allS
               </div>
             </div>
             <div className="p-4">
-              <p className="text-[9px] font-black uppercase tracking-widest text-[#94a3b8] mb-3">Tutor Load This Week</p>
+              <p className="mb-3 text-[9px] font-black uppercase tracking-[0.2em] text-[#64748b]">Tutor Load This Week</p>
               <div className="space-y-2">
                 {metrics.tutorLoad.length > 0 ? metrics.tutorLoad.map((t: any) => (
                   <div key={t.id} className="flex items-center gap-2">
@@ -274,15 +277,15 @@ function StudentRow({
       {/* Main row */}
       <div className="grid items-center transition-all"
         style={{
-          gridTemplateColumns: '36px 36px 2fr 60px 100px 100px 80px 144px',
-          borderBottom: expanded ? 'none' : '1px solid #f1f5f9',
-          background: selected ? '#fff5f5' : expanded ? '#fafafa' : '#fff',
-          minHeight: 52,
+          gridTemplateColumns: '32px 34px minmax(140px,2.2fr) minmax(56px,0.75fr) minmax(88px,1fr) minmax(88px,1fr) minmax(68px,0.8fr) minmax(108px,1fr)',
+          borderBottom: expanded ? 'none' : '1px solid #dbe4ee',
+          background: selected ? '#fff1f2' : expanded ? '#f8fbff' : '#ffffff',
+          minHeight: 58,
         }}>
 
         {/* Checkbox */}
         <div className="flex items-center justify-center" onClick={e => e.stopPropagation()}>
-          <button onClick={onToggle} className="text-[#94a3b8] hover:text-[#dc2626] transition-colors">
+          <button onClick={onToggle} className="text-[#64748b] hover:text-[#dc2626] transition-colors">
             {selected ? <CheckSquare size={14} style={{ color: '#dc2626' }} /> : <Square size={14} />}
           </button>
         </div>
@@ -297,7 +300,7 @@ function StudentRow({
         <div className="flex items-center gap-2 min-w-0 cursor-pointer pr-2" onClick={() => setExpanded(e => !e)}>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-[13px] font-bold text-[#0f172a] truncate">{student.name}</span>
+              <span className="text-[13px] font-black text-[#0f172a] truncate">{student.name}</span>
               {isAtRisk && <AlertTriangle size={10} style={{ color: '#dc2626', flexShrink: 0 }} />}
             </div>
             {student.grade && <span className="text-[10px] text-[#94a3b8]">Grade {student.grade}</span>}
@@ -347,13 +350,13 @@ function StudentRow({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-1 pr-3" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-end gap-1 pr-3" onClick={e => e.stopPropagation()}>
           <button onClick={() => setShowBooking(true)}
-            className="px-2 py-1 rounded-md text-[10px] font-black text-white transition-all"
-            style={{ background: '#dc2626' }}>Book</button>
+            className="rounded-lg px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-white transition-all"
+            style={{ background: '#dc2626', boxShadow: '0 8px 18px rgba(220,38,38,0.24)' }}>Book</button>
           <button onClick={() => { setIsEditing(true); setExpanded(true); setTab('contact'); }}
-            className="px-2 py-1 rounded-md text-[10px] font-bold text-[#64748b] transition-all"
-            style={{ background: '#f1f5f9', border: '1px solid #e2e8f0' }}>Edit</button>
+            className="rounded-lg px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#334155] transition-all"
+            style={{ background: '#e2e8f0', border: '1px solid #94a3b8' }}>Edit</button>
           <button onClick={handleDelete}
             className={`p-1 rounded-md transition-all ${confirmDelete ? 'bg-red-50 text-red-500' : 'text-[#cbd5e1] hover:text-red-400'}`}>
             {confirmDelete ? '?' : <Trash2 size={11} />}
@@ -366,12 +369,12 @@ function StudentRow({
 
       {/* Expanded panel */}
       {expanded && (
-        <div style={{ borderBottom: '1px solid #f1f5f9', background: '#fafafa', borderLeft: '3px solid #dc2626' }}>
-          <div className="flex px-4 gap-0" style={{ background: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }}>
+        <div style={{ borderBottom: '1px solid #dbe4ee', background: '#f8fbff', borderLeft: '4px solid #dc2626' }}>
+          <div className="flex gap-0 px-4" style={{ background: '#e2e8f0', borderBottom: '1px solid #cbd5e1' }}>
             {(['contact', 'sessions'] as const).map(t => (
               <button key={t} onClick={() => setTab(t)}
-                className="py-2 mr-5 text-[10px] font-black uppercase tracking-widest border-b-2 -mb-px transition-colors"
-                style={tab === t ? { color: '#dc2626', borderColor: '#dc2626' } : { color: '#94a3b8', borderColor: 'transparent' }}>
+                className="-mb-px mr-5 border-b-2 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition-colors"
+                style={tab === t ? { color: '#7f1d1d', borderColor: '#dc2626' } : { color: '#475569', borderColor: 'transparent' }}>
                 {t === 'sessions' ? `Sessions (${allStudentSessions.length})` : 'Contact'}
               </button>
             ))}
@@ -387,67 +390,67 @@ function StudentRow({
                     { label: 'Grade', field: 'grade', type: 'text', value: student.grade },
                     { label: 'Hours Left', field: 'hours_left', type: 'number', value: student.hours_left },
                   ].map(({ label, field, type, value }) => (
-                    <div key={field} className="space-y-1">
-                      <label className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest">{label}</label>
+                    <div key={field} className={fieldCardCls}>
+                      <label className={fieldLabelCls}>{label}</label>
                       {isEditing
-                        ? <input type={type} value={draft[field] ?? ''} onChange={e => setDraft((p: any) => ({ ...p, [field]: e.target.value }))} className={inputCls} placeholder={label} />
-                        : <p className="text-sm text-[#1e293b]">{value || <span className="text-[#cbd5e1] italic text-xs">—</span>}</p>}
+                        ? <input type={type} value={draft[field] ?? ''} onChange={e => setDraft((p: any) => ({ ...p, [field]: e.target.value }))} className={`${inputCls} mt-2`} placeholder={label} />
+                        : <p className={fieldValueCls}>{value || <span className="text-xs italic text-[#94a3b8]">—</span>}</p>}
                     </div>
                   ))}
                 </div>
-                <div>
-                  <p className="text-[9px] font-black uppercase tracking-widest mb-2 text-[#94a3b8]">Mom</p>
+                <div className="rounded-lg border border-[#cbd5e1] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.06)]">
+                  <p className="mb-3 text-[9px] font-black uppercase tracking-[0.2em] text-[#64748b]">Mom</p>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     {[
                       { label: 'Name', field: 'mom_name', type: 'text', value: student.mom_name },
                       { label: 'Email', field: 'mom_email', type: 'email', value: student.mom_email },
                       { label: 'Phone', field: 'mom_phone', type: 'tel', value: student.mom_phone },
                     ].map(({ label, field, type, value }) => (
-                      <div key={field} className="space-y-1">
-                        <label className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest">{label}</label>
+                      <div key={field} className={fieldCardCls}>
+                        <label className={fieldLabelCls}>{label}</label>
                         {isEditing
-                          ? <input type={type} value={draft[field] ?? ''} onChange={e => setDraft((p: any) => ({ ...p, [field]: e.target.value }))} className={inputCls} placeholder={label} />
-                          : <p className="text-sm text-[#1e293b]">{value || <span className="text-[#cbd5e1] italic text-xs">—</span>}</p>}
+                          ? <input type={type} value={draft[field] ?? ''} onChange={e => setDraft((p: any) => ({ ...p, [field]: e.target.value }))} className={`${inputCls} mt-2`} placeholder={label} />
+                          : <p className={fieldValueCls}>{value || <span className="text-xs italic text-[#94a3b8]">—</span>}</p>}
                       </div>
                     ))}
                   </div>
                 </div>
-                <div>
-                  <p className="text-[9px] font-black uppercase tracking-widest mb-2 text-[#94a3b8]">Dad</p>
+                <div className="rounded-lg border border-[#cbd5e1] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.06)]">
+                  <p className="mb-3 text-[9px] font-black uppercase tracking-[0.2em] text-[#64748b]">Dad</p>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     {[
                       { label: 'Name', field: 'dad_name', type: 'text', value: student.dad_name },
                       { label: 'Email', field: 'dad_email', type: 'email', value: student.dad_email },
                       { label: 'Phone', field: 'dad_phone', type: 'tel', value: student.dad_phone },
                     ].map(({ label, field, type, value }) => (
-                      <div key={field} className="space-y-1">
-                        <label className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest">{label}</label>
+                      <div key={field} className={fieldCardCls}>
+                        <label className={fieldLabelCls}>{label}</label>
                         {isEditing
-                          ? <input type={type} value={draft[field] ?? ''} onChange={e => setDraft((p: any) => ({ ...p, [field]: e.target.value }))} className={inputCls} placeholder={label} />
-                          : <p className="text-sm text-[#1e293b]">{value || <span className="text-[#cbd5e1] italic text-xs">—</span>}</p>}
+                          ? <input type={type} value={draft[field] ?? ''} onChange={e => setDraft((p: any) => ({ ...p, [field]: e.target.value }))} className={`${inputCls} mt-2`} placeholder={label} />
+                          : <p className={fieldValueCls}>{value || <span className="text-xs italic text-[#94a3b8]">—</span>}</p>}
                       </div>
                     ))}
                   </div>
                 </div>
-                <div>
-                  <p className="text-[9px] font-black uppercase tracking-widest mb-1.5 text-[#94a3b8]">Bluebook</p>
+                <div className="rounded-lg border border-[#cbd5e1] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.06)]">
+                  <p className="mb-1.5 text-[9px] font-black uppercase tracking-[0.2em] text-[#64748b]">Bluebook</p>
                   {isEditing
-                    ? <input type="url" value={draft.bluebook_url ?? ''} onChange={e => setDraft((p: any) => ({ ...p, bluebook_url: e.target.value }))} className={inputCls} placeholder="https://..." />
+                    ? <input type="url" value={draft.bluebook_url ?? ''} onChange={e => setDraft((p: any) => ({ ...p, bluebook_url: e.target.value }))} className={`${inputCls} mt-2`} placeholder="https://..." />
                     : student.bluebook_url
                       ? <a href={student.bluebook_url} target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold"
-                          style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d' }}>
+                          className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-black uppercase tracking-[0.14em]"
+                          style={{ background: '#dcfce7', border: '1px solid #86efac', color: '#166534' }}>
                           <ExternalLink size={11} /> Open Bluebook
                         </a>
-                      : <p className="text-xs text-[#cbd5e1] italic">No Bluebook linked</p>}
+                      : <p className="text-xs italic text-[#94a3b8]">No Bluebook linked</p>}
                 </div>
                 {isEditing && (
                   <div className="flex justify-end gap-2">
                     <button onClick={() => { setIsEditing(false); setDraft(student); }}
-                      className="px-4 py-1.5 text-xs font-bold text-[#64748b] rounded-lg" style={{ background: '#f1f5f9' }}>Cancel</button>
+                      className="rounded-xl border border-[#94a3b8] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-[#334155]" style={{ background: '#e2e8f0' }}>Cancel</button>
                     <button onClick={handleUpdate} disabled={saving}
-                      className="flex items-center gap-1.5 px-4 py-1.5 text-white rounded-lg text-xs font-black disabled:opacity-50"
-                      style={{ background: '#dc2626' }}>
+                      className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-white disabled:opacity-50"
+                      style={{ background: '#dc2626', boxShadow: '0 12px 24px rgba(220,38,38,0.24)' }}>
                       {saving ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />} Save
                     </button>
                   </div>
@@ -467,8 +470,8 @@ function StudentRow({
                   };
                   const sc = statusColors[s.status] ?? { bg: '#f8fafc', text: '#64748b' };
                   return (
-                    <div key={i} className="flex items-center gap-3 px-3 py-2 rounded-lg"
-                      style={{ background: s.isPast ? '#fafafa' : '#fff', border: '1px solid #f1f5f9' }}>
+                    <div key={i} className="flex items-center gap-3 rounded-xl px-3 py-2.5"
+                      style={{ background: s.isPast ? '#f8fafc' : '#ffffff', border: '1px solid #dbe4ee' }}>
                       <div className="text-center w-8 shrink-0">
                         <p className="text-[8px] font-black uppercase text-[#94a3b8] leading-none">{d.toLocaleDateString('en-US', { month: 'short' })}</p>
                         <p className="text-sm font-black leading-tight" style={{ color: s.isPast ? '#94a3b8' : '#0f172a' }}>{d.getDate()}</p>
@@ -610,33 +613,41 @@ export default function StudentAdminPage() {
   };
 
   return (
-    <div className="min-h-screen pb-20" style={{ background: '#f1f5f9', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}>
+    <div className="h-[calc(100dvh-58px)] overflow-hidden md:h-dvh" style={{ background: 'linear-gradient(180deg, #dbe5f0 0%, #edf2f7 26%, #f6f8fb 100%)', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}>
+      <div className="h-full overflow-y-auto overscroll-contain">
 
       {/* Top bar */}
-      <div className="sticky top-0 z-40 bg-white" style={{ borderBottom: '1px solid #e2e8f0' }}>
-        <div className="max-w-7xl mx-auto px-5 h-12 flex items-center justify-between gap-4">
+      <div className="sticky top-0 z-40 border-b border-[rgba(148,163,184,0.24)] backdrop-blur-xl" style={{ background: 'rgba(15,23,42,0.88)' }}>
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-5">
           <div className="flex items-center gap-3">
-            <GraduationCap size={15} style={{ color: '#dc2626' }} />
-            <span className="text-sm font-black text-[#0f172a]">Students</span>
-            {!loading && <span className="text-[10px] font-bold text-[#94a3b8] bg-[#f8fafc] px-2 py-0.5 rounded-full border border-[#e2e8f0]">{students.length}</span>}
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-[rgba(255,255,255,0.12)] bg-[rgba(220,38,38,0.18)]">
+              <GraduationCap size={18} style={{ color: '#fda4af' }} />
+            </div>
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#fda4af]">Student Admin</p>
+              <div className="flex items-center gap-2">
+                <span className="text-base font-black text-white">Students</span>
+                {!loading && <span className="rounded-full border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.08)] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#e2e8f0]">{students.length}</span>}
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {selected.size > 0 && (
               <button onClick={handleBulkDelete} disabled={bulkDeleting}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black text-white transition-all disabled:opacity-50"
-                style={{ background: confirmBulk ? '#991b1b' : '#dc2626' }}>
+                className="flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-black uppercase tracking-[0.16em] text-white transition-all disabled:opacity-50"
+                style={{ background: confirmBulk ? '#991b1b' : '#dc2626', boxShadow: '0 12px 24px rgba(127,29,29,0.22)' }}>
                 {bulkDeleting ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
                 {confirmBulk ? `Confirm delete ${selected.size}` : `Delete ${selected.size}`}
               </button>
             )}
             <button onClick={() => setShowImport(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-              style={{ background: '#f8fafc', border: '1px solid #e2e8f0', color: '#475569' }}>
+              className="flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-black uppercase tracking-[0.16em] transition-all"
+              style={{ background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.14)', color: '#e2e8f0' }}>
               <Upload size={11} /> Import CSV
             </button>
             <button onClick={() => setAdding(a => !a)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black text-white transition-all"
-              style={{ background: adding ? '#64748b' : '#dc2626' }}>
+              className="flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-black uppercase tracking-[0.16em] text-white transition-all"
+              style={{ background: adding ? '#334155' : '#dc2626', boxShadow: adding ? 'none' : '0 12px 24px rgba(220,38,38,0.24)' }}>
               {adding ? <X size={11} /> : <Plus size={11} />}
               {adding ? 'Cancel' : 'Add Student'}
             </button>
@@ -644,7 +655,7 @@ export default function StudentAdminPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-5 pt-4 space-y-3">
+      <div className="mx-auto max-w-7xl px-5 py-5 space-y-4">
 
         {/* Stats */}
         {!loading && (
@@ -655,14 +666,14 @@ export default function StudentAdminPage() {
               { label: 'Not Booked', value: students.length - bookedIds.size, key: 'unbooked', color: '#dc2626', activeBg: '#dc2626', bg: '#fff5f5' },
             ].map(s => (
               <button key={s.key} onClick={() => setFilter(f => f === s.key ? 'all' : s.key as any)}
-                className="p-4 rounded-xl text-left transition-all"
+                className="rounded-lg p-4 text-left shadow-[0_14px_32px_rgba(15,23,42,0.08)] transition-all"
                 style={{
                   background: filter === s.key ? s.activeBg : s.bg,
-                  border: `1px solid ${filter === s.key ? s.activeBg : '#e2e8f0'}`,
+                  border: `1px solid ${filter === s.key ? s.activeBg : '#cbd5e1'}`,
                   color: filter === s.key ? '#fff' : s.color,
                 }}>
                 <p className="text-2xl font-black leading-none">{s.value}</p>
-                <p className="text-[10px] font-bold uppercase tracking-wider mt-1.5 opacity-70">{s.label}</p>
+                <p className="mt-1.5 text-[10px] font-black uppercase tracking-[0.18em] opacity-70">{s.label}</p>
               </button>
             ))}
           </div>
@@ -671,58 +682,67 @@ export default function StudentAdminPage() {
         {!loading && <MetricsPanel students={students} allSessions={allSessions} tutors={tutors} />}
 
         {/* Search */}
-        <div className="relative">
+        <div className="relative rounded-xl border border-[#cbd5e1] bg-white p-2 shadow-[0_18px_38px_rgba(15,23,42,0.08)]">
           <Search size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search students…"
-            className="w-full pl-9 pr-4 py-2.5 bg-white border border-[#e2e8f0] rounded-xl text-sm text-[#0f172a] outline-none focus:ring-2 focus:border-[#dc2626] transition-all placeholder:text-[#94a3b8]" />
+            className="w-full rounded-[18px] border border-[#cbd5e1] bg-[#f8fafc] py-3 pl-10 pr-10 text-sm font-medium text-[#0f172a] outline-none transition-all placeholder:text-[#64748b] focus:border-[#dc2626] focus:ring-4 focus:ring-[#fee2e2]" />
           {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8]"><X size={13} /></button>}
         </div>
 
         {/* Add student form */}
         {adding && (
-          <div className="bg-white rounded-xl overflow-hidden" style={{ border: '1px solid #fecaca' }}>
-            <div className="px-5 py-3 flex items-center justify-between" style={{ background: '#fff5f5', borderBottom: '1px solid #fecdd3' }}>
-              <p className="text-xs font-black uppercase tracking-widest text-[#dc2626]">New Student</p>
-              <button onClick={() => setAdding(false)} className="text-[#94a3b8]"><X size={14} /></button>
+          <div className="overflow-hidden rounded-xl bg-white shadow-[0_20px_44px_rgba(15,23,42,0.1)]" style={{ border: '1px solid #cbd5e1' }}>
+            <div className="flex items-center justify-between px-5 py-4" style={{ background: '#0f172a', borderBottom: '1px solid #1e293b' }}>
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-[#fda4af]">New Student</p>
+                <p className="mt-1 text-xs font-medium text-[#cbd5e1]">Clear sections, stronger labels, and better field contrast.</p>
+              </div>
+              <button onClick={() => setAdding(false)} className="flex h-9 w-9 items-center justify-center rounded-full border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.06)] text-[#e2e8f0]"><X size={14} /></button>
             </div>
-            <div className="p-5 space-y-4">
+            <div className="space-y-5 p-5">
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1 col-span-2 md:col-span-1">
-                  <label className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest">Name *</label>
+                <div className={`${fieldCardCls} col-span-2 md:col-span-1`}>
+                  <label className={fieldLabelCls}>Name *</label>
                   <input value={newStudent.name} onChange={e => setNewStudent({ ...newStudent, name: e.target.value })} className={inputCls} placeholder="Full name" />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest">Grade</label>
+                <div className={fieldCardCls}>
+                  <label className={fieldLabelCls}>Grade</label>
                   <input value={newStudent.grade} onChange={e => setNewStudent({ ...newStudent, grade: e.target.value })} className={inputCls} placeholder="1–12" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {[['Email','email','email','student@email.com'],['Phone','phone','tel','(555) 000-0000']].map(([l,f,t,ph]) => (
-                  <div key={f} className="space-y-1">
-                    <label className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest">{l}</label>
+                  <div key={f} className={fieldCardCls}>
+                    <label className={fieldLabelCls}>{l}</label>
                     <input type={t} value={(newStudent as any)[f]} onChange={e => setNewStudent({ ...newStudent, [f]: e.target.value })} className={inputCls} placeholder={ph} />
                   </div>
                 ))}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="rounded-lg border border-[#cbd5e1] bg-[#f8fafc] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+                <p className="mb-3 text-[9px] font-black uppercase tracking-[0.2em] text-[#64748b]">Mom</p>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 {[['Mom Name','mom_name','text','Mom name'],['Mom Email','mom_email','email','mom@email.com'],['Mom Phone','mom_phone','tel','(555) 000-0000']].map(([l,f,t,ph]) => (
-                  <div key={f} className="space-y-1">
-                    <label className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest">{l}</label>
+                  <div key={f} className={fieldCardCls}>
+                    <label className={fieldLabelCls}>{l}</label>
                     <input type={t} value={(newStudent as any)[f]} onChange={e => setNewStudent({ ...newStudent, [f]: e.target.value })} className={inputCls} placeholder={ph} />
                   </div>
                 ))}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              </div>
+              <div className="rounded-lg border border-[#cbd5e1] bg-[#f8fafc] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+                <p className="mb-3 text-[9px] font-black uppercase tracking-[0.2em] text-[#64748b]">Dad</p>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 {[['Dad Name','dad_name','text','Dad name'],['Dad Email','dad_email','email','dad@email.com'],['Dad Phone','dad_phone','tel','(555) 000-0000']].map(([l,f,t,ph]) => (
-                  <div key={f} className="space-y-1">
-                    <label className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest">{l}</label>
+                  <div key={f} className={fieldCardCls}>
+                    <label className={fieldLabelCls}>{l}</label>
                     <input type={t} value={(newStudent as any)[f]} onChange={e => setNewStudent({ ...newStudent, [f]: e.target.value })} className={inputCls} placeholder={ph} />
                   </div>
                 ))}
+              </div>
               </div>
               <button onClick={handleCreate} disabled={!newStudent.name || creating}
-                className="w-full py-2.5 rounded-lg text-sm font-black uppercase tracking-wider text-white disabled:opacity-40"
-                style={{ background: '#dc2626' }}>
+                className="w-full rounded-lg py-3 text-sm font-black uppercase tracking-[0.2em] text-white disabled:opacity-40"
+                style={{ background: '#dc2626', boxShadow: '0 16px 30px rgba(220,38,38,0.24)' }}>
                 {creating ? <Loader2 size={14} className="animate-spin mx-auto" /> : 'Register Student'}
               </button>
             </div>
@@ -736,18 +756,18 @@ export default function StudentAdminPage() {
             <p className="text-xs font-semibold text-[#94a3b8] uppercase tracking-widest">Loading…</p>
           </div>
         ) : filtered.length > 0 ? (
-          <div className="rounded-xl overflow-hidden bg-white" style={{ border: '1px solid #e2e8f0' }}>
+          <div className="overflow-hidden rounded-xl bg-white shadow-[0_20px_44px_rgba(15,23,42,0.1)]" style={{ border: '1px solid #cbd5e1' }}>
             {/* Table header */}
             <div className="grid items-center px-0"
-              style={{ gridTemplateColumns: '36px 36px 2fr 60px 100px 100px 80px 144px', background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0', height: 36 }}>
+              style={{ gridTemplateColumns: '32px 34px minmax(140px,2.2fr) minmax(56px,0.75fr) minmax(88px,1fr) minmax(88px,1fr) minmax(68px,0.8fr) minmax(108px,1fr)', background: '#0f172a', borderBottom: '1px solid #1e293b', height: 40 }}>
               <div className="flex items-center justify-center">
-                <button onClick={toggleAll} className="text-[#94a3b8] hover:text-[#dc2626] transition-colors">
+                <button onClick={toggleAll} className="text-[#cbd5e1] hover:text-[#fda4af] transition-colors">
                   {allSelected ? <CheckSquare size={13} style={{ color: '#dc2626' }} /> : <Square size={13} />}
                 </button>
               </div>
               <div />
               {['Student', 'Sessions', 'Booking', 'Attendance', 'Next', 'Actions'].map(h => (
-                <div key={h} className="text-[9px] font-black uppercase tracking-widest text-[#94a3b8]">{h}</div>
+                <div key={h} className={`text-[9px] font-black uppercase tracking-[0.2em] text-[#cbd5e1] ${h === 'Actions' ? 'text-right pr-3' : ''}`}>{h}</div>
               ))}
             </div>
             {/* Rows */}
@@ -763,12 +783,13 @@ export default function StudentAdminPage() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-24 bg-white rounded-xl" style={{ border: '1px dashed #e2e8f0' }}>
+          <div className="rounded-xl bg-white py-24 text-center shadow-[0_20px_44px_rgba(15,23,42,0.08)]" style={{ border: '1px dashed #cbd5e1' }}>
             <GraduationCap size={28} className="mx-auto mb-3 text-[#cbd5e1]" />
             <p className="text-sm font-bold text-[#94a3b8]">No students found</p>
             {search && <p className="text-xs text-[#cbd5e1] mt-1">Try a different search</p>}
           </div>
         )}
+      </div>
       </div>
 
       {showImport && <CSVImportModal onClose={() => setShowImport(false)} onImported={fetchData} />}

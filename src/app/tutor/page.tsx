@@ -32,7 +32,9 @@ const EMPTY_TUTOR: Omit<TutorWithContact, 'id'> = {
   email: '', phone: '',
 };
 
-const inputCls = "w-full px-3 py-2.5 rounded-xl text-sm border border-[#e2e8f0] bg-[#f8fafc] text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none focus:border-[#dc2626] focus:ring-2 focus:ring-[#fecdd3] transition-all";
+const inputCls = "w-full rounded-xl border border-[#94a3b8] bg-white px-3.5 py-2.5 text-sm font-medium text-[#0f172a] placeholder:text-[#64748b] shadow-[0_1px_2px_rgba(15,23,42,0.06)] focus:outline-none focus:border-[#dc2626] focus:ring-4 focus:ring-[#fee2e2] transition-all";
+const fieldCardCls = "rounded-lg border border-[#cbd5e1] bg-white px-3.5 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.06)]";
+const fieldLabelCls = "block text-[9px] font-black uppercase tracking-[0.22em] text-[#64748b]";
 
 function initials(name: string) {
   return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?';
@@ -44,21 +46,21 @@ function SubjectCheckboxes({ selected, onChange }: { selected: string[]; onChang
     onChange(selected.includes(s) ? selected.filter(x => x !== s) : [...selected, s]);
 
   return (
-    <div className="space-y-1.5">
-      <label className="block text-[10px] font-black uppercase tracking-widest text-[#64748b]">Subjects</label>
+    <div className="space-y-3">
+      <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#334155]">Subjects</label>
       <div className="space-y-3">
         {SUBJECT_GROUPS.map(group => (
-          <div key={group.group}>
-            <p className="text-[9px] font-bold uppercase tracking-widest mb-2 text-[#94a3b8]">{group.group}</p>
+          <div key={group.group} className="rounded-lg border border-[#cbd5e1] bg-[#f8fafc] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+            <p className="mb-3 text-[9px] font-black uppercase tracking-[0.18em] text-[#64748b]">{group.group}</p>
             <div className="flex flex-wrap gap-1.5">
               {group.subjects.map(subject => {
                 const active = selected.includes(subject);
                 return (
                   <button key={subject} type="button" onClick={() => toggle(subject)}
-                    className="px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all"
+                    className="rounded-xl px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.08em] transition-all"
                     style={active
-                      ? { background: '#dc2626', color: 'white', border: '1.5px solid #dc2626' }
-                      : { background: 'white', color: '#475569', border: '1.5px solid #e2e8f0' }}>
+                      ? { background: '#dc2626', color: 'white', border: '1.5px solid #dc2626', boxShadow: '0 8px 18px rgba(220,38,38,0.18)' }
+                      : { background: 'white', color: '#475569', border: '1.5px solid #cbd5e1' }}>
                     {subject}
                   </button>
                 );
@@ -79,22 +81,22 @@ function AvailabilityGrid({ blocks, onChange }: { blocks: string[]; onChange: (b
   };
 
   return (
-    <div className="space-y-1.5">
-      <label className="block text-[10px] font-black uppercase tracking-widest text-[#64748b]">Availability</label>
-      <div className="rounded-xl border border-[#e2e8f0] overflow-hidden">
+    <div className="space-y-3">
+      <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#334155]">Availability</label>
+      <div className="overflow-hidden rounded-xl border border-[#cbd5e1] bg-white shadow-[0_12px_28px_rgba(15,23,42,0.08)]">
         <table className="w-full border-collapse">
           <thead>
             <tr style={{ background: '#1e293b' }}>
-              <th className="px-3 py-2.5 text-left text-[10px] font-black uppercase tracking-widest text-[#94a3b8] border-r border-[#334155]">Session</th>
+              <th className="border-r border-[#334155] px-3 py-3 text-left text-[10px] font-black uppercase tracking-[0.18em] text-[#cbd5e1]">Session</th>
               {ACTIVE_DAYS_INFO.map(d => (
-                <th key={d.dow} className="px-2 py-2.5 text-center text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">{d.label}</th>
+                <th key={d.dow} className="px-2 py-3 text-center text-[10px] font-black uppercase tracking-[0.18em] text-[#cbd5e1]">{d.label}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {SESSION_BLOCKS.map((block, bi) => (
-              <tr key={block.id} style={{ borderBottom: bi < SESSION_BLOCKS.length - 1 ? '1px solid #f1f5f9' : 'none', background: bi % 2 === 0 ? 'white' : '#fafafa' }}>
-                <td className="px-3 py-2.5 border-r border-[#e2e8f0]">
+              <tr key={block.id} style={{ borderBottom: bi < SESSION_BLOCKS.length - 1 ? '1px solid #e2e8f0' : 'none', background: bi % 2 === 0 ? 'white' : '#f8fafc' }}>
+                <td className="border-r border-[#e2e8f0] px-3 py-3">
                   <p className="text-[11px] font-black text-[#0f172a] leading-none">{block.label}</p>
                   <p className="text-[9px] text-[#94a3b8] mt-0.5">{block.display}</p>
                 </td>
@@ -105,15 +107,16 @@ function AvailabilityGrid({ blocks, onChange }: { blocks: string[]; onChange: (b
                     <td key={d.dow} className="p-1.5 text-center">
                       {applicable ? (
                         <button type="button" onClick={() => toggle(d.dow, block.time)}
-                          className="w-8 h-8 rounded-lg mx-auto flex items-center justify-center transition-all"
+                          className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl transition-all"
                           style={{
                             background: active ? '#dc2626' : 'white',
-                            border: `1.5px solid ${active ? '#dc2626' : '#e2e8f0'}`,
+                            border: `1.5px solid ${active ? '#dc2626' : '#cbd5e1'}`,
+                            boxShadow: active ? '0 10px 20px rgba(220,38,38,0.18)' : 'none',
                           }}>
                           {active && <span className="text-white text-[10px] font-black">✓</span>}
                         </button>
                       ) : (
-                        <div className="w-8 h-8 rounded-lg mx-auto" style={{ background: '#f1f5f9' }} />
+                        <div className="mx-auto h-9 w-9 rounded-xl" style={{ background: '#e2e8f0' }} />
                       )}
                     </td>
                   );
@@ -152,34 +155,34 @@ function TimeOffPanel({ tutor, timeOffList, onRefetch }: {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2 items-end">
-        <div className="flex-1 space-y-1.5">
-          <label className="block text-[10px] font-black uppercase tracking-widest text-[#64748b]">Date</label>
+      <div className="grid items-end gap-3 md:grid-cols-[1fr_2fr_auto]">
+        <div className={fieldCardCls}>
+          <label className={fieldLabelCls}>Date</label>
           <input type="date" value={date} onChange={e => setDate(e.target.value)} className={inputCls} />
         </div>
-        <div className="flex-[2] space-y-1.5">
-          <label className="block text-[10px] font-black uppercase tracking-widest text-[#64748b]">Reason (optional)</label>
+        <div className={fieldCardCls}>
+          <label className={fieldLabelCls}>Reason (optional)</label>
           <input value={note} onChange={e => setNote(e.target.value)} placeholder="e.g. Sick, vacation" className={inputCls} />
         </div>
         <button onClick={handleAdd} disabled={!date || saving}
-          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black mb-0.5 transition-all active:scale-95"
-          style={{ background: date ? '#dc2626' : '#e2e8f0', color: date ? 'white' : '#94a3b8', cursor: date ? 'pointer' : 'not-allowed' }}>
+          className="mb-0.5 flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-black uppercase tracking-[0.16em] transition-all active:scale-95"
+          style={{ background: date ? '#dc2626' : '#e2e8f0', color: date ? 'white' : '#94a3b8', cursor: date ? 'pointer' : 'not-allowed', boxShadow: date ? '0 12px 24px rgba(220,38,38,0.22)' : 'none' }}>
           {saving ? <Loader2 size={12} className="animate-spin" /> : <Plus size={13} />} Add
         </button>
       </div>
 
       {tutorTimeOff.length === 0 ? (
-        <div className="py-8 rounded-xl border-2 border-dashed border-[#e2e8f0] text-center bg-[#f8fafc]">
+        <div className="rounded-xl border-2 border-dashed border-[#cbd5e1] bg-[#f8fafc] py-10 text-center">
           <CalendarOff size={18} className="mx-auto mb-2 text-[#cbd5e1]" />
-          <p className="text-[10px] font-semibold text-[#94a3b8]">No time off scheduled</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#64748b]">No time off scheduled</p>
         </div>
       ) : (
         <div className="space-y-2">
           {tutorTimeOff.map(entry => (
-            <div key={entry.id} className="flex items-center justify-between px-4 py-3 rounded-xl"
-              style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+            <div key={entry.id} className="flex items-center justify-between rounded-lg px-4 py-3"
+              style={{ background: '#ffffff', border: '1px solid #cbd5e1', boxShadow: '0 10px 24px rgba(15,23,42,0.06)' }}>
               <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: '#fef2f2' }}>
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: '#fff1f2' }}>
                   <CalendarOff size={12} style={{ color: '#dc2626' }} />
                 </div>
                 <div>
@@ -190,7 +193,7 @@ function TimeOffPanel({ tutor, timeOffList, onRefetch }: {
                 </div>
               </div>
               <button onClick={() => handleDelete(entry.id)}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-[#cbd5e1] hover:text-[#dc2626] hover:bg-[#fef2f2] transition-all">
+                className="flex h-8 w-8 items-center justify-center rounded-xl text-[#94a3b8] transition-all hover:bg-[#fff1f2] hover:text-[#dc2626]">
                 <X size={13} />
               </button>
             </div>
@@ -232,22 +235,22 @@ function TutorRow({ tutor, selected, onToggle, timeOffList, onSave, onDelete, on
       {/* Main row */}
       <div className="grid items-center transition-all"
         style={{
-          gridTemplateColumns: '36px 36px 2fr 80px 150px 100px 84px',
-          borderBottom: expanded ? 'none' : '1px solid #f1f5f9',
-          background: selected ? '#fff5f5' : expanded ? '#fafafa' : '#fff',
-          minHeight: 52,
+          gridTemplateColumns: '32px 34px minmax(150px,2.2fr) minmax(86px,0.9fr) minmax(140px,1.3fr) minmax(120px,1.2fr) 70px 110px',
+          borderBottom: expanded ? 'none' : '1px solid #dbe4ee',
+          background: selected ? '#fff1f2' : expanded ? '#f8fbff' : '#fff',
+          minHeight: 58,
         }}>
 
         {/* Checkbox */}
         <div className="flex items-center justify-center" onClick={e => e.stopPropagation()}>
-          <button onClick={onToggle} className="text-[#94a3b8] hover:text-[#dc2626] transition-colors">
+          <button onClick={onToggle} className="text-[#64748b] hover:text-[#dc2626] transition-colors">
             {selected ? <CheckSquare size={14} style={{ color: '#dc2626' }} /> : <Square size={14} />}
           </button>
         </div>
 
         {/* Avatar */}
         <div className="flex items-center justify-center">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black text-white shrink-0"
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl text-[10px] font-black text-white shrink-0"
             style={{ background: '#dc2626' }}>{initials(draft.name)}</div>
         </div>
 
@@ -257,13 +260,13 @@ function TutorRow({ tutor, selected, onToggle, timeOffList, onSave, onDelete, on
             <input type="text" value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })}
               className={inputCls} placeholder="Full name" autoFocus onClick={e => e.stopPropagation()} />
           ) : (
-            <span className="text-[13px] font-bold text-[#0f172a] truncate">{draft.name || 'Unnamed'}</span>
+            <span className="text-[13px] font-black text-[#0f172a] truncate">{draft.name || 'Unnamed'}</span>
           )}
         </div>
 
         {/* Category */}
         <div className="flex items-center">
-          <span className="text-[9px] font-black px-2 py-0.5 rounded-md whitespace-nowrap"
+            <span className="rounded-lg px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] whitespace-nowrap"
             style={{ background: catBg, color: catColor }}>
             {catLabel}
           </span>
@@ -290,7 +293,7 @@ function TutorRow({ tutor, selected, onToggle, timeOffList, onSave, onDelete, on
         {/* Time off count */}
         <div className="flex items-center justify-center">
           {timeOffCount > 0 ? (
-            <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
+            <span className="rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em]"
               style={{ background: '#fef3c7', color: '#d97706' }}>{timeOffCount}</span>
           ) : (
             <span className="text-[10px] text-[#cbd5e1]">—</span>
@@ -298,10 +301,10 @@ function TutorRow({ tutor, selected, onToggle, timeOffList, onSave, onDelete, on
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-1 pr-3" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-end gap-1 pr-3" onClick={e => e.stopPropagation()}>
           <button onClick={() => { setIsEditing(true); setExpanded(true); setTab('details'); }}
-            className="px-2 py-1 rounded-md text-[10px] font-bold text-[#64748b] transition-all"
-            style={{ background: '#f1f5f9', border: '1px solid #e2e8f0' }}>Edit</button>
+            className="rounded-lg px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#334155] transition-all"
+            style={{ background: '#e2e8f0', border: '1px solid #94a3b8' }}>Edit</button>
           <button onClick={() => { setConfirmDelete(true); }}
             className={`p-1 rounded-md transition-all ${confirmDelete ? 'bg-red-50 text-red-500' : 'text-[#cbd5e1] hover:text-red-400'}`}>
             {confirmDelete ? '?' : <Trash2 size={11} />}
@@ -314,12 +317,12 @@ function TutorRow({ tutor, selected, onToggle, timeOffList, onSave, onDelete, on
 
       {/* Expanded panel */}
       {expanded && (
-        <div style={{ borderBottom: '1px solid #f1f5f9', background: '#fafafa', borderLeft: '3px solid #dc2626' }}>
-          <div className="flex px-5 gap-0" style={{ background: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }}>
+        <div style={{ borderBottom: '1px solid #dbe4ee', background: '#f8fbff', borderLeft: '4px solid #dc2626' }}>
+          <div className="flex gap-0 px-5" style={{ background: '#e2e8f0', borderBottom: '1px solid #cbd5e1' }}>
             {(['details', 'timeoff'] as const).map(t => (
               <button key={t} onClick={() => setTab(t)}
-                className="py-3 mr-6 text-[10px] font-black uppercase tracking-widest border-b-2 -mb-px transition-colors"
-                style={tab === t ? { color: '#dc2626', borderColor: '#dc2626' } : { color: '#94a3b8', borderColor: 'transparent' }}>
+                className="-mb-px mr-6 border-b-2 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition-colors"
+                style={tab === t ? { color: '#7f1d1d', borderColor: '#dc2626' } : { color: '#475569', borderColor: 'transparent' }}>
                 {t === 'details' ? 'Details & Availability' : `Time Off${timeOffCount > 0 ? ` (${timeOffCount})` : ''}`}
               </button>
             ))}
@@ -329,44 +332,44 @@ function TutorRow({ tutor, selected, onToggle, timeOffList, onSave, onDelete, on
             {tab === 'details' ? (
               <div className="space-y-5">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest">Name</label>
+                  <div className={fieldCardCls}>
+                    <label className={fieldLabelCls}>Name</label>
                     {isEditing
-                      ? <input type="text" value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} className={inputCls} />
-                      : <p className="text-sm font-semibold text-[#0f172a]">{draft.name || <span className="text-[#cbd5e1] italic text-xs">—</span>}</p>}
+                      ? <input type="text" value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} className={`${inputCls} mt-2`} />
+                      : <p className="mt-2 text-sm font-semibold text-[#0f172a]">{draft.name || <span className="text-[#94a3b8] italic text-xs">—</span>}</p>}
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest">Category</label>
+                  <div className={fieldCardCls}>
+                    <label className={fieldLabelCls}>Category</label>
                     {isEditing ? (
-                      <div className="flex gap-2">
+                      <div className="mt-2 flex gap-2">
                         {(['math', 'english'] as const).map(c => (
                           <button key={c} onClick={() => setDraft({ ...draft, cat: c })}
-                            className="flex-1 py-2.5 rounded-lg text-xs font-black transition-all"
+                            className="flex-1 rounded-xl py-2.5 text-xs font-black uppercase tracking-[0.16em] transition-all"
                             style={draft.cat === c
-                              ? { background: '#dc2626', color: 'white', border: '1.5px solid #dc2626' }
-                              : { background: 'white', color: '#475569', border: '1.5px solid #e2e8f0' }}>
+                              ? { background: '#dc2626', color: 'white', border: '1.5px solid #dc2626', boxShadow: '0 10px 20px rgba(220,38,38,0.18)' }
+                              : { background: 'white', color: '#475569', border: '1.5px solid #cbd5e1' }}>
                             {c === 'math' ? 'Math / Sci' : 'Eng / Hist'}
                           </button>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm font-semibold text-[#0f172a]">{catLabel}</p>
+                      <p className="mt-2 text-sm font-semibold text-[#0f172a]">{catLabel}</p>
                     )}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest">Email</label>
+                  <div className={fieldCardCls}>
+                    <label className={fieldLabelCls}>Email</label>
                     {isEditing
-                      ? <input type="email" value={draft.email ?? ''} onChange={e => setDraft({ ...draft, email: e.target.value })} className={inputCls} />
-                      : <p className="text-sm font-semibold text-[#0f172a]">{draft.email || <span className="text-[#cbd5e1] italic text-xs">—</span>}</p>}
+                      ? <input type="email" value={draft.email ?? ''} onChange={e => setDraft({ ...draft, email: e.target.value })} className={`${inputCls} mt-2`} />
+                      : <p className="mt-2 text-sm font-semibold text-[#0f172a]">{draft.email || <span className="text-[#94a3b8] italic text-xs">—</span>}</p>}
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest">Phone</label>
+                  <div className={fieldCardCls}>
+                    <label className={fieldLabelCls}>Phone</label>
                     {isEditing
-                      ? <input type="tel" value={draft.phone ?? ''} onChange={e => setDraft({ ...draft, phone: e.target.value })} className={inputCls} />
-                      : <p className="text-sm font-semibold text-[#0f172a]">{draft.phone || <span className="text-[#cbd5e1] italic text-xs">—</span>}</p>}
+                      ? <input type="tel" value={draft.phone ?? ''} onChange={e => setDraft({ ...draft, phone: e.target.value })} className={`${inputCls} mt-2`} />
+                      : <p className="mt-2 text-sm font-semibold text-[#0f172a]">{draft.phone || <span className="text-[#94a3b8] italic text-xs">—</span>}</p>}
                   </div>
                 </div>
 
@@ -385,18 +388,18 @@ function TutorRow({ tutor, selected, onToggle, timeOffList, onSave, onDelete, on
                 ) : (
                   <>
                     {draft.subjects.length > 0 && (
-                      <div>
-                        <p className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest mb-2.5">Subjects</p>
+                      <div className="rounded-lg border border-[#cbd5e1] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.06)]">
+                        <p className="mb-2.5 text-[9px] font-black uppercase tracking-[0.2em] text-[#64748b]">Subjects</p>
                         <div className="flex flex-wrap gap-2">
                           {draft.subjects.map(s => (
-                            <span key={s} className="text-[10px] px-2.5 py-1.5 rounded-md bg-[#dbeafe] text-[#1d4ed8] font-semibold">{s}</span>
+                            <span key={s} className="rounded-lg bg-[#dbeafe] px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.08em] text-[#1d4ed8]">{s}</span>
                           ))}
                         </div>
                       </div>
                     )}
                     {draft.availabilityBlocks.length > 0 && (
-                      <div>
-                        <p className="text-[9px] font-black text-[#94a3b8] uppercase tracking-widest mb-2.5">Availability</p>
+                      <div className="rounded-lg border border-[#cbd5e1] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.06)]">
+                        <p className="mb-2.5 text-[9px] font-black uppercase tracking-[0.2em] text-[#64748b]">Availability</p>
                         <p className="text-sm font-semibold text-[#0f172a]">{draft.availabilityBlocks.length} time slots scheduled</p>
                       </div>
                     )}
@@ -404,12 +407,12 @@ function TutorRow({ tutor, selected, onToggle, timeOffList, onSave, onDelete, on
                 )}
 
                 {isEditing && (
-                  <div className="flex justify-end gap-3 pt-4 border-t border-[#e2e8f0]">
+                  <div className="flex justify-end gap-3 border-t border-[#cbd5e1] pt-4">
                     <button onClick={() => { setIsEditing(false); setDraft(tutor); }}
-                      className="px-5 py-2 text-xs font-bold text-[#64748b] rounded-lg" style={{ background: '#f1f5f9', border: '1px solid #e2e8f0' }}>Cancel</button>
+                      className="rounded-xl border border-[#94a3b8] px-5 py-2 text-xs font-black uppercase tracking-[0.16em] text-[#334155]" style={{ background: '#e2e8f0' }}>Cancel</button>
                     <button onClick={async () => { setSaving(true); await onSave(draft); setSaving(false); setIsEditing(false); }} disabled={!dirty || saving}
-                      className="flex items-center gap-2 px-5 py-2 text-white rounded-lg text-xs font-black disabled:opacity-50"
-                      style={{ background: '#dc2626' }}>
+                      className="flex items-center gap-2 rounded-xl px-5 py-2 text-xs font-black uppercase tracking-[0.16em] text-white disabled:opacity-50"
+                      style={{ background: '#dc2626', boxShadow: '0 12px 24px rgba(220,38,38,0.24)' }}>
                       {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} Save
                     </button>
                   </div>
@@ -423,12 +426,12 @@ function TutorRow({ tutor, selected, onToggle, timeOffList, onSave, onDelete, on
       )}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)' }} onClick={() => setConfirmDelete(false)}>
-          <div className="bg-white rounded-xl p-5 max-w-sm" onClick={e => e.stopPropagation()}>
+          <div className="max-w-sm rounded-xl border border-[#cbd5e1] bg-white p-5 shadow-[0_24px_50px_rgba(15,23,42,0.22)]" onClick={e => e.stopPropagation()}>
             <p className="text-sm font-bold text-[#0f172a] mb-4">Delete {draft.name}?</p>
             <p className="text-[13px] text-[#64748b] mb-5">This action cannot be undone.</p>
             <div className="flex gap-2">
-              <button onClick={() => setConfirmDelete(false)} className="px-4 py-2 text-xs font-bold rounded-lg" style={{ background: '#f1f5f9', color: '#475569' }}>Cancel</button>
-              <button onClick={async () => { await onDelete(tutor.id); setConfirmDelete(false); }} className="px-4 py-2 text-xs font-bold rounded-lg text-white" style={{ background: '#dc2626' }}>Delete</button>
+              <button onClick={() => setConfirmDelete(false)} className="rounded-xl border border-[#94a3b8] px-4 py-2 text-xs font-black uppercase tracking-[0.16em]" style={{ background: '#e2e8f0', color: '#475569' }}>Cancel</button>
+              <button onClick={async () => { await onDelete(tutor.id); setConfirmDelete(false); }} className="rounded-xl px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-white" style={{ background: '#dc2626' }}>Delete</button>
             </div>
           </div>
         </div>
@@ -518,7 +521,7 @@ export default function TutorManagementPage() {
   };
 
   if (loading) return (
-    <div className="w-full min-h-screen flex items-center justify-center" style={{ background: '#f8fafc' }}>
+    <div className="flex min-h-dvh w-full items-center justify-center" style={{ background: '#f8fafc' }}>
       <div className="flex flex-col items-center gap-3">
         <Loader2 size={24} className="animate-spin" style={{ color: '#dc2626' }} />
         <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#94a3b8' }}>Loading tutors…</p>
@@ -527,68 +530,76 @@ export default function TutorManagementPage() {
   );
 
   return (
-    <div className="min-h-screen pb-20" style={{ background: '#f1f5f9', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}>
+    <div className="h-[calc(100dvh-58px)] overflow-hidden md:h-dvh" style={{ background: 'linear-gradient(180deg, #dbe5f0 0%, #edf2f7 26%, #f6f8fb 100%)', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}>
+      <div className="h-full overflow-y-auto overscroll-contain">
 
       {/* Top bar */}
-      <div className="sticky top-0 z-40 bg-white" style={{ borderBottom: '1px solid #e2e8f0' }}>
-        <div className="max-w-7xl mx-auto px-5 h-12 flex items-center justify-between gap-4">
+      <div className="sticky top-0 z-40 border-b border-[rgba(148,163,184,0.24)] backdrop-blur-xl" style={{ background: 'rgba(15,23,42,0.88)' }}>
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-5">
           <div className="flex items-center gap-3">
-            <UserPlus size={15} style={{ color: '#dc2626' }} />
-            <span className="text-sm font-black text-[#0f172a]">Tutors</span>
-            {!loading && <span className="text-[10px] font-bold text-[#94a3b8] bg-[#f8fafc] px-2 py-0.5 rounded-full border border-[#e2e8f0]">{tutors.length}</span>}
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-[rgba(255,255,255,0.12)] bg-[rgba(220,38,38,0.18)]">
+              <UserPlus size={18} style={{ color: '#fda4af' }} />
+            </div>
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#fda4af]">Tutor Admin</p>
+              <div className="flex items-center gap-2">
+                <span className="text-base font-black text-white">Tutors</span>
+                {!loading && <span className="rounded-full border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.08)] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#e2e8f0]">{tutors.length}</span>}
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {selected.size > 0 && (
               <button onClick={handleBulkDelete} disabled={bulkDeleting}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black text-white transition-all disabled:opacity-50"
-                style={{ background: confirmBulk ? '#991b1b' : '#dc2626' }}>
+                className="flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-black uppercase tracking-[0.16em] text-white transition-all disabled:opacity-50"
+                style={{ background: confirmBulk ? '#991b1b' : '#dc2626', boxShadow: '0 12px 24px rgba(127,29,29,0.22)' }}>
                 {bulkDeleting ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
                 {confirmBulk ? `Confirm delete ${selected.size}` : `Delete ${selected.size}`}
               </button>
             )}
             <button
               onClick={() => { setAdding(a => !a); setNewTutor(EMPTY_TUTOR); }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black text-white transition-all"
-              style={{ background: adding ? '#64748b' : '#dc2626' }}>
+              className="flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-black uppercase tracking-[0.16em] text-white transition-all"
+              style={{ background: adding ? '#334155' : '#dc2626', boxShadow: adding ? 'none' : '0 12px 24px rgba(220,38,38,0.24)' }}>
               {adding ? <><X size={13} /> Cancel</> : <><UserPlus size={13} /> Add Tutor</>}
             </button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-5 pt-4 space-y-3">
+      <div className="mx-auto max-w-7xl px-5 py-5 space-y-4">
 
         {error && (
-          <div className="p-3 rounded-xl flex items-center gap-2 text-sm"
-            style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626' }}>
+          <div className="flex items-center gap-2 rounded-lg p-3 text-sm shadow-[0_12px_26px_rgba(15,23,42,0.08)]"
+            style={{ background: '#fff1f2', border: '1px solid #fda4af', color: '#991b1b' }}>
             <AlertTriangle size={14} className="shrink-0" /> {error}
           </div>
         )}
 
         {/* Add new tutor */}
         {adding && (
-          <div className="p-6 rounded-2xl bg-white space-y-5"
-            style={{ border: '1.5px solid #fca5a5', boxShadow: '0 4px 16px rgba(220,38,38,0.08)' }}>
+          <div className="space-y-5 rounded-xl bg-white p-6 shadow-[0_20px_44px_rgba(15,23,42,0.1)]"
+            style={{ border: '1px solid #cbd5e1' }}>
             <div className="flex items-center gap-2">
-              <div className="w-1 h-4 rounded-full" style={{ background: '#dc2626' }} />
-              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#dc2626' }}>New Tutor</p>
+              <div className="h-4 w-1 rounded-full" style={{ background: '#dc2626' }} />
+              <p className="text-[10px] font-black uppercase tracking-[0.22em]" style={{ color: '#dc2626' }}>New Tutor</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-black uppercase tracking-widest text-[#64748b]">Name</label>
+              <div className={fieldCardCls}>
+                <label className={fieldLabelCls}>Name</label>
                 <input value={newTutor.name} onChange={e => setNewTutor({ ...newTutor, name: e.target.value })}
                   placeholder="Full name" className={inputCls} />
               </div>
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-black uppercase tracking-widest text-[#64748b]">Category</label>
-                <div className="flex gap-2">
+              <div className={fieldCardCls}>
+                <label className={fieldLabelCls}>Category</label>
+                <div className="mt-2 flex gap-2">
                   {(['math', 'english'] as const).map(c => (
                     <button key={c} onClick={() => setNewTutor({ ...newTutor, cat: c })}
-                      className="flex-1 py-2.5 rounded-xl text-xs font-black transition-all"
+                      className="flex-1 rounded-xl py-2.5 text-xs font-black uppercase tracking-[0.16em] transition-all"
                       style={newTutor.cat === c
-                        ? { background: '#dc2626', color: 'white', border: '1.5px solid #dc2626' }
-                        : { background: 'white', color: '#475569', border: '1.5px solid #e2e8f0' }}>
+                        ? { background: '#dc2626', color: 'white', border: '1.5px solid #dc2626', boxShadow: '0 10px 20px rgba(220,38,38,0.18)' }
+                        : { background: 'white', color: '#475569', border: '1.5px solid #cbd5e1' }}>
                       {c === 'math' ? 'Math / Sci' : 'Eng / Hist'}
                     </button>
                   ))}
@@ -597,22 +608,22 @@ export default function TutorManagementPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-black uppercase tracking-widest text-[#64748b]">Email</label>
+              <div className={fieldCardCls}>
+                <label className={fieldLabelCls}>Email</label>
                 <div className="relative">
                   <Mail size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
                   <input type="email" value={newTutor.email ?? ''} onChange={e => setNewTutor({ ...newTutor, email: e.target.value })}
                     placeholder="tutor@email.com"
-                    className="w-full pl-8 pr-3 py-2.5 rounded-xl text-sm border border-[#e2e8f0] bg-[#f8fafc] text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none focus:border-[#dc2626] focus:ring-2 focus:ring-[#fecdd3] transition-all" />
+                    className="w-full rounded-xl border border-[#94a3b8] bg-white py-2.5 pl-8 pr-3 text-sm font-medium text-[#0f172a] placeholder:text-[#64748b] focus:outline-none focus:border-[#dc2626] focus:ring-4 focus:ring-[#fee2e2] transition-all" />
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-black uppercase tracking-widest text-[#64748b]">Phone</label>
+              <div className={fieldCardCls}>
+                <label className={fieldLabelCls}>Phone</label>
                 <div className="relative">
                   <Phone size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
                   <input type="tel" value={newTutor.phone ?? ''} onChange={e => setNewTutor({ ...newTutor, phone: e.target.value })}
                     placeholder="(555) 000-0000"
-                    className="w-full pl-8 pr-3 py-2.5 rounded-xl text-sm border border-[#e2e8f0] bg-[#f8fafc] text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none focus:border-[#dc2626] focus:ring-2 focus:ring-[#fecdd3] transition-all" />
+                    className="w-full rounded-xl border border-[#94a3b8] bg-white py-2.5 pl-8 pr-3 text-sm font-medium text-[#0f172a] placeholder:text-[#64748b] focus:outline-none focus:border-[#dc2626] focus:ring-4 focus:ring-[#fee2e2] transition-all" />
                 </div>
               </div>
             </div>
@@ -627,18 +638,18 @@ export default function TutorManagementPage() {
               })}
             />
 
-            <div className="flex gap-2 pt-2 border-t border-[#f1f5f9]">
+            <div className="flex gap-2 border-t border-[#cbd5e1] pt-3">
               <button onClick={() => { setAdding(false); setNewTutor(EMPTY_TUTOR); }}
-                className="px-4 py-2.5 rounded-xl text-xs font-semibold transition-all"
-                style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0' }}>
+                className="rounded-xl border border-[#94a3b8] px-4 py-2.5 text-xs font-black uppercase tracking-[0.16em] transition-all"
+                style={{ background: '#e2e8f0', color: '#475569' }}>
                 Cancel
               </button>
               <button onClick={handleAdd} disabled={saving || !newTutor.name.trim()}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black transition-all active:scale-95"
+                className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-black uppercase tracking-[0.16em] transition-all active:scale-95"
                 style={{
                   background: newTutor.name.trim() ? '#dc2626' : '#f1f5f9',
                   color: newTutor.name.trim() ? 'white' : '#94a3b8',
-                  boxShadow: newTutor.name.trim() ? '0 2px 8px rgba(220,38,38,0.2)' : 'none',
+                  boxShadow: newTutor.name.trim() ? '0 12px 24px rgba(220,38,38,0.22)' : 'none',
                 }}>
                 {saving ? <><Loader2 size={12} className="animate-spin" /> Adding…</> : <><UserPlus size={12} /> Add to Database</>}
               </button>
@@ -648,22 +659,22 @@ export default function TutorManagementPage() {
 
         {/* Tutors list */}
         {tutors.length === 0 && !adding ? (
-          <div className="py-24 text-center bg-white rounded-2xl" style={{ border: '1.5px dashed #e2e8f0' }}>
+          <div className="rounded-xl bg-white py-24 text-center shadow-[0_20px_44px_rgba(15,23,42,0.08)]" style={{ border: '1.5px dashed #cbd5e1' }}>
             <UserPlus size={28} className="mx-auto mb-3 text-[#cbd5e1]" />
             <p className="text-sm font-bold text-[#94a3b8]">No tutors yet</p>
             <p className="text-xs text-[#cbd5e1] mt-1">Add one above to get started</p>
           </div>
         ) : (
-          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #e2e8f0', background: '#fff' }}>
+          <div className="overflow-hidden rounded-xl bg-white shadow-[0_20px_44px_rgba(15,23,42,0.1)]" style={{ border: '1px solid #cbd5e1' }}>
             {/* Table header - hidden on mobile */}
-            <div className="hidden md:grid px-4 py-3" style={{ gridTemplateColumns: '36px 36px 2fr 80px 150px 100px 84px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+            <div className="hidden md:grid px-4 py-3" style={{ gridTemplateColumns: '32px 34px minmax(150px,2.2fr) minmax(86px,0.9fr) minmax(140px,1.3fr) minmax(120px,1.2fr) 70px 110px', background: '#0f172a', borderBottom: '1px solid #1e293b' }}>
               <div className="flex items-center justify-center">
-                <button onClick={toggleAll} className="text-[#94a3b8] hover:text-[#dc2626] transition-colors">
+                <button onClick={toggleAll} className="text-[#cbd5e1] hover:text-[#fda4af] transition-colors">
                   {allSelected ? <CheckSquare size={14} style={{ color: '#dc2626' }} /> : <Square size={14} />}
                 </button>
               </div>
-              {['', 'Name', 'Category', 'Subjects', 'Contact', 'Time Off', ''].map((h, i) => (
-                <div key={i} className="text-[9px] font-black uppercase tracking-widest text-[#94a3b8] flex items-center">{h}</div>
+              {['', 'Name', 'Category', 'Subjects', 'Contact', 'Time Off', 'Actions'].map((h, i) => (
+                <div key={i} className={`flex items-center text-[9px] font-black uppercase tracking-[0.2em] text-[#cbd5e1] ${h === 'Actions' ? 'justify-end pr-3' : ''}`}>{h}</div>
               ))}
             </div>
 
@@ -689,6 +700,7 @@ export default function TutorManagementPage() {
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

@@ -137,7 +137,7 @@ function ModalContent({
       <div className="shrink-0 px-5 pt-5 pb-4 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
           <div className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black text-white"
-            style={{ background: 'linear-gradient(135deg, #dc2626, #9f1239)' }}>
+            style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
             {initials}
           </div>
           <div className="min-w-0">
@@ -164,7 +164,7 @@ function ModalContent({
       <div className="shrink-0 mx-5 mb-3 px-3 py-2 rounded-lg flex items-center gap-2 flex-wrap"
         style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
         <span className="text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider text-white"
-          style={{ background: '#dc2626' }}>{s.dayName}</span>
+          style={{ background: '#4f46e5' }}>{s.dayName}</span>
         <span className="text-[11px] text-[#475569]">{formatDate(s.date)}</span>
         <span className="text-[#e2e8f0]">·</span>
         <span className="text-[11px] text-[#64748b]">{blockLabel}</span>
@@ -177,9 +177,9 @@ function ModalContent({
         {(['session', 'notes'] as const).map(tab => (
           <button key={tab} onClick={() => setModalTab(tab)}
             className="py-2.5 mr-5 text-[10px] font-black uppercase tracking-widest border-b-2 -mb-px flex items-center gap-1.5 transition-all"
-            style={modalTab === tab ? { color: '#dc2626', borderColor: '#dc2626' } : { color: '#94a3b8', borderColor: 'transparent' }}>
+            style={modalTab === tab ? { color: '#4f46e5', borderColor: '#4f46e5' } : { color: '#94a3b8', borderColor: 'transparent' }}>
             {tab === 'notes' ? 'Notes' : 'Session'}
-            {tab === 'notes' && student.notes && <span className="w-1.5 h-1.5 rounded-full bg-[#dc2626]" />}
+            {tab === 'notes' && student.notes && <span className="w-1.5 h-1.5 rounded-full bg-[#4f46e5]" />}
           </button>
         ))}
       </div>
@@ -304,7 +304,7 @@ function ModalContent({
                       <div key={t.id} className="flex items-center justify-between px-3 py-2.5 rounded-xl"
                         style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-[#fee2e2] text-[#dc2626] flex items-center justify-center text-xs font-black">
+                          <div className="w-7 h-7 rounded-lg bg-[#eef2ff] text-[#4f46e5] flex items-center justify-center text-xs font-black">
                             {t.name.charAt(0)}
                           </div>
                           <div>
@@ -356,7 +356,7 @@ function ModalContent({
                 ) : (
                   <button onClick={() => setNotesEditing(true)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold"
-                    style={{ background: '#fef2f2', color: '#dc2626' }}>
+                    style={{ background: '#eef2ff', color: '#4f46e5' }}>
                     <FileText size={11} /> Edit
                   </button>
                 )}
@@ -366,7 +366,7 @@ function ModalContent({
               <textarea value={notesDraft} onChange={e => setNotesDraft(e.target.value)}
                 placeholder="Add session notes…" autoFocus rows={8}
                 className="w-full px-4 py-3 text-sm rounded-xl resize-none outline-none"
-                style={{ background: 'white', border: '1.5px solid #dc2626', color: '#1e293b', fontFamily: 'inherit', lineHeight: 1.6 }} />
+                style={{ background: 'white', border: '1.5px solid #4f46e5', color: '#1e293b', fontFamily: 'inherit', lineHeight: 1.6 }} />
             ) : (
               <div onClick={() => setNotesEditing(true)}
                 className="px-4 py-3 rounded-xl cursor-text min-h-[160px] transition-all"

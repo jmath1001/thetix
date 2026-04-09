@@ -245,8 +245,8 @@ export function CSVImportModal({ onClose, onImported }: Props) {
               </p>
               <div className="space-y-2">
                 {headers.map(h => (
-                  <div key={h} className="flex items-center gap-3 p-3 rounded-xl"
-                    style={{ background: '#f8fafc', border: `1px solid ${mapping[h] ? '#fecaca' : '#f1f5f9'}` }}>
+                  <div key={h} className="flex items-center gap-3 rounded-2xl p-3 shadow-[0_6px_18px_rgba(15,23,42,0.05)]"
+                    style={{ background: '#ffffff', border: `1px solid ${mapping[h] ? '#fda4af' : '#cbd5e1'}` }}>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold text-[#1e293b] truncate">{h}</p>
                       <p className="text-[10px] text-[#94a3b8]">
@@ -257,11 +257,11 @@ export function CSVImportModal({ onClose, onImported }: Props) {
                     <select
                       value={mapping[h] ?? ''}
                       onChange={e => setMapping(m => ({ ...m, [h]: e.target.value }))}
-                      className="text-xs font-semibold px-2 py-1.5 rounded-lg outline-none border transition-all"
+                      className="rounded-xl border px-3 py-2 text-xs font-black outline-none transition-all"
                       style={{
-                        background: mapping[h] ? '#fef2f2' : '#f8fafc',
-                        borderColor: mapping[h] ? '#fecaca' : '#e2e8f0',
-                        color: mapping[h] ? '#dc2626' : '#94a3b8',
+                        background: mapping[h] ? '#fff1f2' : '#f8fafc',
+                        borderColor: mapping[h] ? '#f87171' : '#94a3b8',
+                        color: mapping[h] ? '#991b1b' : '#334155',
                         minWidth: 160,
                       }}>
                       <option value="">— Skip —</option>

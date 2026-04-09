@@ -48,7 +48,7 @@ function SessionDot({ status, date, isPast, onClick }: { status: string; date: s
     status === 'present' || status === 'confirmed' ? '#16a34a' :
     status === 'no-show' ? '#dc2626' :
     status === 'cancelled' ? '#e2e8f0' :
-    isPast ? '#f59e0b' : '#dc2626';
+    isPast ? '#f59e0b' : '#4f46e5';
   const d = new Date(date + 'T00:00:00');
   const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   return (
@@ -90,8 +90,8 @@ function SeriesCard({ s, tutors, students, today, onEdit, onCancelSeries, onDele
   const noShow = past.filter(r => r.status === 'no-show').length;
   const attended = past.filter(r => r.status !== 'cancelled').length;
   const rate = attended > 0 ? Math.round((present / attended) * 100) : null;
-  const statusColor = s.status === 'active' ? '#dc2626' : s.status === 'completed' ? '#16a34a' : '#94a3b8';
-  const statusBg = s.status === 'active' ? '#fff5f5' : s.status === 'completed' ? '#f0fdf4' : '#f8fafc';
+  const statusColor = s.status === 'active' ? '#4f46e5' : s.status === 'completed' ? '#16a34a' : '#94a3b8';
+  const statusBg = s.status === 'active' ? '#eef2ff' : s.status === 'completed' ? '#f0fdf4' : '#f8fafc';
   const totalSessions = sessions.filter(r => r.status !== 'cancelled').length || s.totalWeeks;
   const completedSessions = past.filter(r => r.status !== 'cancelled').length;
   const progressPct = totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0;
@@ -146,7 +146,7 @@ function SeriesCard({ s, tutors, students, today, onEdit, onCancelSeries, onDele
             {s.status === 'active' && (
               <>
                 <button onClick={() => onEdit(s)} className="px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1"
-                  style={{ background: '#fff5f5', border: '1px solid #fecaca', color: '#dc2626' }}>
+                  style={{ background: '#eef2ff', border: '1px solid #c7d2fe', color: '#4f46e5' }}>
                   <Edit3 size={11}/> Edit
                 </button>
                 <button onClick={() => setConfirmAction('cancel')} className="p-1.5 rounded-lg text-[#94a3b8] transition-colors hover:text-[#dc2626] hover:bg-[#fff5f5]">
@@ -205,7 +205,7 @@ function SeriesCard({ s, tutors, students, today, onEdit, onCancelSeries, onDele
                   })}
                 </div>
                 <div className="flex items-center gap-4 mb-4">
-                  {[['#16a34a','Present'],['#dc2626','No-show / Upcoming'],['#f59e0b','Unmarked'],['#e2e8f0','Cancelled']].map(([c,l]) => (
+                  {[['#16a34a','Present'],['#dc2626','No-show'],['#4f46e5','Upcoming'],['#f59e0b','Unmarked'],['#e2e8f0','Cancelled']].map(([c,l]) => (
                     <div key={l} className="flex items-center gap-1.5">
                       <div className="w-2.5 h-2.5 rounded-full" style={{ background: c }}/><span className="text-[9px] text-[#94a3b8]">{l}</span>
                     </div>
@@ -213,7 +213,7 @@ function SeriesCard({ s, tutors, students, today, onEdit, onCancelSeries, onDele
                 </div>
                 {future.length > 0 && (
                   <div>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-[#dc2626] mb-2">Upcoming · {future.length}</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-[#4f46e5] mb-2">Upcoming · {future.length}</p>
                     <div className="space-y-1.5">
                       {future.slice(0, 4).map(row => {
                         const date = row.session?.session_date ?? '';
@@ -453,7 +453,7 @@ export default function RecurringManager() {
       <div className="sticky top-0 z-40 bg-white" style={{ borderBottom: '1px solid #e2e8f0' }}>
         <div className="max-w-7xl mx-auto px-5 h-12 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <Repeat size={15} style={{ color: '#dc2626' }} />
+            <Repeat size={15} style={{ color: '#4f46e5' }} />
             <span className="text-sm font-black text-[#0f172a]">Recurring</span>
             <span className="text-[10px] font-bold text-[#94a3b8] bg-[#f8fafc] px-2 py-0.5 rounded-full border border-[#e2e8f0]">
               {series.length}
@@ -469,7 +469,7 @@ export default function RecurringManager() {
         <div className="flex items-center gap-2 flex-wrap">
           {([
             { key: 'all', label: 'All', color: '#0f172a', bg: 'white', activeBg: '#0f172a' },
-            { key: 'active', label: 'Active', color: '#dc2626', bg: '#fff5f5', activeBg: '#dc2626' },
+            { key: 'active', label: 'Active', color: '#4f46e5', bg: '#eef2ff', activeBg: '#4f46e5' },
             { key: 'completed', label: 'Completed', color: '#16a34a', bg: '#f0fdf4', activeBg: '#16a34a' },
             { key: 'cancelled', label: 'Cancelled', color: '#94a3b8', bg: '#f8fafc', activeBg: '#64748b' },
           ] as const).map(f => (
@@ -510,11 +510,11 @@ export default function RecurringManager() {
       {/* Series edit modal */}
       {editingSeries && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(6px)' }}>
-          <div className="w-full max-w-md bg-white rounded-2xl overflow-hidden shadow-2xl" style={{ border: '1px solid #fecaca' }}>
-            <div className="flex items-center justify-between px-5 py-4" style={{ background: '#dc2626' }}>
+          <div className="w-full max-w-md bg-white rounded-2xl overflow-hidden shadow-2xl" style={{ border: '1px solid #c7d2fe' }}>
+            <div className="flex items-center justify-between px-5 py-4" style={{ background: '#4f46e5' }}>
               <div>
                 <p className="text-sm font-black text-white">Edit Series</p>
-                <p className="text-[11px] text-red-200 mt-0.5">{editingSeries.studentName} · {DAY_NAMES[editingSeries.dayOfWeek]}s · {editingSeries.totalWeeks}wk</p>
+                <p className="text-[11px] text-indigo-200 mt-0.5">{editingSeries.studentName} · {DAY_NAMES[editingSeries.dayOfWeek]}s · {editingSeries.totalWeeks}wk</p>
               </div>
               <button onClick={closeEdit} className="w-8 h-8 flex items-center justify-center rounded-full" style={{ background: 'rgba(255,255,255,0.2)', color: 'white' }}>
                 <X size={15}/>
@@ -528,7 +528,7 @@ export default function RecurringManager() {
               ] as { key: EditTab; label: string; icon: React.ReactNode }[]).map(tab => (
                 <button key={tab.key} onClick={() => { setEditTab(tab.key); setConfirmStep(false); setEditError(null); }}
                   className="flex-1 flex items-center justify-center gap-1.5 py-3 text-[11px] font-bold transition-all"
-                  style={editTab === tab.key ? { borderBottom: '2px solid #dc2626', color: '#dc2626', background: '#fff5f5' } : { borderBottom: '2px solid transparent', color: '#94a3b8' }}>
+                  style={editTab === tab.key ? { borderBottom: '2px solid #4f46e5', color: '#4f46e5', background: '#eef2ff' } : { borderBottom: '2px solid transparent', color: '#94a3b8' }}>
                   {tab.icon} {tab.label}
                 </button>
               ))}
@@ -536,9 +536,9 @@ export default function RecurringManager() {
             <div className="p-5 space-y-4">
               {confirmStep ? (
                 <div className="space-y-4">
-                  <div className="px-4 py-4 rounded-xl" style={{ background: '#fef2f2', border: '1px solid #fecaca' }}>
-                    <div className="flex items-center gap-2 mb-2"><AlertTriangle size={16} style={{ color: '#dc2626' }}/>
-                      <p className="text-sm font-black text-[#dc2626]">{sessionsToRemove} future session{sessionsToRemove !== 1 ? 's' : ''} will be cancelled</p>
+                  <div className="px-4 py-4 rounded-xl" style={{ background: '#eef2ff', border: '1px solid #c7d2fe' }}>
+                    <div className="flex items-center gap-2 mb-2"><AlertTriangle size={16} style={{ color: '#4f46e5' }}/>
+                      <p className="text-sm font-black text-[#4f46e5]">{sessionsToRemove} future session{sessionsToRemove !== 1 ? 's' : ''} will be cancelled</p>
                     </div>
                     <p className="text-xs text-[#64748b] leading-relaxed">
                       {editTab === 'duration' ? `Shortening to ${newTotalWeeks} weeks will remove ${sessionsToRemove} scheduled session${sessionsToRemove !== 1 ? 's' : ''}.` : `Moving to ${DAY_NAMES[newDayOfWeek]}s will cancel and recreate ${sessionsToRemove} future session${sessionsToRemove !== 1 ? 's' : ''}.`}
@@ -546,7 +546,7 @@ export default function RecurringManager() {
                   </div>
                   <div className="flex gap-3">
                     <button onClick={() => setConfirmStep(false)} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-[#64748b]" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>Go Back</button>
-                    <button onClick={commitEdit} disabled={editing} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: editing ? '#94a3b8' : '#dc2626' }}>{editing ? 'Saving…' : 'Yes, Proceed'}</button>
+                    <button onClick={commitEdit} disabled={editing} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: editing ? '#94a3b8' : '#4f46e5' }}>{editing ? 'Saving…' : 'Yes, Proceed'}</button>
                   </div>
                 </div>
               ) : (
@@ -558,13 +558,13 @@ export default function RecurringManager() {
                       </div>
                       <div>
                         <label className="block text-[10px] font-black uppercase tracking-widest mb-1.5 text-[#64748b]">Tutor</label>
-                        <select value={newTutorId} onChange={e => setNewTutorId(e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none text-[#0f172a]" style={{ border: '2px solid #fecaca' }}>
+                        <select value={newTutorId} onChange={e => setNewTutorId(e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none text-[#0f172a]" style={{ border: '2px solid #c7d2fe' }}>
                           {tutors.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                         </select>
                       </div>
                       <div>
                         <label className="block text-[10px] font-black uppercase tracking-widest mb-1.5 text-[#64748b]">Time Slot</label>
-                        <select value={newTime} onChange={e => setNewTime(e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none text-[#0f172a]" style={{ border: '2px solid #fecaca' }}>
+                        <select value={newTime} onChange={e => setNewTime(e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none text-[#0f172a]" style={{ border: '2px solid #c7d2fe' }}>
                           {availableBlocks.map(b => <option key={b.time} value={b.time}>{b.label} ({b.display})</option>)}
                         </select>
                       </div>
@@ -578,9 +578,9 @@ export default function RecurringManager() {
                       <div>
                         <label className="block text-[10px] font-black uppercase tracking-widest mb-2 text-[#64748b]">Total Weeks</label>
                         <div className="flex items-center gap-3">
-                          <button onClick={() => setNewTotalWeeks(w => Math.max(1, w - 1))} className="w-9 h-9 rounded-xl text-lg font-black active:scale-95" style={{ background: '#fff5f5', border: '1.5px solid #fecaca', color: '#dc2626' }}>−</button>
+                          <button onClick={() => setNewTotalWeeks(w => Math.max(1, w - 1))} className="w-9 h-9 rounded-xl text-lg font-black active:scale-95" style={{ background: '#eef2ff', border: '1.5px solid #c7d2fe', color: '#4f46e5' }}>−</button>
                           <div className="flex-1 text-center"><span className="text-3xl font-black text-[#0f172a]">{newTotalWeeks}</span><span className="text-sm ml-1.5 text-[#64748b]">weeks</span></div>
-                          <button onClick={() => setNewTotalWeeks(w => w + 1)} className="w-9 h-9 rounded-xl text-lg font-black active:scale-95" style={{ background: '#fff5f5', border: '1.5px solid #fecaca', color: '#dc2626' }}>+</button>
+                          <button onClick={() => setNewTotalWeeks(w => w + 1)} className="w-9 h-9 rounded-xl text-lg font-black active:scale-95" style={{ background: '#eef2ff', border: '1.5px solid #c7d2fe', color: '#4f46e5' }}>+</button>
                         </div>
                       </div>
                       <div className="flex justify-between px-4 py-3 rounded-xl" style={{ background: '#f8fafc', border: '1px solid #f1f5f9' }}>
@@ -603,7 +603,7 @@ export default function RecurringManager() {
                         <div className="grid grid-cols-4 gap-2">
                           {([1,2,3,4,5,6,7] as const).map(d => (
                             <button key={d} onClick={() => setNewDayOfWeek(d)} className="py-2 rounded-xl text-[11px] font-black active:scale-95"
-                              style={newDayOfWeek === d ? { background: '#dc2626', color: 'white', border: '2px solid #b91c1c' } : { background: '#f8fafc', color: '#64748b', border: '1.5px solid #e2e8f0' }}>
+                              style={newDayOfWeek === d ? { background: '#4f46e5', color: 'white', border: '2px solid #3730a3' } : { background: '#f8fafc', color: '#64748b', border: '1.5px solid #e2e8f0' }}>
                               {DAY_NAMES[d].slice(0,3)}
                             </button>
                           ))}
@@ -611,7 +611,7 @@ export default function RecurringManager() {
                       </div>
                       <div>
                         <label className="block text-[10px] font-black uppercase tracking-widest mb-1.5 text-[#64748b]">Time on {DAY_NAMES[newDayOfWeek]}</label>
-                        <select value={newTime} onChange={e => setNewTime(e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none text-[#0f172a]" style={{ border: '2px solid #fecaca' }}>
+                        <select value={newTime} onChange={e => setNewTime(e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none text-[#0f172a]" style={{ border: '2px solid #c7d2fe' }}>
                           {availableBlocks.map(b => <option key={b.time} value={b.time}>{b.label} ({b.display})</option>)}
                         </select>
                       </div>
@@ -627,7 +627,7 @@ export default function RecurringManager() {
                     <button onClick={handleEditSubmit}
                       disabled={editing || (editTab === 'duration' && newTotalWeeks === editingSeries.totalWeeks) || (editTab === 'day' && newDayOfWeek === editingSeries.dayOfWeek)}
                       className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white active:scale-95"
-                      style={{ background: (editing || (editTab==='duration' && newTotalWeeks===editingSeries.totalWeeks) || (editTab==='day' && newDayOfWeek===editingSeries.dayOfWeek)) ? '#94a3b8' : '#dc2626' }}>
+                      style={{ background: (editing || (editTab==='duration' && newTotalWeeks===editingSeries.totalWeeks) || (editTab==='day' && newDayOfWeek===editingSeries.dayOfWeek)) ? '#94a3b8' : '#4f46e5' }}>
                       {editing ? 'Saving…' : 'Save Changes'}
                     </button>
                   </div>
