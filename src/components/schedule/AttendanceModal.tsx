@@ -13,6 +13,7 @@ import {
 } from '@/lib/useScheduleData';
 import { MAX_CAPACITY } from '@/components/constants';
 import { isTutorAvailable } from './scheduleUtils';
+import { logEvent } from '@/lib/analytics';
 
 interface AttendanceModalProps {
   selectedSession: any;
@@ -91,7 +92,14 @@ function ModalContent({
 
   const handleConfirmation = async (status: 'confirmed' | null) => {
     patchSelectedSession({ confirmationStatus: status });
-    try { await updateConfirmationStatus({ rowId: student.rowId, status }); refetch(); }
+    try {
+      await updateConfirmationStatus({ rowId: student.rowId, status });
+      logEvent('confirmation_updated', {
+        status: status ?? 'unconfirmed',
+        source: 'attendance_modal',
+      });
+      refetch();
+    }
     catch (err) { patchSelectedSession({ confirmationStatus: currentConf }); console.error(err); }
   };
 
@@ -106,7 +114,16 @@ function ModalContent({
   };
 
   const handleRemove = async () => {
-    try { await removeStudentFromSession({ sessionId: s.id, studentId: student.id }); refetch(); setSelectedSession(null); }
+    try {
+      await removeStudentFromSession({ sessionId: s.id, studentId: student.id });
+      logEvent('student_removed', {
+        source: 'attendance_modal',
+        sessionId: s.id,
+        studentId: student.id,
+      });
+      refetch();
+      setSelectedSession(null);
+    }
     catch (err) { console.error(err); }
   };
 
@@ -119,6 +136,14 @@ function ModalContent({
         parent_name: null, parent_email: null, parent_phone: null, bluebook_url: null,
       };
       await bookStudent({ tutorId: newTutor.id, date: s.date, time: sessionTime, student: studentObj, topic: student.topic });
+      logEvent('reassign_used', {
+        source: 'attendance_modal',
+        studentId: student.id,
+        fromSessionId: s.id,
+        toTutorId: newTutor.id,
+        date: s.date,
+        time: sessionTime,
+      });
       refetch(); setSelectedSession(null);
     } catch (err: any) { alert(err.message || 'Reassignment failed'); }
   };

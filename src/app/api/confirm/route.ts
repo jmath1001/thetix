@@ -47,6 +47,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid or expired token" }, { status: 400 });
     }
 
+    // Best effort only; confirmation flow should succeed even if analytics insert fails.
+    await supabase.from(DB.events).insert({
+      event_name: 'confirmation_updated',
+      properties: { status: 'confirmed', source: 'confirm_link' },
+    });
+
     return NextResponse.json({ success: true });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

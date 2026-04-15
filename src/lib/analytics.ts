@@ -35,6 +35,7 @@ export type EventName =
   | 'tutor_deleted'
   | 'tutor_created'
   | 'recurring_series_cancelled'
+  | 'recurring_series_deleted'
   | 'recurring_series_edited'
   | 'recurring_session_edited'
   | 'recurring_session_cancelled'

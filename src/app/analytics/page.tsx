@@ -7,6 +7,7 @@ import { toISODate, dayOfWeek, getCentralTimeNow, getWeekStart } from '@/lib/use
 
 type Event = { id: string; event_name: string; properties: Record<string, any>; created_at: string; };
 type SessionStudent = { status: string; date: string; };
+type OperationType = 'addition' | 'confirmation' | 'reschedule' | 'deletion' | 'other';
 
 function getWeekKey(dateStr: string): string {
   const d = new Date(dateStr);
@@ -56,6 +57,13 @@ const FRIENDLY: Record<string, string> = {
   tutor_deleted: 'Tutor deleted',
   reminder_sent: 'Reminder sent',
   template_saved: 'Template saved',
+  bulk_remove_sessions: 'Bulk bookings removed',
+  week_cleared_non_recurring: 'Week cleared (non-recurring)',
+  schedule_builder_confirmed: 'Schedule builder confirmed',
+  students_bulk_deleted: 'Students bulk deleted',
+  tutors_bulk_deleted: 'Tutors bulk deleted',
+  students_imported: 'Students imported',
+  recurring_series_deleted: 'Series deleted',
   recurring_series_cancelled: 'Series cancelled',
   recurring_series_edited: 'Series edited',
   recurring_session_edited: 'Single session edited',
@@ -68,6 +76,10 @@ const SOURCE_LABELS: Record<string, string> = {
   booking_form: 'Full Booking Form',
   grid_slot: 'Grid Slot Click',
   student_page: 'Student Page',
+  attendance_modal: 'Attendance Modal',
+  confirm_link: 'Confirmation Link',
+  schedule_nav: 'Schedule Nav',
+  optimizer: 'Optimizer',
 };
 
 const SOURCE_COLORS: Record<string, string> = {
@@ -76,6 +88,10 @@ const SOURCE_COLORS: Record<string, string> = {
   booking_form: '#dc2626',
   grid_slot: '#f59e0b',
   student_page: '#16a34a',
+  attendance_modal: '#0ea5e9',
+  confirm_link: '#2563eb',
+  schedule_nav: '#475569',
+  optimizer: '#7c3aed',
 };
 
 const ATTEND_COLORS: Record<string, string> = {
@@ -84,6 +100,52 @@ const ATTEND_COLORS: Record<string, string> = {
   week_grid: '#2563eb',
   modal: '#7c3aed',
 };
+
+const OPERATION_LABELS: Record<OperationType, string> = {
+  addition: 'Additions',
+  confirmation: 'Confirmations',
+  reschedule: 'Reschedules',
+  deletion: 'Deletions',
+  other: 'Other',
+};
+
+const OPERATION_COLORS: Record<OperationType, string> = {
+  addition: '#16a34a',
+  confirmation: '#2563eb',
+  reschedule: '#7c3aed',
+  deletion: '#dc2626',
+  other: '#94a3b8',
+};
+
+const OPERATION_FROM_EVENT: Record<string, OperationType> = {
+  session_booked: 'addition',
+  recurring_booking_used: 'addition',
+  schedule_builder_confirmed: 'addition',
+  student_created: 'addition',
+  tutor_created: 'addition',
+  students_imported: 'addition',
+
+  confirmation_updated: 'confirmation',
+
+  reassign_used: 'reschedule',
+  recurring_series_edited: 'reschedule',
+  recurring_session_edited: 'reschedule',
+
+  student_removed: 'deletion',
+  bulk_remove_sessions: 'deletion',
+  week_cleared_non_recurring: 'deletion',
+  recurring_series_cancelled: 'deletion',
+  recurring_series_deleted: 'deletion',
+  recurring_session_cancelled: 'deletion',
+  student_deleted: 'deletion',
+  students_bulk_deleted: 'deletion',
+  tutor_deleted: 'deletion',
+  tutors_bulk_deleted: 'deletion',
+};
+
+function getOperationType(eventName: string): OperationType {
+  return OPERATION_FROM_EVENT[eventName] ?? 'other';
+}
 
 // ── Tiny horizontal bar ────────────────────────────────────────────────────────
 function HBar({ value, max, color, label, count }: { value: number; max: number; color: string; label: string; count: number }) {
@@ -220,6 +282,35 @@ export default function AnalyticsPage() {
   }, [events]);
 
   const maxAttSource = attendanceSources[0]?.[1] ?? 1;
+
+  // ── Operations by type ─────────────────────────────────────────────────────
+  const operationBreakdown = useMemo(() => {
+    const counts: Record<OperationType, number> = {
+      addition: 0,
+      confirmation: 0,
+      reschedule: 0,
+      deletion: 0,
+      other: 0,
+    };
+
+    events.forEach(e => {
+      const type = getOperationType(e.event_name);
+      counts[type] += 1;
+    });
+
+    return (Object.keys(counts) as OperationType[])
+      .map(type => ({
+        type,
+        count: counts[type],
+        label: OPERATION_LABELS[type],
+        color: OPERATION_COLORS[type],
+      }))
+      .filter(item => item.type !== 'other' || item.count > 0);
+  }, [events]);
+
+  const maxOperationType = operationBreakdown[0]
+    ? Math.max(...operationBreakdown.map(o => o.count), 1)
+    : 1;
 
   // ── Weekly ops table ───────────────────────────────────────────────────────
   const weeklyData = useMemo(() => {
@@ -388,6 +479,25 @@ export default function AnalyticsPage() {
             )}
         </Section>
 
+        <Section title="Operations By Type" sub="Separated by additions, confirmations, reschedules, and deletions">
+          {operationBreakdown.length === 0
+            ? <p className="text-xs text-[#94a3b8] italic">No operation events yet</p>
+            : (
+              <div className="space-y-3">
+                {operationBreakdown.map(op => (
+                  <HBar
+                    key={op.type}
+                    label={op.label}
+                    value={op.count}
+                    max={maxOperationType}
+                    count={op.count}
+                    color={op.color}
+                  />
+                ))}
+              </div>
+            )}
+        </Section>
+
         {/* ── Weekly ops table ── */}
         <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1.5px solid #f1f5f9' }}>
           <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #f8fafc' }}>
@@ -487,6 +597,7 @@ export default function AnalyticsPage() {
               const label = FRIENDLY[e.event_name] ?? e.event_name;
               const props = e.properties && Object.keys(e.properties).length > 0;
               const src = e.properties?.source;
+              const opType = getOperationType(e.event_name);
               return (
                 <div key={e.id} className="flex items-start gap-3 px-6 py-3"
                   style={{ borderBottom: '1px solid #f8fafc', background: i % 2 === 0 ? 'white' : '#fafafa' }}>
@@ -494,6 +605,10 @@ export default function AnalyticsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-bold text-[#1e293b]">{label}</span>
+                      <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
+                        style={{ background: `${OPERATION_COLORS[opType]}18`, color: OPERATION_COLORS[opType] }}>
+                        {OPERATION_LABELS[opType]}
+                      </span>
                       {src && (
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
                           style={{ background: `${SOURCE_COLORS[src] ?? '#94a3b8'}18`, color: SOURCE_COLORS[src] ?? '#94a3b8' }}>

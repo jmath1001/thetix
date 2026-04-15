@@ -406,7 +406,11 @@ export default function RecurringManager() {
   };
 
   const handleDelete = async (id: string) => {
-    try { await supabase.from(DB.recurringSeries).delete().eq('id', id); await load(); }
+    try {
+      await supabase.from(DB.recurringSeries).delete().eq('id', id);
+      logEvent('recurring_series_deleted', { seriesId: id });
+      await load();
+    }
     catch (e: any) { alert(e.message); }
   };
 
