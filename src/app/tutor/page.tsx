@@ -167,21 +167,21 @@ function SubjectCheckboxes({ selected, onChange }: { selected: string[]; onChang
     onChange(selected.includes(s) ? selected.filter(x => x !== s) : [...selected, s]);
 
   return (
-    <div className="space-y-3">
-      <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#334155]">Subjects</label>
-      <div className="space-y-3">
+    <div className="space-y-2">
+      <label className="block text-[9px] font-black uppercase tracking-[0.18em] text-[#334155]">Subjects</label>
+      <div className="space-y-2">
         {SUBJECT_GROUPS.map(group => (
-          <div key={group.group} className="rounded-lg border border-[#cbd5e1] bg-[#f8fafc] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
-            <p className="mb-3 text-[9px] font-black uppercase tracking-[0.18em] text-[#64748b]">{group.group}</p>
-            <div className="flex flex-wrap gap-1.5">
+          <div key={group.group} className="rounded-lg border border-[#dbe4ee] bg-[#f8fafc] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+            <p className="mb-2 text-[9px] font-black uppercase tracking-[0.16em] text-[#64748b]">{group.group}</p>
+            <div className="flex flex-wrap gap-1">
               {group.subjects.map(subject => {
                 const active = selected.includes(subject);
                 return (
                   <button key={subject} type="button" onClick={() => toggle(subject)}
-                    className="rounded-md px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.08em] transition-all"
+                    className="rounded-md px-2 py-1 text-[10px] font-semibold tracking-[0.02em] transition-all"
                     style={active
-                      ? { background: '#4f46e5', color: 'white', border: '1.5px solid #4f46e5', boxShadow: '0 8px 18px rgba(79,70,229,0.18)' }
-                      : { background: 'white', color: '#475569', border: '1.5px solid #cbd5e1' }}>
+                      ? { background: '#4f46e5', color: 'white', border: '1px solid #4f46e5', boxShadow: '0 4px 10px rgba(79,70,229,0.14)' }
+                      : { background: 'white', color: '#475569', border: '1px solid #cbd5e1' }}>
                     {subject}
                   </button>
                 );
@@ -202,42 +202,42 @@ function AvailabilityGrid({ blocks, onChange }: { blocks: string[]; onChange: (b
   };
 
   return (
-    <div className="space-y-3">
-      <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#334155]">Availability</label>
-      <div className="overflow-hidden rounded-xl border border-[#cbd5e1] bg-white shadow-[0_12px_28px_rgba(15,23,42,0.08)]">
+    <div className="space-y-2">
+      <label className="block text-[9px] font-black uppercase tracking-[0.18em] text-[#334155]">Availability</label>
+      <div className="overflow-hidden rounded-xl border border-[#cbd5e1] bg-white shadow-[0_8px_20px_rgba(15,23,42,0.06)]">
         <table className="w-full border-collapse">
           <thead>
             <tr style={{ background: '#1e293b' }}>
-              <th className="border-r border-[#334155] px-3 py-3 text-left text-[10px] font-black uppercase tracking-[0.18em] text-[#cbd5e1]">Session</th>
+              <th className="border-r border-[#334155] px-2 py-2 text-left text-[9px] font-black uppercase tracking-[0.16em] text-[#cbd5e1]">Session</th>
               {ACTIVE_DAYS_INFO.map(d => (
-                <th key={d.dow} className="px-2 py-3 text-center text-[10px] font-black uppercase tracking-[0.18em] text-[#cbd5e1]">{d.label}</th>
+                <th key={d.dow} className="px-1.5 py-2 text-center text-[9px] font-black uppercase tracking-[0.16em] text-[#cbd5e1]">{d.label}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {SESSION_BLOCKS.map((block, bi) => (
               <tr key={block.id} style={{ borderBottom: bi < SESSION_BLOCKS.length - 1 ? '1px solid #e2e8f0' : 'none', background: bi % 2 === 0 ? 'white' : '#f8fafc' }}>
-                <td className="border-r border-[#e2e8f0] px-3 py-3">
-                  <p className="text-[11px] font-black text-[#0f172a] leading-none">{block.label}</p>
+                <td className="border-r border-[#e2e8f0] px-2 py-2">
+                  <p className="text-[10px] font-black text-[#0f172a] leading-none">{block.label}</p>
                   <p className="text-[9px] text-[#94a3b8] mt-0.5">{block.display}</p>
                 </td>
                 {ACTIVE_DAYS_INFO.map(d => {
                   const applicable = block.days.includes(d.dow);
                   const active = applicable && blocks.includes(`${d.dow}-${block.time}`);
                   return (
-                    <td key={d.dow} className="p-1.5 text-center">
+                    <td key={d.dow} className="p-1 text-center">
                       {applicable ? (
                         <button type="button" onClick={() => toggle(d.dow, block.time)}
-                          className="mx-auto flex h-9 w-9 items-center justify-center rounded-md transition-all"
+                          className="mx-auto flex h-7 w-7 items-center justify-center rounded-md transition-all"
                           style={{
                             background: active ? '#4f46e5' : 'white',
-                            border: `1.5px solid ${active ? '#4f46e5' : '#cbd5e1'}`,
-                            boxShadow: active ? '0 10px 20px rgba(79,70,229,0.18)' : 'none',
+                            border: `1px solid ${active ? '#4f46e5' : '#cbd5e1'}`,
+                            boxShadow: active ? '0 4px 10px rgba(79,70,229,0.14)' : 'none',
                           }}>
                           {active && <span className="text-white text-[10px] font-black">✓</span>}
                         </button>
                       ) : (
-                        <div className="mx-auto h-9 w-9 rounded-xl" style={{ background: '#e2e8f0' }} />
+                        <div className="mx-auto h-7 w-7 rounded-md" style={{ background: '#e2e8f0' }} />
                       )}
                     </td>
                   );
@@ -1438,3 +1438,4 @@ export default function TutorManagementPage() {
     </div>
   );
 }
+
