@@ -2,13 +2,35 @@ export const ACTIVE_DAYS = [1, 2, 3, 4, 6];
 export const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Saturday'];
 
 export const TUTOR_PALETTES = [
-  { bg: '#fdf4e3', border: '#f5c842', text: '#7a4f00', tag: '#e8a000' },
-  { bg: '#e8f4fd', border: '#7ec8e3', text: '#0d4f72', tag: '#1a8abf' },
-  { bg: '#f0e8fd', border: '#b98de0', text: '#4a1d8f', tag: '#7c3aed' },
-  { bg: '#e6f9f1', border: '#5dd4a0', text: '#0e5c3a', tag: '#10a870' },
-  { bg: '#fde8e8', border: '#f08080', text: '#7a1f1f', tag: '#d94f4f' },
-  { bg: '#e8f9f9', border: '#4dc8c8', text: '#0e5a5a', tag: '#0f9898' },
+  { bg: '#fef3c7', border: '#f59e0b', text: '#78350f', tag: '#d97706' },
+  { bg: '#ffedd5', border: '#fb923c', text: '#7c2d12', tag: '#ea580c' },
+  { bg: '#ede9fe', border: '#a78bfa', text: '#4c1d95', tag: '#7c3aed' },
+  { bg: '#dbeafe', border: '#60a5fa', text: '#1e3a8a', tag: '#2563eb' },
+  { bg: '#fce7f3', border: '#f472b6', text: '#831843', tag: '#db2777' },
+  { bg: '#e2e8f0', border: '#64748b', text: '#0f172a', tag: '#334155' },
 ];
+
+type TutorPalette = (typeof TUTOR_PALETTES)[number];
+
+const NON_GREEN_HUES = Array.from({ length: 360 }, (_, hue) => hue).filter(
+  (hue) => hue < 70 || hue > 200
+);
+const HUE_STEP = 97;
+
+const dynamicTutorPalette = (index: number): TutorPalette => {
+  const hue = NON_GREEN_HUES[(index * HUE_STEP) % NON_GREEN_HUES.length];
+  return {
+    bg: `hsl(${hue} 85% 94%)`,
+    border: `hsl(${hue} 68% 64%)`,
+    text: `hsl(${hue} 68% 25%)`,
+    tag: `hsl(${hue} 72% 38%)`,
+  };
+};
+
+export function getTutorPaletteByIndex(index: number): TutorPalette {
+  if (index < TUTOR_PALETTES.length) return TUTOR_PALETTES[index];
+  return dynamicTutorPalette(index);
+}
 
 export function formatWeekRange(weekStart: Date): string {
   const end = new Date(weekStart);

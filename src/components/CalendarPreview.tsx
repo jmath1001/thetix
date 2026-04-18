@@ -5,7 +5,7 @@ import { Check, X, Clock, Calendar } from 'lucide-react';
 import { toISODate, dayOfWeek, type Tutor } from '@/lib/useScheduleData';
 import { getSessionsForDay } from '@/components/constants';
 import { MAX_CAPACITY } from '@/components/constants';
-import { ACTIVE_DAYS, DAY_NAMES, TUTOR_PALETTES } from './schedule/scheduleConstants';
+import { ACTIVE_DAYS, DAY_NAMES, getTutorPaletteByIndex } from './schedule/scheduleConstants';
 import { isTutorAvailable } from './schedule/scheduleUtils';
 
 interface CalendarPreviewProps {
@@ -150,12 +150,14 @@ export function CalendarPreview({
           </div>
 
           {/* Tutor rows */}
-          {tutors.map((tutor) => (
+          {tutors.map((tutor) => {
+            const tutorPalette = getTutorPaletteByIndex(tutorPaletteMap[tutor.id] || 0);
+            return (
             <div key={tutor.id} className="grid grid-cols-[120px_repeat(5,1fr)] gap-2 mb-2">
               <div className="flex items-center gap-2 py-2">
                 <div 
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold"
-                  style={{ backgroundColor: TUTOR_PALETTES[tutorPaletteMap[tutor.id] || 0].bg, color: TUTOR_PALETTES[tutorPaletteMap[tutor.id] || 0].text, border: `1px solid ${TUTOR_PALETTES[tutorPaletteMap[tutor.id] || 0].border}` }}
+                  style={{ backgroundColor: tutorPalette.bg, color: tutorPalette.text, border: `1px solid ${tutorPalette.border}` }}
                 >
                   {tutor.name[0]}
                 </div>
@@ -214,7 +216,7 @@ export function CalendarPreview({
                 );
               })}
             </div>
-          ))}
+          )})}
         </div>
       </div>
 

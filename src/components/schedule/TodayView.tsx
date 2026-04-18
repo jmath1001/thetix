@@ -4,7 +4,7 @@ import { PlusCircle, Check, Clock, Calendar as CalendarIcon, X, Loader2, Trash2 
 import { createInlineStudent, updateAttendance, removeStudentFromSession, toISODate, dayOfWeek, type Tutor } from '@/lib/useScheduleData';
 import { getSessionsForDay } from '@/components/constants';
 import { MAX_CAPACITY } from '@/components/constants';
-import { ACTIVE_DAYS, DAY_NAMES, TUTOR_PALETTES } from './scheduleConstants';
+import { ACTIVE_DAYS, DAY_NAMES, getTutorPaletteByIndex } from './scheduleConstants';
 import { isTutorAvailable } from './scheduleUtils';
 import { logEvent } from '@/lib/analytics';
 
@@ -144,7 +144,7 @@ function SidePanel({
   };
 
   const statusStyle = (status: string) => {
-    if (status === 'present')  return { bg: '#dbeafe', border: '#93c5fd', dot: '#2563eb', label: '✓ Present' };
+    if (status === 'present')  return { bg: '#dcfce7', border: '#86efac', dot: '#16a34a', label: '✓ Present' };
     if (status === 'no-show')  return { bg: '#fee2e2', border: '#fca5a5', dot: '#dc2626', label: '✕ No-show' };
     return                            { bg: '#ffffff', border: '#cbd5e1', dot: '#64748b', label: '→ Unmarked' };
   };
@@ -228,7 +228,7 @@ function SidePanel({
             <div className="flex gap-1.5 px-2.5 py-2.5 shrink-0" style={{ borderBottom: '1.5px solid #f1f5f9', background: '#f8fafc' }}>
               {([
                 { key: 'all',      label: 'All',     dot: '#10b981' },
-                { key: 'present',  label: '✓',    dot: '#2563eb' },
+                { key: 'present',  label: '✓',    dot: '#16a34a' },
                 { key: 'no-show',  label: '✕', dot: '#dc2626' },
                 { key: 'unmarked', label: '?',       dot: '#64748b' },
               ] as const).map(f => (
@@ -238,11 +238,11 @@ function SidePanel({
                   className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-[9px] font-black transition-all"
                   style={attFilter === f.key
                     ? {
-                        background: f.key === 'present' ? '#dbeafe' : f.key === 'no-show' ? '#fee2e2' : '#ffffff',
-                        color: f.key === 'present' ? '#2563eb' : f.key === 'no-show' ? '#dc2626' : '#475569',
-                        border: '1.5px solid' + (f.key === 'present' ? '#93c5fd' : f.key === 'no-show' ? '#fca5a5' : '#cbd5e1'),
+                        background: f.key === 'present' ? '#dcfce7' : f.key === 'no-show' ? '#fee2e2' : '#ffffff',
+                        color: f.key === 'present' ? '#16a34a' : f.key === 'no-show' ? '#dc2626' : '#475569',
+                        border: '1.5px solid' + (f.key === 'present' ? '#86efac' : f.key === 'no-show' ? '#fca5a5' : '#cbd5e1'),
                         boxShadow: f.key === 'present'
-                          ? '0 2px 4px rgba(37,99,235,0.1)'
+                          ? '0 2px 4px rgba(22,163,74,0.1)'
                           : f.key === 'no-show'
                             ? '0 2px 4px rgba(220,38,38,0.1)'
                             : '0 2px 4px rgba(71,85,105,0.1)'
@@ -295,7 +295,7 @@ function SidePanel({
                         {/* Attendance toggles */}
                         <div className="flex border-t" style={{ borderColor: st.border }}>
                           {([
-                            { status: 'present' as const, label: '✓ Here',    activeBg: '#2563eb', activeColor: 'white' },
+                            { status: 'present' as const, label: '✓ Here',    activeBg: '#16a34a', activeColor: 'white' },
                             { status: 'scheduled' as const, label: '–', activeBg: '#64748b', activeColor: 'white' },
                             { status: 'no-show' as const, label: '✕ Skip',    activeBg: '#dc2626', activeColor: 'white' },
                           ]).map((btn, bi) => {
@@ -545,7 +545,7 @@ export function TodayView({
 
   const attendanceBadge = (status: string) => {
     if (status === 'present') {
-      return { label: 'PRESENT', bg: '#dcfce7', color: '#166534', border: '#86efac' };
+      return { label: 'P', bg: '#dcfce7', color: '#166534', border: '#86efac' };
     }
     if (status === 'no-show') {
       return { label: 'NO-SHOW', bg: '#fee2e2', color: '#b91c1c', border: '#fca5a5' };
@@ -943,7 +943,7 @@ export function TodayView({
                     </thead>
                     <tbody>
                       {todayTutors.map(tutor => {
-                        const palette     = TUTOR_PALETTES[tutorPaletteMap[tutor.id] ?? 0];
+                        const palette     = getTutorPaletteByIndex(tutorPaletteMap[tutor.id] ?? 0);
                         const isOnTimeOff = timeOff.some(t => t.tutorId === tutor.id && t.date === todayIso);
                         return (
                           <tr key={tutor.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
@@ -1048,7 +1048,7 @@ export function TodayView({
                                               }}
                                               className="shrink-0 w-5 h-5 rounded-md flex items-center justify-center transition-all"
                                               style={student.status === 'present'
-                                                ? { background: '#059669', border: '1.5px solid #059669' }
+                                                ? { background: '#16a34a', border: '1.5px solid #16a34a' }
                                                 : { background: 'white', border: '1.5px solid #d1d5db' }}>
                                               {student.status === 'present' && <Check size={11} strokeWidth={3} color="white" />}
                                             </button>
@@ -1116,7 +1116,7 @@ export function TodayView({
               {/* Mobile cards */}
               <div className="md:hidden space-y-2 overflow-y-auto flex-1 min-h-0">
                 {todayTutors.map(tutor => {
-                  const palette     = TUTOR_PALETTES[tutorPaletteMap[tutor.id] ?? 0];
+                  const palette     = getTutorPaletteByIndex(tutorPaletteMap[tutor.id] ?? 0);
                   const isOnTimeOff = timeOff.some(t => t.tutorId === tutor.id && t.date === todayIso);
                   return (
                     <div key={tutor.id} className="rounded-xl overflow-hidden"
@@ -1186,7 +1186,7 @@ export function TodayView({
                                             }}
                                             className="shrink-0 w-3 h-3 rounded flex items-center justify-center"
                                             style={student.status === 'present'
-                                              ? { background: '#059669', border: '1.5px solid #059669' }
+                                              ? { background: '#16a34a', border: '1.5px solid #16a34a' }
                                               : { background: 'white', border: '1.5px solid #d1d5db' }}>
                                             {student.status === 'present' && <Check size={7} strokeWidth={3} color="white" />}
                                           </button>

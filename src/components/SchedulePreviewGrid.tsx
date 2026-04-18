@@ -87,13 +87,29 @@ function SlotChip({ dayName, label, tutorName, variant }: { dayName: string; lab
 }
 
 const TUTOR_PALETTES = [
-  { bg: '#eff6ff', border: '#bfdbfe', text: '#1e40af', initials: '#dbeafe' },
-  { bg: '#fdf4ff', border: '#e9d5ff', text: '#6b21a8', initials: '#f3e8ff' },
-  { bg: '#fff7ed', border: '#fed7aa', text: '#9a3412', initials: '#ffedd5' },
-  { bg: '#f0fdf4', border: '#bbf7d0', text: '#166534', initials: '#dcfce7' },
-  { bg: '#fff1f2', border: '#fecdd3', text: '#9f1239', initials: '#ffe4e6' },
-  { bg: '#f0f9ff', border: '#bae6fd', text: '#075985', initials: '#e0f2fe' },
+  { bg: '#fef3c7', border: '#f59e0b', text: '#78350f', initials: '#fde68a' },
+  { bg: '#ffedd5', border: '#fb923c', text: '#7c2d12', initials: '#fdba74' },
+  { bg: '#ede9fe', border: '#a78bfa', text: '#4c1d95', initials: '#ddd6fe' },
+  { bg: '#dbeafe', border: '#60a5fa', text: '#1e3a8a', initials: '#bfdbfe' },
+  { bg: '#fce7f3', border: '#f472b6', text: '#831843', initials: '#fbcfe8' },
+  { bg: '#e2e8f0', border: '#64748b', text: '#0f172a', initials: '#cbd5e1' },
 ]
+
+const NON_GREEN_HUES = Array.from({ length: 360 }, (_, hue) => hue).filter(
+  (hue) => hue < 70 || hue > 200
+)
+const HUE_STEP = 97
+
+const getTutorPreviewPalette = (index: number): typeof TUTOR_PALETTES[0] => {
+  if (index < TUTOR_PALETTES.length) return TUTOR_PALETTES[index]
+  const hue = NON_GREEN_HUES[(index * HUE_STEP) % NON_GREEN_HUES.length]
+  return {
+    bg: `hsl(${hue} 85% 94%)`,
+    border: `hsl(${hue} 68% 64%)`,
+    text: `hsl(${hue} 68% 25%)`,
+    initials: `hsl(${hue} 80% 90%)`,
+  }
+}
 
 export function SchedulePreviewGrid({
   proposals, suggestionsByNeed, allAvailableSeats, existingSessions, onSwap, onRemove,
@@ -120,7 +136,7 @@ export function SchedulePreviewGrid({
 
   const allTutorIds = Array.from(new Set(Object.keys(tutorMap)))
   const tutorColorMap: Record<string, typeof TUTOR_PALETTES[0]> = {}
-  allTutorIds.forEach((id, i) => { tutorColorMap[id] = TUTOR_PALETTES[i % TUTOR_PALETTES.length] })
+  allTutorIds.forEach((id, i) => { tutorColorMap[id] = getTutorPreviewPalette(i) })
 
   const getTutorsForDay = (date: string) => {
     const ids = new Set<string>()

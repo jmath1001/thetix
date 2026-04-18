@@ -25,7 +25,7 @@ import OptimizationPreview from '../OptimizationPreview';
 import { useOptimizer } from '@/hooks/useOptimizer';
 import type { PrefilledSlot, BookingConfirmData } from '@/components/BookingForm';
 
-import { ACTIVE_DAYS, DAY_NAMES, TUTOR_PALETTES } from './scheduleConstants';
+import { ACTIVE_DAYS, DAY_NAMES } from './scheduleConstants';
 import { isTutorAvailable } from './scheduleUtils';
 import { ScheduleNav } from './ScheduleNav';
 import { TodayView } from './TodayView';
@@ -251,7 +251,7 @@ export default function MasterDeployment() {
 
   const tutorPaletteMap = useMemo(() => {
     const map: Record<string, number> = {};
-    tutors.forEach((t, i) => { map[t.id] = i % TUTOR_PALETTES.length; });
+    tutors.forEach((t, i) => { map[t.id] = i; });
     return map;
   }, [tutors]);
 

@@ -5,7 +5,7 @@ import { PlusCircle, Check, X, Loader2, Trash2 } from 'lucide-react';
 import { createInlineStudent, updateAttendance, removeStudentFromSession, toISODate, dayOfWeek, getCentralTimeNow, type Tutor } from '@/lib/useScheduleData';
 import { getSessionsForDay } from '@/components/constants';
 import { MAX_CAPACITY } from '@/components/constants';
-import { ACTIVE_DAYS, DAY_NAMES, TUTOR_PALETTES } from './scheduleConstants';
+import { ACTIVE_DAYS, DAY_NAMES, getTutorPaletteByIndex } from './scheduleConstants';
 import { isTutorAvailable } from './scheduleUtils';
 import { logEvent } from '@/lib/analytics';
 
@@ -236,7 +236,7 @@ export function WeekView({
 
   const attendanceBadge = (status: string) => {
     if (status === 'present') {
-      return { label: 'PRESENT', bg: '#dbeafe', color: '#1d4ed8', border: '#93c5fd' };
+      return { label: 'P', bg: '#dcfce7', color: '#166534', border: '#86efac' };
     }
     if (status === 'no-show') {
       return { label: 'NO-SHOW', bg: '#fee2e2', color: '#b91c1c', border: '#fca5a5' };
@@ -498,7 +498,7 @@ export function WeekView({
                       </thead>
                       <tbody>
                         {activeTutors.map(tutor => {
-                          const palette = TUTOR_PALETTES[tutorPaletteMap[tutor.id] ?? 0];
+                          const palette = getTutorPaletteByIndex(tutorPaletteMap[tutor.id] ?? 0);
                           return (
                             <tr key={tutor.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
                               <td className="px-2 py-1.5 align-middle"
@@ -569,7 +569,7 @@ export function WeekView({
                                             onDragEnd={() => setDraggingTopic(null)}
                                             style={
                                               student.status === 'no-show'  ? { background: '#f8fafc', border: '1.5px solid #94a3b8', opacity: 0.65, boxShadow: '0 4px 10px rgba(148,163,184,0.16), inset 0 0 0 1px rgba(148,163,184,0.2)' }
-                                              : student.status === 'present' ? { background: '#dbeafe', border: '1.5px solid #2563eb', boxShadow: '0 6px 14px rgba(37,99,235,0.16), 0 1px 0 rgba(37,99,235,0.18), inset 0 0 0 1px rgba(255,255,255,0.5)' }
+                                              : student.status === 'present' ? { background: '#dcfce7', border: '1.5px solid #16a34a', boxShadow: '0 6px 14px rgba(22,163,74,0.16), 0 1px 0 rgba(22,163,74,0.18), inset 0 0 0 1px rgba(255,255,255,0.5)' }
                                               :                               { background: palette.bg, border: `1.5px solid ${palette.border}`, boxShadow: '0 5px 12px rgba(99,102,241,0.1), 0 1px 0 rgba(17,24,39,0.12)' }
                                             }
                                             onClick={(e) => {
@@ -610,7 +610,7 @@ export function WeekView({
                                                   }}
                                                   className="shrink-0 w-4 h-4 rounded-md flex items-center justify-center transition-all"
                                                   style={student.status === 'present'
-                                                    ? { background: '#2563eb', border: '1.5px solid #2563eb' }
+                                                    ? { background: '#16a34a', border: '1.5px solid #16a34a' }
                                                     : { background: 'white', border: '1.5px solid #d1d5db' }}>
                                                   {student.status === 'present' && <Check size={9} strokeWidth={3} color="white" />}
                                                 </button>
@@ -684,7 +684,7 @@ export function WeekView({
                 {/* Mobile cards */}
                 <div className="md:hidden space-y-2">
                   {activeTutors.map(tutor => {
-                    const palette = TUTOR_PALETTES[tutorPaletteMap[tutor.id] ?? 0];
+                    const palette = getTutorPaletteByIndex(tutorPaletteMap[tutor.id] ?? 0);
                     const isOnTimeOff = timeOff.some(t => t.tutorId === tutor.id && t.date === isoDate);
                     return (
                       <div key={tutor.id} className="rounded-xl overflow-hidden"
@@ -747,7 +747,7 @@ export function WeekView({
                                                 ...(student.status === 'no-show'
                                                   ? { background: '#f8fafc', border: '1.5px solid #94a3b8', opacity: 0.65, boxShadow: '0 4px 10px rgba(148,163,184,0.16), inset 0 0 0 1px rgba(148,163,184,0.2)' }
                                                   : student.status === 'present'
-                                                    ? { background: '#dbeafe', border: '1.5px solid #2563eb', boxShadow: '0 6px 14px rgba(37,99,235,0.16), 0 1px 0 rgba(37,99,235,0.18), inset 0 0 0 1px rgba(255,255,255,0.5)' }
+                                                    ? { background: '#dcfce7', border: '1.5px solid #16a34a', boxShadow: '0 6px 14px rgba(22,163,74,0.16), 0 1px 0 rgba(22,163,74,0.18), inset 0 0 0 1px rgba(255,255,255,0.5)' }
                                                     : { background: palette.bg, border: `1.5px solid ${palette.border}`, boxShadow: '0 5px 12px rgba(99,102,241,0.1), 0 1px 0 rgba(17,24,39,0.12)' }),
                                                 ...(bulkRemoveMode ? { outline: isSelected ? '2px solid rgba(124,58,237,0.32)' : 'none', outlineOffset: 0 } : {}),
                                               }}
@@ -769,7 +769,7 @@ export function WeekView({
                                                 }}
                                                 className="shrink-0 w-3 h-3 rounded flex items-center justify-center"
                                                 style={student.status === 'present'
-                                                  ? { background: '#2563eb', border: '1.5px solid #2563eb' }
+                                                  ? { background: '#16a34a', border: '1.5px solid #16a34a' }
                                                   : { background: 'white', border: '1.5px solid #d1d5db' }}>
                                                 {student.status === 'present' && <Check size={7} strokeWidth={3} color="white" />}
                                               </button>
