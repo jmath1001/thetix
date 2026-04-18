@@ -433,17 +433,21 @@ function TutorListItem({
   onClick: () => void;
   onToggle: () => void;
 }) {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    // Only treat Enter/Space as card activation when focus is on the card itself.
+    if (event.target !== event.currentTarget) return;
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onClick();
+    }
+  };
+
   return (
     <div
       role="listitem"
       tabIndex={0}
       onClick={onClick}
-      onKeyDown={event => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onClick();
-        }
-      }}
+      onKeyDown={handleKeyDown}
       className="w-full rounded-xl border px-2 py-2 text-left transition-all"
       style={{
         borderColor: isActive ? '#1d4ed8' : isSelected ? '#fca5a5' : '#dbe4ee',
@@ -1263,81 +1267,83 @@ export default function TutorManagementPage() {
 
         {/* Add new tutor */}
         {adding && (
-          <div className="space-y-4 rounded-xl bg-white p-4 shadow-[0_16px_32px_rgba(15,23,42,0.08)]"
-            style={{ border: '1px solid #cbd5e1' }}>
-            <div className="flex items-center gap-2">
-              <div className="h-4 w-1 rounded-full" style={{ background: '#4f46e5' }} />
-              <p className="text-[10px] font-black uppercase tracking-[0.22em]" style={{ color: '#4f46e5' }}>New Tutor</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className={fieldCardCls}>
-                <label className={fieldLabelCls}>Name</label>
-                <input value={newTutor.name} onChange={e => setNewTutor({ ...newTutor, name: e.target.value })}
-                  placeholder="Full name" className={inputCls} />
+          <div className="max-h-[72dvh] overflow-y-auto pr-1">
+            <div className="space-y-4 rounded-xl bg-white p-4 shadow-[0_16px_32px_rgba(15,23,42,0.08)]"
+              style={{ border: '1px solid #cbd5e1' }}>
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-1 rounded-full" style={{ background: '#4f46e5' }} />
+                <p className="text-[10px] font-black uppercase tracking-[0.22em]" style={{ color: '#4f46e5' }}>New Tutor</p>
               </div>
-              <div className={fieldCardCls}>
-                <label className={fieldLabelCls}>Category</label>
-                <div className="mt-2 flex gap-2">
-                  {(['math', 'english'] as const).map(c => (
-                    <button key={c} onClick={() => setNewTutor({ ...newTutor, cat: c })}
-                      className="flex-1 rounded-md py-2.5 text-xs font-black uppercase tracking-[0.16em] transition-all"
-                      style={newTutor.cat === c
-                        ? { background: '#4f46e5', color: 'white', border: '1.5px solid #4f46e5', boxShadow: '0 10px 20px rgba(79,70,229,0.18)' }
-                        : { background: 'white', color: '#475569', border: '1.5px solid #cbd5e1' }}>
-                      {c === 'math' ? 'Math / Sci' : 'Eng / Hist'}
-                    </button>
-                  ))}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className={fieldCardCls}>
+                  <label className={fieldLabelCls}>Name</label>
+                  <input value={newTutor.name} onChange={e => setNewTutor({ ...newTutor, name: e.target.value })}
+                    placeholder="Full name" className={inputCls} />
+                </div>
+                <div className={fieldCardCls}>
+                  <label className={fieldLabelCls}>Category</label>
+                  <div className="mt-2 flex gap-2">
+                    {(['math', 'english'] as const).map(c => (
+                      <button key={c} onClick={() => setNewTutor({ ...newTutor, cat: c })}
+                        className="flex-1 rounded-md py-2.5 text-xs font-black uppercase tracking-[0.16em] transition-all"
+                        style={newTutor.cat === c
+                          ? { background: '#4f46e5', color: 'white', border: '1.5px solid #4f46e5', boxShadow: '0 10px 20px rgba(79,70,229,0.18)' }
+                          : { background: 'white', color: '#475569', border: '1.5px solid #cbd5e1' }}>
+                        {c === 'math' ? 'Math / Sci' : 'Eng / Hist'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className={fieldCardCls}>
-                <label className={fieldLabelCls}>Email</label>
-                <div className="relative">
-                  <Mail size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
-                  <input type="email" value={newTutor.email ?? ''} onChange={e => setNewTutor({ ...newTutor, email: e.target.value })}
-                    placeholder="tutor@email.com"
-                    className="w-full rounded-lg border border-[#94a3b8] bg-white py-2.5 pl-8 pr-3 text-sm font-medium text-[#0f172a] placeholder:text-[#64748b] focus:outline-none focus:border-[#4f46e5] focus:ring-4 focus:ring-[#e0e7ff] transition-all" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className={fieldCardCls}>
+                  <label className={fieldLabelCls}>Email</label>
+                  <div className="relative">
+                    <Mail size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
+                    <input type="email" value={newTutor.email ?? ''} onChange={e => setNewTutor({ ...newTutor, email: e.target.value })}
+                      placeholder="tutor@email.com"
+                      className="w-full rounded-lg border border-[#94a3b8] bg-white py-2.5 pl-8 pr-3 text-sm font-medium text-[#0f172a] placeholder:text-[#64748b] focus:outline-none focus:border-[#4f46e5] focus:ring-4 focus:ring-[#e0e7ff] transition-all" />
+                  </div>
+                </div>
+                <div className={fieldCardCls}>
+                  <label className={fieldLabelCls}>Phone</label>
+                  <div className="relative">
+                    <Phone size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
+                    <input type="tel" value={newTutor.phone ?? ''} onChange={e => setNewTutor({ ...newTutor, phone: e.target.value })}
+                      placeholder="(555) 000-0000"
+                      className="w-full rounded-lg border border-[#94a3b8] bg-white py-2.5 pl-8 pr-3 text-sm font-medium text-[#0f172a] placeholder:text-[#64748b] focus:outline-none focus:border-[#4f46e5] focus:ring-4 focus:ring-[#e0e7ff] transition-all" />
+                  </div>
                 </div>
               </div>
-              <div className={fieldCardCls}>
-                <label className={fieldLabelCls}>Phone</label>
-                <div className="relative">
-                  <Phone size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
-                  <input type="tel" value={newTutor.phone ?? ''} onChange={e => setNewTutor({ ...newTutor, phone: e.target.value })}
-                    placeholder="(555) 000-0000"
-                    className="w-full rounded-lg border border-[#94a3b8] bg-white py-2.5 pl-8 pr-3 text-sm font-medium text-[#0f172a] placeholder:text-[#64748b] focus:outline-none focus:border-[#4f46e5] focus:ring-4 focus:ring-[#e0e7ff] transition-all" />
-                </div>
+
+              <SubjectCheckboxes selected={newTutor.subjects} onChange={subjects => setNewTutor({ ...newTutor, subjects })} />
+              <AvailabilityGrid
+                blocks={newTutor.availabilityBlocks}
+                onChange={b => setNewTutor({
+                  ...newTutor,
+                  availabilityBlocks: b,
+                  availability: Array.from(new Set(b.map(x => parseInt(x.split('-')[0])))).sort((a, b) => a - b),
+                })}
+              />
+
+              <div className="flex gap-2 border-t border-[#cbd5e1] pt-3">
+                <button onClick={() => { setAdding(false); setNewTutor(EMPTY_TUTOR); }}
+                  className="rounded-xl border border-[#94a3b8] px-4 py-2.5 text-xs font-black uppercase tracking-[0.16em] transition-all"
+                  style={{ background: '#e2e8f0', color: '#475569' }}>
+                  Cancel
+                </button>
+                <button onClick={handleAdd} disabled={saving || !newTutor.name.trim()}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-md py-2.5 text-xs font-black uppercase tracking-[0.16em] transition-all active:scale-95"
+                  style={{
+                    background: newTutor.name.trim() ? '#4f46e5' : '#f1f5f9',
+                    color: newTutor.name.trim() ? 'white' : '#94a3b8',
+                    boxShadow: newTutor.name.trim() ? '0 12px 24px rgba(79,70,229,0.22)' : 'none',
+                  }}>
+                  {saving ? <><Loader2 size={12} className="animate-spin" /> Adding…</> : <><UserPlus size={12} /> Add to Database</>}
+                </button>
               </div>
-            </div>
-
-            <SubjectCheckboxes selected={newTutor.subjects} onChange={subjects => setNewTutor({ ...newTutor, subjects })} />
-            <AvailabilityGrid
-              blocks={newTutor.availabilityBlocks}
-              onChange={b => setNewTutor({
-                ...newTutor,
-                availabilityBlocks: b,
-                availability: Array.from(new Set(b.map(x => parseInt(x.split('-')[0])))).sort((a, b) => a - b),
-              })}
-            />
-
-            <div className="flex gap-2 border-t border-[#cbd5e1] pt-3">
-              <button onClick={() => { setAdding(false); setNewTutor(EMPTY_TUTOR); }}
-                className="rounded-xl border border-[#94a3b8] px-4 py-2.5 text-xs font-black uppercase tracking-[0.16em] transition-all"
-                style={{ background: '#e2e8f0', color: '#475569' }}>
-                Cancel
-              </button>
-              <button onClick={handleAdd} disabled={saving || !newTutor.name.trim()}
-                className="flex-1 flex items-center justify-center gap-2 rounded-md py-2.5 text-xs font-black uppercase tracking-[0.16em] transition-all active:scale-95"
-                style={{
-                  background: newTutor.name.trim() ? '#4f46e5' : '#f1f5f9',
-                  color: newTutor.name.trim() ? 'white' : '#94a3b8',
-                  boxShadow: newTutor.name.trim() ? '0 12px 24px rgba(79,70,229,0.22)' : 'none',
-                }}>
-                {saving ? <><Loader2 size={12} className="animate-spin" /> Adding…</> : <><UserPlus size={12} /> Add to Database</>}
-              </button>
             </div>
           </div>
         )}
