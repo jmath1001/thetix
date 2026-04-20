@@ -7,11 +7,28 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    router.push('/');
-    router.refresh();
+    
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+
+      if (res.ok) {
+        router.push('/');
+        router.refresh();
+      } else {
+        alert('Invalid password');
+      }
+    } catch (error) {
+      alert('Login failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

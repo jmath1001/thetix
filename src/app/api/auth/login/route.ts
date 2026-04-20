@@ -1,5 +1,24 @@
 import { NextResponse } from 'next/server';
 
-export async function POST(_req: Request) {
-  return NextResponse.json({ ok: true, demo: true });
+const CORRECT_PASSWORD = process.env.APP_PASSWORD || 'password123';
+
+export async function POST(req: Request) {
+  try {
+    const { password } = await req.json();
+
+    if (password === CORRECT_PASSWORD) {
+      const response = NextResponse.json({ ok: true });
+      response.cookies.set('authenticated', 'true', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+      });
+      return response;
+    }
+
+    return NextResponse.json({ ok: false, error: 'Invalid password' }, { status: 401 });
+  } catch (error) {
+    return NextResponse.json({ ok: false, error: 'Server error' }, { status: 500 });
+  }
 }
