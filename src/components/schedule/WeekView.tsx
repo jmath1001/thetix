@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { PlusCircle, Check, X, Loader2, Trash2, Search } from 'lucide-react';
+import { PlusCircle, Check, X, Loader2, Search } from 'lucide-react';
 import { createInlineStudent, updateAttendance, removeStudentFromSession, toISODate, dayOfWeek, getCentralTimeNow, type Tutor } from '@/lib/useScheduleData';
 import { getSessionsForDay } from '@/components/constants';
 import { MAX_CAPACITY } from '@/components/constants';
@@ -758,7 +758,7 @@ export function WeekView({
                                                   style={removingId === (student.rowId || student.id)
                                                     ? { background: '#fee2e2', color: '#dc2626' }
                                                     : { background: 'transparent', color: '#6b7280' }}>
-                                                  <Trash2 size={9} strokeWidth={2} />
+                                                  <X size={9} strokeWidth={2} />
                                                 </button>
                                               </div>
                                             </div>
@@ -916,7 +916,7 @@ export function WeekView({
                                                 style={removingId === (student.rowId || student.id)
                                                   ? { background: '#fee2e2', color: '#dc2626' }
                                                   : { background: 'transparent', color: '#6b7280' }}>
-                                                <Trash2 size={7} strokeWidth={2} />
+                                                <X size={7} strokeWidth={2} />
                                               </button>
                                               <div className="flex-1 min-w-0"
                                                 style={{ cursor: bulkRemoveMode ? 'pointer' : 'default' }}>

@@ -8,7 +8,7 @@ import {
   type RecurringSeries, type Tutor, type Student, toISODate,
 } from '@/lib/useScheduleData';
 import { getSessionsForDay } from '@/components/constants';
-import { Repeat, X, AlertTriangle, RefreshCw, Calendar, User, BookOpen, Edit3, Clock, Pencil, Trash2, ChevronDown, ChevronUp, Search } from 'lucide-react';
+import { Repeat, X, AlertTriangle, RefreshCw, Calendar, User, BookOpen, Edit3, Clock, Pencil, ChevronDown, ChevronUp, Search } from 'lucide-react';
 import { logEvent } from '@/lib/analytics';
 
 const DAY_NAMES: Record<number, string> = {
@@ -194,7 +194,7 @@ function SeriesCard({ s, tutors, students, today, onEdit, onCancelSeries, onDele
             )}
             {s.status !== 'active' && (
               <button onClick={() => setConfirmAction('delete')} className="p-1.5 rounded-lg text-[#cbd5e1] transition-colors hover:text-[#dc2626] hover:bg-[#fff5f5]">
-                <Trash2 size={14}/>
+                <X size={14}/>
               </button>
             )}
             <button onClick={toggle} className="p-1.5 rounded-lg text-[#94a3b8] transition-colors hover:bg-[#f8fafc]">

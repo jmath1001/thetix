@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { PlusCircle, Check, Clock, Calendar as CalendarIcon, X, Loader2, Trash2, Search } from 'lucide-react';
+import { PlusCircle, Check, Clock, Calendar as CalendarIcon, X, Loader2, Search } from 'lucide-react';
 import { createInlineStudent, updateAttendance, removeStudentFromSession, toISODate, dayOfWeek, type Tutor } from '@/lib/useScheduleData';
 import { getSessionsForDay } from '@/components/constants';
 import { MAX_CAPACITY } from '@/components/constants';
@@ -1229,7 +1229,7 @@ export function TodayView({
                                               style={removingId === (student.rowId || student.id)
                                                 ? { background: '#fee2e2', color: '#dc2626' }
                                                 : { background: 'transparent', color: '#6b7280' }}>
-                                              <Trash2 size={11} strokeWidth={2} />
+                                              <X size={11} strokeWidth={2} />
                                             </button>
                                           </div>
                                         </div>
@@ -1365,7 +1365,7 @@ export function TodayView({
                                             style={removingId === (student.rowId || student.id)
                                               ? { background: '#fee2e2', color: '#dc2626' }
                                               : { background: 'transparent', color: '#6b7280' }}>
-                                            <Trash2 size={8} strokeWidth={2} />
+                                            <X size={8} strokeWidth={2} />
                                           </button>
                                           <div className="flex-1 min-w-0 cursor-pointer"
                                             onClick={() => setSelectedSessionWithNotes({ ...session, activeStudent: student, dayName: dayLabel, date: todayIso, tutorName: tutor.name, block })}>

@@ -390,7 +390,7 @@ function StudentRow({
           </button>
           <button onClick={handleDelete}
             className={`p-1.5 rounded-md transition-all ${confirmDelete ? 'bg-red-50 text-red-500' : 'text-[#cbd5e1] hover:text-red-400'}`}>
-            {confirmDelete ? '?' : <Trash2 size={11} />}
+            {confirmDelete ? '?' : <X size={11} />}
           </button>
           <button onClick={() => setExpanded(e => !e)} className="p-1 text-[#94a3b8] hover:text-[#475569] transition-colors">
             {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
