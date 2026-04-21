@@ -6,8 +6,13 @@ const CORRECT_PASSWORD = process.env.APP_PASSWORD || 'password123';
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   
-  // Allow login page and API auth routes
-  if (pathname === '/login' || pathname.startsWith('/api/auth')) {
+  // Public routes that should never require auth cookie.
+  if (
+    pathname === '/login' ||
+    pathname === '/confirm' ||
+    pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/api/confirm')
+  ) {
     return NextResponse.next();
   }
   

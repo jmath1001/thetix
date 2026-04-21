@@ -50,6 +50,10 @@ function formatSentAt(iso: string) {
   catch { return iso; }
 }
 
+function applyTemplate(template: string, values: Record<string, string>) {
+  return template.replace(/{{\s*(name|date|time|link)\s*}}/gi, (_, key: string) => values[key.toLowerCase()] ?? '');
+}
+
 export default function ContactCenter() {
   const [settings, setSettings]               = useState<Settings | null>(null);
   const [settingsError, setSettingsError]     = useState<string | null>(null);
@@ -268,6 +272,16 @@ export default function ContactCenter() {
     acc[key].push(log);
     return acc;
   }, {});
+
+  const previewCandidate = candidates[0];
+  const previewValues = {
+    name: previewCandidate?.studentName ?? 'Alex Student',
+    date: previewCandidate?.sessionDate ?? dispatchDate,
+    time: previewCandidate?.sessionTime ?? '16:30',
+    link: typeof window !== 'undefined' ? `${window.location.origin}/confirm?token=preview-token` : 'https://example.com/confirm?token=preview-token',
+  };
+  const previewSubject = applyTemplate(draftSubject || DEFAULT_SETTINGS.reminder_subject, previewValues);
+  const previewBody = applyTemplate(draftBody || DEFAULT_SETTINGS.reminder_body, previewValues);
 
   return (
     <div className="min-h-screen" style={{ background: '#f8fafc', fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif' }}>
@@ -550,6 +564,29 @@ export default function ContactCenter() {
                         className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none" style={{ border: '2px solid #dbe3ee', color: '#0f172a', lineHeight: 1.65 }}
                         onFocus={e => e.currentTarget.style.borderColor = '#2563eb'}
                         onBlur={e => e.currentTarget.style.borderColor = '#dbe3ee'} />
+                    </div>
+
+                    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #dbe3ee', background: '#f8fafc' }}>
+                      <div className="px-4 py-3" style={{ background: '#0f172a', borderBottom: '1px solid #020617' }}>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white">Live Preview</p>
+                        <p className="text-[11px] mt-1" style={{ color: '#cbd5e1' }}>This is exactly how placeholders resolve before send.</p>
+                      </div>
+                      <div className="p-4 space-y-3">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#64748b' }}>Subject</p>
+                          <p className="mt-1 text-sm font-semibold" style={{ color: '#0f172a' }}>{previewSubject}</p>
+                        </div>
+                        <div className="rounded-xl bg-white p-4" style={{ border: '1px solid #e2e8f0' }}>
+                          <div className="rounded-lg p-3" style={{ background: '#991b1b' }}>
+                            <p className="text-sm font-black text-white">{settings?.center_name || DEFAULT_SETTINGS.center_name}</p>
+                            <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.82)' }}>Session Reminder</p>
+                          </div>
+                          <div className="mt-3 text-sm" style={{ color: '#111827', whiteSpace: 'pre-line', lineHeight: 1.6 }}>{previewBody}</div>
+                          <a href={previewValues.link} className="inline-block mt-4 px-4 py-2 rounded-lg text-sm font-bold text-white no-underline" style={{ background: '#991b1b' }}>
+                            ✓ Confirm Attendance
+                          </a>
+                        </div>
+                      </div>
                     </div>
                   </>
                 )}

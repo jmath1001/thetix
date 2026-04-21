@@ -17,6 +17,7 @@ const REMINDER_LOGS = DB.reminderLogs;
 const EMAIL_SEND_MODE = (process.env.EMAIL_SEND_MODE ?? "redirect").toLowerCase();
 const REMINDER_CRON_ENABLED = process.env.REMINDER_CRON_ENABLED === "true";
 const TEST_RECIPIENT = process.env.EMAIL_TEST_RECIPIENT?.trim() || process.env.GOOGLE_EMAIL?.trim() || null;
+const BRAND_RED = "#991b1b";
 
 type DeliveryMode = "live" | "redirect" | "disabled";
 
@@ -50,33 +51,46 @@ type DeliveryGuard = {
   shouldMarkSent: boolean;
 };
 
+type TemplateTokens = {
+  name: string;
+  date: string;
+  time: string;
+  link: string;
+};
+
 function pickRelation(row: any, key: string) {
   return Array.isArray(row?.[key]) ? row[key][0] : row?.[key];
 }
 
+function applyTemplate(template: string, tokens: TemplateTokens) {
+  return template.replace(/{{\s*(name|date|time|link)\s*}}/gi, (_, rawKey: string) => {
+    const key = String(rawKey).toLowerCase() as keyof TemplateTokens;
+    return tokens[key] ?? "";
+  });
+}
+
 function buildStudentHtml(settings: any, studentName: string, session: any, confirmLink: string) {
-  const body = settings.reminder_body
-    .replace("{{name}}", `<strong>${studentName}</strong>`)
-    .replace("{{date}}", `<strong>${session.session_date}</strong>`)
-    .replace("{{time}}", `<strong>${session.time}</strong>`)
-    .replace("{{link}}", "")
-    .replace(/\n/g, "<br>")
-    .trim();
+  const body = applyTemplate(settings.reminder_body, {
+    name: `<strong>${studentName}</strong>`,
+    date: `<strong>${session.session_date}</strong>`,
+    time: `<strong>${session.time}</strong>`,
+    link: `<a href="${confirmLink}" style="color:${BRAND_RED};text-decoration:underline;">${confirmLink}</a>`,
+  }).replace(/\n/g, "<br>").trim();
   return `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:0;background:#f9fafb;font-family:ui-sans-serif,system-ui,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;padding:32px 16px;"><tr><td align="center">
   <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:white;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden;">
-    <tr><td style="background:#dc2626;padding:20px 28px;">
+    <tr><td style="background:${BRAND_RED};padding:20px 28px;">
       <p style="margin:0;font-size:18px;font-weight:800;color:white;">${settings.center_name}</p>
       <p style="margin:4px 0 0;font-size:12px;color:rgba(255,255,255,0.8);">Session Reminder</p>
     </td></tr>
     <tr><td style="padding:28px;">
       <p style="margin:0 0 16px;font-size:15px;color:#111827;line-height:1.6;">${body}</p>
       <table cellpadding="0" cellspacing="0" style="margin:24px 0 0;"><tr>
-        <td style="border-radius:8px;background:#dc2626;">
+        <td style="border-radius:8px;background:${BRAND_RED};">
           <a href="${confirmLink}" style="display:inline-block;padding:13px 28px;font-size:14px;font-weight:700;color:white;text-decoration:none;border-radius:8px;">✓ Confirm Attendance</a>
         </td>
       </tr></table>
-      <p style="margin:16px 0 0;font-size:11px;color:#9ca3af;">If the button doesn't work: <a href="${confirmLink}" style="color:#dc2626;">${confirmLink}</a></p>
+      <p style="margin:16px 0 0;font-size:11px;color:#9ca3af;">If the button doesn't work: <a href="${confirmLink}" style="color:${BRAND_RED};">${confirmLink}</a></p>
     </td></tr>
     <tr><td style="padding:16px 28px;background:#f9fafb;border-top:1px solid #f3f4f6;">
       <p style="margin:0;font-size:11px;color:#9ca3af;">— ${settings.center_name} Automated Reminders</p>
@@ -88,7 +102,7 @@ function buildGuardianHtml(settings: any, guardianName: string, studentName: str
   return `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:0;background:#f9fafb;font-family:ui-sans-serif,system-ui,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;padding:32px 16px;"><tr><td align="center">
   <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:white;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden;">
-    <tr><td style="background:#dc2626;padding:20px 28px;">
+    <tr><td style="background:${BRAND_RED};padding:20px 28px;">
       <p style="margin:0;font-size:18px;font-weight:800;color:white;">${settings.center_name}</p>
       <p style="margin:4px 0 0;font-size:12px;color:rgba(255,255,255,0.8);">Parent Notification</p>
     </td></tr>
@@ -149,20 +163,13 @@ async function sendProtectedMail({
   }
 
   const recipient = guard.mode === "live" ? to : guard.redirectTo!;
-  const subjectPrefix = guard.mode === "redirect" ? `[TEST for ${to}] ` : "";
-  const textPrefix = guard.mode === "redirect"
-    ? `TEST MODE\nOriginal recipient: ${to}\n\n`
-    : "";
-  const htmlPrefix = guard.mode === "redirect"
-    ? `<div style="margin:0 0 16px;padding:12px 14px;border-radius:10px;background:#fff7ed;border:1px solid #fdba74;color:#9a3412;font-size:12px;font-weight:700;">TEST MODE<br/>Original recipient: ${to}</div>`
-    : "";
 
   await transporter.sendMail({
     from: `"Prep Center" <${process.env.GOOGLE_EMAIL}>`,
     to: recipient,
-    subject: `${subjectPrefix}${subject}`,
-    text: `${textPrefix}${text}`,
-    html: `${htmlPrefix}${html}`,
+    subject,
+    text,
+    html,
   });
 
   return { delivered: true, recipient };
@@ -208,16 +215,18 @@ async function sendReminderForEntry({
   let sent = 0;
 
   if (student.email) {
-    const plainBody = settings.reminder_body
-      .replace("{{name}}", student.name)
-      .replace("{{date}}", session.session_date)
-      .replace("{{time}}", session.time)
-      .replace("{{link}}", confirmLink);
+    const tokens: TemplateTokens = {
+      name: student.name ?? "",
+      date: session.session_date ?? "",
+      time: session.time ?? "",
+      link: confirmLink,
+    };
+    const plainBody = applyTemplate(settings.reminder_body ?? "", tokens);
     const result = await sendProtectedMail({
       transporter,
       guard,
       to: student.email,
-      subject: settings.reminder_subject,
+      subject: applyTemplate(settings.reminder_subject ?? "", tokens),
       text: plainBody,
       html: buildStudentHtml(settings, student.name, session, confirmLink),
     });
