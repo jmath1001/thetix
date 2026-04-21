@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { PlusCircle, Check, X, Loader2, Search } from 'lucide-react';
-import { createInlineStudent, updateAttendance, updateSessionStudentTopic, removeStudentFromSession, toISODate, dayOfWeek, getCentralTimeNow, type Tutor } from '@/lib/useScheduleData';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { PlusCircle, Check, X, Loader2, Trash2, Search, ChevronDown } from 'lucide-react';
+import { createInlineStudent, updateAttendance, removeStudentFromSession, updateSessionTopic, toISODate, dayOfWeek, getCentralTimeNow, type Tutor } from '@/lib/useScheduleData';
 import { getSessionsForDay } from '@/components/constants';
 import { MAX_CAPACITY } from '@/components/constants';
 import { ACTIVE_DAYS, DAY_NAMES, getTutorPaletteByIndex } from './scheduleConstants';
-import { TopicCombobox } from './TopicCombobox';
 import { isTutorAvailable } from './scheduleUtils';
 import { logEvent } from '@/lib/analytics';
 
@@ -91,25 +90,9 @@ export function WeekView({
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [draggingTopic, setDraggingTopic] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
-  const [updatingTopicKey, setUpdatingTopicKey] = useState<string | null>(null);
+  const [topicEditRowId, setTopicEditRowId] = useState<string | null>(null);
+  const [topicEditValue, setTopicEditValue] = useState('');
   const [slotFilterQuery, setSlotFilterQuery] = useState('');
-  const filterInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'f' && !e.shiftKey) {
-        const active = document.activeElement;
-        const isTyping = active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || active instanceof HTMLSelectElement;
-        if (!isTyping) {
-          e.preventDefault();
-          filterInputRef.current?.focus();
-          filterInputRef.current?.select();
-        }
-      }
-    };
-    document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
-  }, [])
 
   const normalizedSlotFilter = slotFilterQuery.trim().toLowerCase();
   const hasSlotFilter = normalizedSlotFilter.length > 0;
@@ -277,17 +260,6 @@ export function WeekView({
     return null;
   };
 
-  const handleTopicChange = async (rowId: string | undefined, topic: string) => {
-    if (!rowId) return;
-    setUpdatingTopicKey(rowId);
-    try {
-      await updateSessionStudentTopic({ rowId, topic });
-      refetch();
-    } finally {
-      setUpdatingTopicKey(null);
-    }
-  };
-
   const renderInlineForm = (tutor: Tutor, date: string, block: any, palette: any) => {
     const key   = slotKey(tutor.id, date, block.time);
     const form  = forms[key];
@@ -336,8 +308,7 @@ export function WeekView({
                     patchForm(key, { student: s, query: s.name, topic: autoTopic });
                     setOpenDropdown(null);
                   }}>
-                  <span>{s.name}</span>
-                  {s.grade   && <span className="ml-2 text-[9px] font-normal" style={{ color: '#9ca3af' }}>Gr.{s.grade}</span>}
+                  <span>{s.name}{s.grade ? ` (${s.grade})` : ''}</span>
                   {s.subject && <span className="ml-2 text-[9px] font-normal" style={{ color: '#a5b4fc' }}>{s.subject}</span>}
                 </button>
               ))}
@@ -356,12 +327,15 @@ export function WeekView({
             </div>
           )}
         </div>
-        <select value={selectedTopicOption} onChange={e => patchForm(key, { topic: e.target.value === '__custom__' ? '' : e.target.value })}
-          className="w-full text-xs font-semibold rounded-lg px-2.5 py-1.5 outline-none"
-          style={{ background: '#f3f4f6', border: '1px solid #e5e7eb', color: '#374151' }}>
-          {topics.map(t => <option key={t} value={t}>{t}</option>)}
-          <option value="__custom__">Custom topic...</option>
-        </select>
+        <div className="relative">
+          <select value={selectedTopicOption} onChange={e => patchForm(key, { topic: e.target.value === '__custom__' ? '' : e.target.value })}
+            className="w-full text-xs font-semibold rounded-lg px-2.5 py-1.5 outline-none"
+            style={{ background: '#f3f4f6', border: '1px solid #e5e7eb', color: '#374151', appearance: 'none', paddingRight: 22 }}>
+            {topics.map(t => <option key={t} value={t}>{t}</option>)}
+            <option value="__custom__">Custom topic...</option>
+          </select>
+          <ChevronDown size={11} style={{ position: 'absolute', right: 7, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
+        </div>
         {selectedTopicOption === '__custom__' && (
           <input
             type="text"
@@ -465,30 +439,29 @@ export function WeekView({
       <div className="sticky z-20 rounded-xl overflow-hidden"
         style={{
           top: 44,
-          border: hasSlotFilter ? '2px solid #6366f1' : '2px solid #c7d2fe',
-          boxShadow: hasSlotFilter ? '0 0 0 3px rgba(99,102,241,0.12), 0 2px 8px rgba(99,102,241,0.15)' : '0 1px 4px rgba(15,23,42,0.08)',
+          border: hasSlotFilter ? '2px solid #6366f1' : '2px solid #e2e8f0',
+          boxShadow: hasSlotFilter ? '0 0 0 3px rgba(99,102,241,0.12)' : '0 2px 8px rgba(15,23,42,0.06)',
         }}>
-        <div className="flex items-center" style={{ background: hasSlotFilter ? 'linear-gradient(90deg,#4f46e5,#7c3aed)' : 'linear-gradient(90deg,#312e81,#3730a3)' }}>
+        <div className="flex items-center" style={{ background: hasSlotFilter ? 'linear-gradient(90deg,#4f46e5,#7c3aed)' : '#1e293b' }}>
           {/* Label */}
           <div className="flex items-center gap-1.5 px-2.5 shrink-0 self-stretch">
-            <Search size={11} style={{ color: 'rgba(255,255,255,0.85)' }} />
-            <span className="text-[8px] font-black uppercase tracking-widest whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.9)' }}>Filter Slots</span>
+            <Search size={11} style={{ color: 'rgba(255,255,255,0.75)' }} />
+            <span className="text-[8px] font-black uppercase tracking-widest whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.8)' }}>Filter</span>
           </div>
           {/* Input */}
           <div className="relative flex-1">
             <input
-              ref={filterInputRef}
               type="text"
               value={slotFilterQuery}
               onChange={(e) => setSlotFilterQuery(e.target.value)}
-              placeholder="Start typing — subject, student, tutor…"
+              placeholder="Subject, student, tutor, or time…"
               className="w-full py-2 text-xs font-semibold outline-none"
               style={{
                 background: hasSlotFilter ? '#f5f3ff' : 'white',
                 color: '#1f2937',
                 paddingLeft: 10,
                 paddingRight: slotFilterQuery ? 32 : 10,
-                borderLeft: '1px solid rgba(255,255,255,0.2)',
+                borderLeft: '1px solid rgba(255,255,255,0.15)',
               }}
             />
             {slotFilterQuery && (
@@ -502,17 +475,15 @@ export function WeekView({
               </button>
             )}
           </div>
-          {/* Right badge */}
-          {hasSlotFilter ? (
+          {/* Count badge */}
+          {hasSlotFilter && (
             <span className="shrink-0 text-[9px] font-black px-2 mx-2 py-0.5 rounded-full"
-              style={{ background: 'rgba(255,255,255,0.22)', color: 'white', whiteSpace: 'nowrap' }}>
-              live ✦
+              style={{ background: 'rgba(255,255,255,0.2)', color: 'white', whiteSpace: 'nowrap' }}>
+              filtering
             </span>
-          ) : (
-            <kbd className="shrink-0 text-[8px] font-bold px-1.5 py-0.5 rounded mx-2"
-              style={{ background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.18)', whiteSpace: 'nowrap', fontFamily: 'ui-monospace, monospace' }}>
-              Ctrl+F
-            </kbd>
+          )}
+          {!hasSlotFilter && (
+            <span className="shrink-0 text-[9px] px-2 mr-1" style={{ color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>all days</span>
           )}
         </div>
       </div>
@@ -721,16 +692,12 @@ export function WeekView({
                                               }
                                               setSelectedSessionWithNotes({ ...session, activeStudent: student, dayName: dayLabel, date: isoDate, tutorName: tutor.name, block });
                                             }}>
-                                            <div className="flex items-center gap-1.5">
-                                              <div className="flex items-center gap-1 min-w-0 flex-1">
-                                                <p className="text-xs font-bold leading-tight truncate" style={{ color: '#111827', textDecoration: student.status === 'no-show' ? 'line-through' : 'none' }}>
-                                                  {student.seriesId && <span className="text-[9px] font-black mr-0.5" style={{ color: '#7c3aed' }}>↺</span>}
-                                                  {student.name}
-                                                  {student.grade ? <span style={{ color: '#6b7280' }}> ({student.grade})</span> : null}
-                                                </p>
+                                            <div className="flex justify-between items-start mb-1">
+                                              <div className="flex items-center gap-1.5 min-w-0">
+                                                <p className="text-xs font-bold leading-tight truncate" style={{ color: '#111827', textDecoration: student.status === 'no-show' ? 'line-through' : 'none' }}>{student.name}{student.grade ? ` (${student.grade})` : ''}</p>
                                                 {attendanceBadge(student.status) && (
                                                   <span
-                                                    className="shrink-0 text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider"
+                                                    className="text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider"
                                                     style={{
                                                       background: attendanceBadge(student.status)!.bg,
                                                       color: attendanceBadge(student.status)!.color,
@@ -741,14 +708,7 @@ export function WeekView({
                                                   </span>
                                                 )}
                                               </div>
-                                              <TopicCombobox
-                                                value={student.topic ?? 'General'}
-                                                topics={Array.from(new Set(['General', ...(tutor.subjects ?? []), student.topic || 'General']))}
-                                                onChange={(v) => void handleTopicChange(student.rowId, v)}
-                                                disabled={updatingTopicKey === student.rowId}
-                                                size="md"
-                                              />
-                                              <div className="flex items-center gap-1 shrink-0">
+                                              <div className="flex items-center gap-1 shrink-0 ml-1">
                                                 {student.confirmationStatus === 'confirmed'            && <span style={{ color: '#15803d', fontSize: 10 }}>✓</span>}
                                                 {student.confirmationStatus === 'cancelled'            && <span style={{ color: '#dc2626', fontSize: 10 }}>✕</span>}
                                                 {student.confirmationStatus === 'reschedule_requested' && <span style={{ color: '#334155', fontSize: 10 }}>↗</span>}
@@ -782,11 +742,59 @@ export function WeekView({
                                                   style={removingId === (student.rowId || student.id)
                                                     ? { background: '#fee2e2', color: '#dc2626' }
                                                     : { background: 'transparent', color: '#6b7280' }}>
-                                                  <X size={9} strokeWidth={2} />
+                                                  <Trash2 size={9} strokeWidth={2} />
                                                 </button>
                                               </div>
                                             </div>
-                                            {student.notes && <p className="text-[9px] mt-1 italic truncate" style={{ color: '#6b7280' }}>📝 {student.notes}</p>}
+                                            <div className="flex items-center gap-1.5 mt-0.5" onClick={e => e.stopPropagation()}>
+                                              {topicEditRowId === student.rowId ? (
+                                                <input
+                                                  autoFocus
+                                                  type="text"
+                                                  value={topicEditValue}
+                                                  onChange={e => setTopicEditValue(e.target.value)}
+                                                  onBlur={async () => {
+                                                    if (topicEditValue.trim()) {
+                                                      await updateSessionTopic({ rowId: student.rowId, topic: topicEditValue.trim() });
+                                                      refetch();
+                                                    }
+                                                    setTopicEditRowId(null);
+                                                  }}
+                                                  onKeyDown={e => {
+                                                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                                                    if (e.key === 'Escape') setTopicEditRowId(null);
+                                                  }}
+                                                  className="text-[10px] font-semibold rounded px-1.5 py-0.5 outline-none"
+                                                  style={{ background: '#f3f4f6', border: `1px solid ${palette.tag}`, color: '#374151', width: 110 }}
+                                                />
+                                              ) : (
+                                                <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                                                  <select
+                                                    value={topicsFor(tutor).includes(student.topic) ? student.topic : '__other__'}
+                                                    onChange={async e => {
+                                                      if (e.target.value === '__custom__') {
+                                                        setTopicEditRowId(student.rowId);
+                                                        setTopicEditValue(student.topic);
+                                                      } else {
+                                                        await updateSessionTopic({ rowId: student.rowId, topic: e.target.value });
+                                                        refetch();
+                                                      }
+                                                    }}
+                                                    className="text-[10px] font-semibold uppercase tracking-tight outline-none"
+                                                    style={{ color: palette.tag, background: 'transparent', border: 'none', appearance: 'none', cursor: 'pointer', paddingRight: 13, maxWidth: 130 }}
+                                                  >
+                                                    {topicsFor(tutor).map(t => <option key={t} value={t}>{t}</option>)}
+                                                    {!topicsFor(tutor).includes(student.topic) && <option value="__other__">{student.topic}</option>}
+                                                    <option value="__custom__">Custom…</option>
+                                                  </select>
+                                                  <ChevronDown size={9} style={{ position: 'absolute', right: 0, color: palette.tag, opacity: 0.7, pointerEvents: 'none' }} />
+                                                </div>
+                                              )}
+                                              {student.seriesId && (
+                                                <span className="text-[8px] font-black px-1 py-0.5 rounded" style={{ background: '#ede9fe', color: '#7c3aed', letterSpacing: '0.02em' }}>↺ REC</span>
+                                              )}
+                                            </div>
+                                            {student.notes && <p className="text-[10px] mt-1 italic truncate" style={{ color: '#6b7280' }}>📝 {student.notes}</p>}
                                             {bulkRemoveMode && (
                                               <div className="mt-2 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: isSelected ? '#7c3aed' : '#6b7280' }}>
                                                 <span style={{ width: 10, height: 10, borderRadius: 999, display: 'inline-block', background: isSelected ? '#7c3aed' : '#d1d5db' }} />
@@ -933,18 +941,15 @@ export function WeekView({
                                                 style={removingId === (student.rowId || student.id)
                                                   ? { background: '#fee2e2', color: '#dc2626' }
                                                   : { background: 'transparent', color: '#6b7280' }}>
-                                                <X size={7} strokeWidth={2} />
+                                                <Trash2 size={7} strokeWidth={2} />
                                               </button>
-                                              <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-1"
-                                                  style={{ cursor: bulkRemoveMode ? 'pointer' : 'default' }}>
-                                                  <p className="text-[10px] font-bold leading-none truncate" style={{ color: '#111827', textDecoration: student.status === 'no-show' ? 'line-through' : 'none' }}>
-                                                    {student.seriesId && <span className="text-[9px] font-black mr-0.5" style={{ color: '#7c3aed' }}>↺</span>}
-                                                    {student.name}{student.grade ? ` (${student.grade})` : ''}
-                                                  </p>
+                                              <div className="flex-1 min-w-0"
+                                                style={{ cursor: bulkRemoveMode ? 'pointer' : 'default' }}>
+                                                <div className="flex items-center gap-1">
+                                                  <p className="text-[10px] font-bold leading-none truncate" style={{ color: '#111827', textDecoration: student.status === 'no-show' ? 'line-through' : 'none' }}>{student.name}</p>
                                                   {attendanceBadge(student.status) && (
                                                     <span
-                                                      className="shrink-0 text-[7px] font-black px-1 py-0.5 rounded uppercase tracking-wider"
+                                                      className="text-[7px] font-black px-1 py-0.5 rounded uppercase tracking-wider"
                                                       style={{
                                                         background: attendanceBadge(student.status)!.bg,
                                                         color: attendanceBadge(student.status)!.color,
@@ -954,15 +959,10 @@ export function WeekView({
                                                       {student.status === 'present' ? 'P' : 'NS'}
                                                     </span>
                                                   )}
-                                                    <TopicCombobox
-                                                      value={student.topic ?? 'General'}
-                                                      topics={Array.from(new Set(['General', ...(tutor.subjects ?? []), student.topic || 'General']))}
-                                                      onChange={(v) => void handleTopicChange(student.rowId, v)}
-                                                      disabled={updatingTopicKey === student.rowId}
-                                                      size="sm"
-                                                    />
                                                 </div>
-                                                {student.notes && <p className="text-[8px] mt-0.5 italic truncate" style={{ color: '#6b7280' }}>📝 {student.notes}</p>}
+                                                <p className="text-[8px] leading-none mt-0.5 truncate" style={{ color: palette.tag }}>
+                                                  {student.topic}{student.grade ? ` · Gr.${student.grade}` : ''}{student.seriesId ? ' ↺' : ''}
+                                                </p>
                                               </div>
                                               {bulkRemoveMode && (
                                                 <div className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.16em]" style={{ color: isSelected ? '#7c3aed' : '#6b7280' }}>

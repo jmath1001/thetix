@@ -315,7 +315,7 @@ function StudentRow({
         <div className="flex items-center gap-2 min-w-0 cursor-pointer pr-2" onClick={() => setExpanded(e => !e)}>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-[13px] font-black text-[#0f172a] truncate">{student.name}</span>
+              <span className="text-[13px] font-black text-[#0f172a] truncate">{student.name}{student.grade ? ` (${student.grade})` : ''}</span>
               <span
                 className="rounded-full px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider"
                 style={isActive
@@ -325,7 +325,7 @@ function StudentRow({
               </span>
               {isAtRisk && <AlertTriangle size={10} style={{ color: '#dc2626', flexShrink: 0 }} />}
             </div>
-            {student.grade && <span className="text-[10px] text-[#94a3b8]">Grade {student.grade}</span>}
+
           </div>
         </div>
 

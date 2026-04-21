@@ -574,7 +574,7 @@ export function SchedulePreviewGrid({
                                         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
                                           <div style={{ flex: 1, minWidth: 0 }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginBottom: 2 }}>
-                                              <span style={{ fontSize: 13, fontWeight: 800, color: '#0f172a' }}>{p.student.name}</span>
+                                              <span style={{ fontSize: 13, fontWeight: 800, color: '#0f172a' }}>{p.student.name}{p.student.grade ? ` (${p.student.grade})` : ''}</span>
                                               <span style={{
                                                 fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 20,
                                                 background: sc.badgeBg, color: sc.badgeText,
@@ -584,7 +584,6 @@ export function SchedulePreviewGrid({
                                               </span>
                                             </div>
                                             <div style={{ fontSize: 10, fontWeight: 700, color: '#1e293b' }}>{p.subject}</div>
-                                            {p.student.grade && <div style={{ fontSize: 9, color: '#475569', marginTop: 1 }}>Gr. {p.student.grade}</div>}
                                           </div>
 
                                           {/* Actions */}

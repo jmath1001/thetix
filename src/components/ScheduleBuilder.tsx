@@ -1236,8 +1236,7 @@ export function ScheduleBuilder({
                         {student.name.charAt(0)}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', margin: 0 }}>{student.name}</p>
-                        {student.grade && <p style={{ fontSize: 11, color: '#6b7280', margin: 0 }}>Grade {student.grade}</p>}
+                        <p style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', margin: 0 }}>{student.name}{student.grade ? ` (${student.grade})` : ''}</p>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         {isBooked && <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: '#dcfce7', color: '#15803d', border: '1px solid #86efac' }}>Booked</span>}

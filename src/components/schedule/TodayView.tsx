@@ -1,11 +1,10 @@
 "use client"
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { PlusCircle, Check, Clock, Calendar as CalendarIcon, X, Loader2, Search } from 'lucide-react';
-import { createInlineStudent, updateAttendance, updateSessionStudentTopic, removeStudentFromSession, toISODate, dayOfWeek, type Tutor } from '@/lib/useScheduleData';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { PlusCircle, Check, Clock, Calendar as CalendarIcon, X, Loader2, Trash2, Search, ChevronDown } from 'lucide-react';
+import { createInlineStudent, updateAttendance, removeStudentFromSession, updateSessionTopic, toISODate, dayOfWeek, type Tutor } from '@/lib/useScheduleData';
 import { getSessionsForDay } from '@/components/constants';
 import { MAX_CAPACITY } from '@/components/constants';
 import { ACTIVE_DAYS, DAY_NAMES, getTutorPaletteByIndex } from './scheduleConstants';
-import { TopicCombobox } from './TopicCombobox';
 import { isTutorAvailable } from './scheduleUtils';
 import { logEvent } from '@/lib/analytics';
 
@@ -354,25 +353,9 @@ export function TodayView({
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [draggingTopic, setDraggingTopic] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
-  const [updatingTopicKey, setUpdatingTopicKey] = useState<string | null>(null);
+  const [topicEditRowId, setTopicEditRowId] = useState<string | null>(null);
+  const [topicEditValue, setTopicEditValue] = useState('');
   const [slotFilterQuery, setSlotFilterQuery] = useState('');
-  const filterInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'f' && !e.shiftKey) {
-        const active = document.activeElement;
-        const isTyping = active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || active instanceof HTMLSelectElement;
-        if (!isTyping) {
-          e.preventDefault();
-          filterInputRef.current?.focus();
-          filterInputRef.current?.select();
-        }
-      }
-    };
-    document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
-  }, [])
 
   const todayIso  = toISODate(selectedDate);
   const todayDow  = dayOfWeek(todayIso);
@@ -641,17 +624,6 @@ export function TodayView({
     return 3;
   };
 
-  const handleTopicChange = async (rowId: string | undefined, topic: string) => {
-    if (!rowId) return;
-    setUpdatingTopicKey(rowId);
-    try {
-      await updateSessionStudentTopic({ rowId, topic });
-      refetch();
-    } finally {
-      setUpdatingTopicKey(null);
-    }
-  };
-
   const orderStudentsForDisplay = (students: any[]) =>
     [...students].sort((left, right) => {
       const rankDiff = attendanceSortRank(left.status) - attendanceSortRank(right.status);
@@ -743,8 +715,7 @@ export function TodayView({
                     setOpenDropdown(null);
                   }}
                 >
-                  <span>{s.name}</span>
-                  {s.grade   && <span className="ml-2 text-[9px] font-normal" style={{ color: '#9ca3af' }}>Gr.{s.grade}</span>}
+                  <span>{s.name}{s.grade ? ` (${s.grade})` : ''}</span>
                   {s.subject && <span className="ml-2 text-[9px] font-normal" style={{ color: '#a5b4fc' }}>{s.subject}</span>}
                 </button>
               ))}
@@ -765,15 +736,18 @@ export function TodayView({
         </div>
 
         {/* topic picker + custom */}
-        <select
-          value={selectedTopicOption}
-          onChange={e => patchForm(key, { topic: e.target.value === '__custom__' ? '' : e.target.value })}
-          className="w-full text-xs font-semibold rounded-lg px-2.5 py-1.5 outline-none"
-          style={{ background: '#f3f4f6', border: '1px solid #e5e7eb', color: '#374151' }}
-        >
-          {topics.map(t => <option key={t} value={t}>{t}</option>)}
-          <option value="__custom__">Custom topic...</option>
-        </select>
+        <div className="relative">
+          <select
+            value={selectedTopicOption}
+            onChange={e => patchForm(key, { topic: e.target.value === '__custom__' ? '' : e.target.value })}
+            className="w-full text-xs font-semibold rounded-lg px-2.5 py-1.5 outline-none"
+            style={{ background: '#f3f4f6', border: '1px solid #e5e7eb', color: '#374151', appearance: 'none', paddingRight: 22 }}
+          >
+            {topics.map(t => <option key={t} value={t}>{t}</option>)}
+            <option value="__custom__">Custom topic...</option>
+          </select>
+          <ChevronDown size={11} style={{ position: 'absolute', right: 7, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
+        </div>
         {selectedTopicOption === '__custom__' && (
           <input
             type="text"
@@ -981,24 +955,22 @@ export function TodayView({
           <div className="relative flex-1 min-w-0" data-inline-form>
             <div className="flex items-center gap-1.5 rounded-xl overflow-hidden"
               style={hasSlotFilter
-                ? { border: '2px solid #6366f1', boxShadow: '0 0 0 3px rgba(99,102,241,0.12), 0 2px 8px rgba(99,102,241,0.15)' }
-                : { border: '2px solid #c7d2fe', boxShadow: '0 1px 4px rgba(99,102,241,0.08)' }
-              }>
-              <div className="flex items-center gap-1.5 px-2.5 shrink-0 self-stretch"
-                style={{ background: hasSlotFilter ? 'linear-gradient(90deg,#4f46e5,#7c3aed)' : 'linear-gradient(90deg,#312e81,#3730a3)' }}>
-                <Search size={11} style={{ color: 'rgba(255,255,255,0.85)' }} />
-                <span className="text-[8px] font-black uppercase tracking-widest whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.9)' }}>Filter Slots</span>
+                ? { border: '2px solid #6366f1', boxShadow: '0 0 0 3px rgba(99,102,241,0.12)' }
+                : { border: '2px solid #e2e8f0' }}>
+              <div className="flex items-center gap-1.5 px-2.5 shrink-0"
+                style={{ background: hasSlotFilter ? 'linear-gradient(90deg,#4f46e5,#7c3aed)' : '#1e293b', alignSelf: 'stretch' }}>
+                <Search size={11} style={{ color: 'rgba(255,255,255,0.75)' }} />
+                <span className="text-[8px] font-black uppercase tracking-widest whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.8)' }}>Filter</span>
               </div>
               <input
-                ref={filterInputRef}
                 type="text"
                 value={slotFilterQuery}
                 onChange={(e) => setSlotFilterQuery(e.target.value)}
-                placeholder="Start typing — subject, student, tutor…"
+                placeholder="Subject, student, tutor…"
                 className="flex-1 py-1.5 text-xs font-semibold outline-none bg-white min-w-0"
-                style={{ color: '#1f2937', paddingLeft: 8, paddingRight: slotFilterQuery ? 28 : 8 }}
+                style={{ color: '#1f2937', paddingLeft: 6, paddingRight: slotFilterQuery ? 28 : 8 }}
               />
-              {slotFilterQuery ? (
+              {slotFilterQuery && (
                 <button
                   onMouseDown={(e) => { e.preventDefault(); setSlotFilterQuery(''); }}
                   className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center"
@@ -1007,19 +979,27 @@ export function TodayView({
                 >
                   <X size={10} />
                 </button>
-              ) : (
-                <kbd className="shrink-0 text-[8px] font-bold px-1.5 py-0.5 rounded mr-1.5"
-                  style={{ background: '#eef2ff', color: '#818cf8', border: '1px solid #c7d2fe', fontFamily: 'ui-monospace, monospace', whiteSpace: 'nowrap' }}>
-                  Ctrl+F
-                </kbd>
               )}
               {hasSlotFilter && (
                 <span className="shrink-0 text-[9px] font-black px-2 mr-1 py-0.5 rounded-full"
                   style={{ background: '#ede9fe', color: '#6d28d9', whiteSpace: 'nowrap' }}>
-                  {filteredTodayTutors.length}/{todayTutors.length} tutors
+                  {filteredTodayTutors.length}/{todayTutors.length}
                 </span>
               )}
             </div>
+            {/* Chip dropdown — only shown when focused with no active filter */}
+            {!hasSlotFilter && (
+              <div className="absolute top-full left-0 right-0 mt-1 z-30 rounded-xl overflow-hidden hidden group-focus-within:flex flex-wrap gap-1.5 p-2"
+                style={{ background: 'white', border: '1.5px solid #e2e8f0', boxShadow: '0 8px 20px rgba(15,23,42,0.1)' }}>
+                {['Algebra','Calculus','SAT Math','English/Writing','Physics','Chemistry'].map(chip => (
+                  <button key={chip} onMouseDown={(e) => { e.preventDefault(); setSlotFilterQuery(chip); }}
+                    className="px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wide"
+                    style={{ background: 'white', color: '#475569', border: '1.5px solid #e2e8f0' }}>
+                    {chip}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -1192,16 +1172,12 @@ export function TodayView({
                                           :                               { background: palette.bg, border: `1.5px solid ${palette.border}`, boxShadow: '0 5px 12px rgba(99,102,241,0.1), 0 1px 0 rgba(17,24,39,0.12)' }
                                         }
                                         onClick={() => setSelectedSessionWithNotes({ ...session, activeStudent: student, dayName: dayLabel, date: todayIso, tutorName: tutor.name, block })}>
-                                        <div className="flex items-center gap-1.5">
-                                          <div className="flex items-center gap-1 min-w-0 flex-1">
-                                            <p className="text-sm font-bold leading-tight truncate" style={{ color: '#111827', textDecoration: student.status === 'no-show' ? 'line-through' : 'none' }}>
-                                              {student.seriesId && <span className="text-[10px] font-black mr-0.5" style={{ color: '#7c3aed' }}>↺</span>}
-                                              {student.name}
-                                              {student.grade ? <span style={{ color: '#6b7280' }}> ({student.grade})</span> : null}
-                                            </p>
+                                        <div className="flex justify-between items-start mb-1">
+                                          <div className="flex items-center gap-1.5 min-w-0">
+                                            <p className="text-sm font-bold leading-tight truncate" style={{ color: '#111827', textDecoration: student.status === 'no-show' ? 'line-through' : 'none' }}>{student.name}{student.grade ? ` (${student.grade})` : ''}</p>
                                             {attendanceBadge(student.status) && (
                                               <span
-                                                className="shrink-0 text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider"
+                                                className="text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider"
                                                 style={{
                                                   background: attendanceBadge(student.status)!.bg,
                                                   color: attendanceBadge(student.status)!.color,
@@ -1212,15 +1188,8 @@ export function TodayView({
                                               </span>
                                             )}
                                           </div>
-                                          <TopicCombobox
-                                            value={student.topic ?? 'General'}
-                                            topics={Array.from(new Set(['General', ...(tutor.subjects ?? []), student.topic || 'General']))}
-                                            onChange={(v) => void handleTopicChange(student.rowId, v)}
-                                            disabled={updatingTopicKey === student.rowId}
-                                            size="md"
-                                          />
-                                          <div className="flex items-center gap-1 shrink-0">
-                                            {student.confirmationStatus === 'confirmed'            && <span style={{ color: '#15803d', fontSize: 10 }}>✓</span>}
+                                          <div className="flex items-center gap-1">
+                                            {student.confirmationStatus === 'confirmed'            && <span style={{ color: '#15803d', fontSize: 10 }}>Confirmed</span>}
                                             {student.confirmationStatus === 'cancelled'            && <span style={{ color: '#dc2626', fontSize: 10 }}>✕</span>}
                                             {student.confirmationStatus === 'reschedule_requested' && <span style={{ color: '#334155', fontSize: 10 }}>↗</span>}
                                             <button
@@ -1253,11 +1222,59 @@ export function TodayView({
                                               style={removingId === (student.rowId || student.id)
                                                 ? { background: '#fee2e2', color: '#dc2626' }
                                                 : { background: 'transparent', color: '#6b7280' }}>
-                                              <X size={11} strokeWidth={2} />
+                                              <Trash2 size={11} strokeWidth={2} />
                                             </button>
                                           </div>
                                         </div>
-                                        {student.notes && <p className="text-[9px] mt-1 italic truncate" style={{ color: '#6b7280' }}>📝 {student.notes}</p>}
+                                        <div className="flex items-center gap-1.5 mt-0.5" onClick={e => e.stopPropagation()}>
+                                          {topicEditRowId === student.rowId ? (
+                                            <input
+                                              autoFocus
+                                              type="text"
+                                              value={topicEditValue}
+                                              onChange={e => setTopicEditValue(e.target.value)}
+                                              onBlur={async () => {
+                                                if (topicEditValue.trim()) {
+                                                  await updateSessionTopic({ rowId: student.rowId, topic: topicEditValue.trim() });
+                                                  refetch();
+                                                }
+                                                setTopicEditRowId(null);
+                                              }}
+                                              onKeyDown={e => {
+                                                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                                                if (e.key === 'Escape') setTopicEditRowId(null);
+                                              }}
+                                              className="text-[10px] font-semibold rounded px-1.5 py-0.5 outline-none"
+                                              style={{ background: '#f3f4f6', border: `1px solid ${palette.tag}`, color: '#374151', width: 110 }}
+                                            />
+                                          ) : (
+                                            <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                                              <select
+                                                value={topicsFor(tutor).includes(student.topic) ? student.topic : '__other__'}
+                                                onChange={async e => {
+                                                  if (e.target.value === '__custom__') {
+                                                    setTopicEditRowId(student.rowId);
+                                                    setTopicEditValue(student.topic);
+                                                  } else {
+                                                    await updateSessionTopic({ rowId: student.rowId, topic: e.target.value });
+                                                    refetch();
+                                                  }
+                                                }}
+                                                className="text-[10px] font-semibold uppercase tracking-tight outline-none"
+                                                style={{ color: palette.tag, background: 'transparent', border: 'none', appearance: 'none', cursor: 'pointer', paddingRight: 13, maxWidth: 130 }}
+                                              >
+                                                {topicsFor(tutor).map(t => <option key={t} value={t}>{t}</option>)}
+                                                {!topicsFor(tutor).includes(student.topic) && <option value="__other__">{student.topic}</option>}
+                                                <option value="__custom__">Custom…</option>
+                                              </select>
+                                              <ChevronDown size={9} style={{ position: 'absolute', right: 0, color: palette.tag, opacity: 0.7, pointerEvents: 'none' }} />
+                                            </div>
+                                          )}
+                                          {student.seriesId && (
+                                            <span className="text-[8px] font-black px-1 py-0.5 rounded" style={{ background: '#ede9fe', color: '#7c3aed', letterSpacing: '0.02em' }}>↺ REC</span>
+                                          )}
+                                        </div>
+                                        {student.notes && <p className="text-[10px] mt-1 italic truncate" style={{ color: '#6b7280' }}>📝 {student.notes}</p>}
                                       </div>
                                     ))}
 
@@ -1382,17 +1399,15 @@ export function TodayView({
                                             style={removingId === (student.rowId || student.id)
                                               ? { background: '#fee2e2', color: '#dc2626' }
                                               : { background: 'transparent', color: '#6b7280' }}>
-                                            <X size={8} strokeWidth={2} />
+                                            <Trash2 size={8} strokeWidth={2} />
                                           </button>
-                                          <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-1" onClick={() => setSelectedSessionWithNotes({ ...session, activeStudent: student, dayName: dayLabel, date: todayIso, tutorName: tutor.name, block })}>
-                                              <p className="text-[10px] font-bold leading-none truncate flex-1" style={{ color: '#111827', textDecoration: student.status === 'no-show' ? 'line-through' : 'none' }}>
-                                                {student.seriesId && <span className="text-[9px] font-black mr-0.5" style={{ color: '#7c3aed' }}>↺</span>}
-                                                {student.name}{student.grade ? ` (${student.grade})` : ''}
-                                              </p>
+                                          <div className="flex-1 min-w-0 cursor-pointer"
+                                            onClick={() => setSelectedSessionWithNotes({ ...session, activeStudent: student, dayName: dayLabel, date: todayIso, tutorName: tutor.name, block })}>
+                                            <div className="flex items-center gap-1">
+                                              <p className="text-[10px] font-bold leading-none truncate" style={{ color: '#111827', textDecoration: student.status === 'no-show' ? 'line-through' : 'none' }}>{student.name}</p>
                                               {attendanceBadge(student.status) && (
                                                 <span
-                                                  className="shrink-0 text-[7px] font-black px-1 py-0.5 rounded uppercase tracking-wider"
+                                                  className="text-[7px] font-black px-1 py-0.5 rounded uppercase tracking-wider"
                                                   style={{
                                                     background: attendanceBadge(student.status)!.bg,
                                                     color: attendanceBadge(student.status)!.color,
@@ -1402,15 +1417,10 @@ export function TodayView({
                                                   {student.status === 'present' ? 'P' : 'NS'}
                                                 </span>
                                               )}
-                                              <TopicCombobox
-                                                value={student.topic ?? 'General'}
-                                                topics={Array.from(new Set(['General', ...(tutor.subjects ?? []), student.topic || 'General']))}
-                                                onChange={(v) => void handleTopicChange(student.rowId, v)}
-                                                disabled={updatingTopicKey === student.rowId}
-                                                size="sm"
-                                              />
                                             </div>
-                                            {student.notes && <p className="text-[8px] mt-0.5 italic truncate" style={{ color: '#6b7280' }}>📝 {student.notes}</p>}
+                                            <p className="text-[8px] leading-none mt-0.5 truncate" style={{ color: palette.tag }}>
+                                              {student.topic}{student.grade ? ` · Gr.${student.grade}` : ''}{student.seriesId ? ' ↺' : ''}
+                                            </p>
                                           </div>
                                         </div>
                                       ))}
@@ -1530,8 +1540,7 @@ export function TodayView({
                                     patchForm(openKey, { student: s, query: s.name, topic: autoTopic });
                                     setOpenDropdown(null);
                                   }}>
-                                  <span>{s.name}</span>
-                                  {s.grade && <span className="ml-2 text-xs font-normal" style={{ color: '#9ca3af' }}>Gr.{s.grade}</span>}
+                                  <span>{s.name}{s.grade ? ` (${s.grade})` : ''}</span>
                                   {s.subject && <span className="ml-2 text-xs font-normal" style={{ color: '#a5b4fc' }}>{s.subject}</span>}
                                 </button>
                               ))}

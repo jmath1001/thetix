@@ -482,6 +482,13 @@ export async function updateSessionNotes({ rowId, notes }: {
   if (error) throw error
 }
 
+export async function updateSessionTopic({ rowId, topic }: {
+  rowId: string; topic: string
+}) {
+  const { error } = await supabase.from(SS).update({ topic }).eq('id', rowId)
+  if (error) throw error
+}
+
 export async function moveStudentSession({
   rowId,
   studentId,
@@ -731,21 +738,6 @@ export async function updateConfirmationStatus({ rowId, status }: {
 }) {
   const { error } = await supabase.from(SS)
     .update({ confirmation_status: status }).eq('id', rowId)
-  if (error) throw error
-}
-
-export async function updateSessionStudentTopic({ rowId, topic }: {
-  rowId: string
-  topic: string
-}) {
-  const cleanTopic = topic.trim()
-  if (!cleanTopic) throw new Error('Topic cannot be empty')
-
-  const { error } = await supabase
-    .from(SS)
-    .update({ topic: cleanTopic })
-    .eq('id', rowId)
-
   if (error) throw error
 }
 
