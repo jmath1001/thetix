@@ -1,5 +1,6 @@
 "use client"
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { PlusCircle, Check, Clock, Calendar as CalendarIcon, X, Loader2, Trash2, Search, ChevronDown } from 'lucide-react';
 import { createInlineStudent, updateAttendance, removeStudentFromSession, updateSessionTopic, toISODate, dayOfWeek, type Tutor } from '@/lib/useScheduleData';
 import { getSessionsForDay } from '@/components/constants';
@@ -353,8 +354,12 @@ export function TodayView({
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [draggingTopic, setDraggingTopic] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
-  const [topicEditRowId, setTopicEditRowId] = useState<string | null>(null);
-  const [topicEditValue, setTopicEditValue] = useState('');
+  const [topicDropdownRowId, setTopicDropdownRowId] = useState<string | null>(null);
+  const [topicDropdownPos, setTopicDropdownPos] = useState<{ top?: number; bottom?: number; left: number } | null>(null);
+  const [topicDropdownOptions, setTopicDropdownOptions] = useState<string[]>([]);
+  const [topicDropdownCurrent, setTopicDropdownCurrent] = useState('');
+  const [topicCustomRowId, setTopicCustomRowId] = useState<string | null>(null);
+  const [topicCustomValue, setTopicCustomValue] = useState('');
   const [slotFilterQuery, setSlotFilterQuery] = useState('');
 
   const todayIso  = toISODate(selectedDate);
@@ -566,6 +571,7 @@ export function TodayView({
       if (!(e.target as Element).closest('[data-inline-form]')) {
         setOpenDropdown(null);
       }
+      setTopicDropdownRowId(null);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -715,7 +721,8 @@ export function TodayView({
                     setOpenDropdown(null);
                   }}
                 >
-                  <span>{s.name}{s.grade ? ` (${s.grade})` : ''}</span>
+                  <span>{s.name}</span>
+                  {s.grade   && <span className="ml-2 text-[9px] font-normal" style={{ color: '#9ca3af' }}>Gr.{s.grade}</span>}
                   {s.subject && <span className="ml-2 text-[9px] font-normal" style={{ color: '#a5b4fc' }}>{s.subject}</span>}
                 </button>
               ))}
@@ -736,18 +743,15 @@ export function TodayView({
         </div>
 
         {/* topic picker + custom */}
-        <div className="relative">
-          <select
-            value={selectedTopicOption}
-            onChange={e => patchForm(key, { topic: e.target.value === '__custom__' ? '' : e.target.value })}
-            className="w-full text-xs font-semibold rounded-lg px-2.5 py-1.5 outline-none"
-            style={{ background: '#f3f4f6', border: '1px solid #e5e7eb', color: '#374151', appearance: 'none', paddingRight: 22 }}
-          >
-            {topics.map(t => <option key={t} value={t}>{t}</option>)}
-            <option value="__custom__">Custom topic...</option>
-          </select>
-          <ChevronDown size={11} style={{ position: 'absolute', right: 7, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
-        </div>
+        <select
+          value={selectedTopicOption}
+          onChange={e => patchForm(key, { topic: e.target.value === '__custom__' ? '' : e.target.value })}
+          className="w-full text-xs font-semibold rounded-lg px-2.5 py-1.5 outline-none"
+          style={{ background: '#f3f4f6', border: '1px solid #e5e7eb', color: '#374151' }}
+        >
+          {topics.map(t => <option key={t} value={t}>{t}</option>)}
+          <option value="__custom__">Custom topic...</option>
+        </select>
         {selectedTopicOption === '__custom__' && (
           <input
             type="text"
@@ -1227,48 +1231,21 @@ export function TodayView({
                                           </div>
                                         </div>
                                         <div className="flex items-center gap-1.5 mt-0.5" onClick={e => e.stopPropagation()}>
-                                          {topicEditRowId === student.rowId ? (
-                                            <input
-                                              autoFocus
-                                              type="text"
-                                              value={topicEditValue}
-                                              onChange={e => setTopicEditValue(e.target.value)}
-                                              onBlur={async () => {
-                                                if (topicEditValue.trim()) {
-                                                  await updateSessionTopic({ rowId: student.rowId, topic: topicEditValue.trim() });
-                                                  refetch();
-                                                }
-                                                setTopicEditRowId(null);
-                                              }}
-                                              onKeyDown={e => {
-                                                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                                                if (e.key === 'Escape') setTopicEditRowId(null);
-                                              }}
+                                          {topicCustomRowId === student.rowId ? (
+                                            <input autoFocus type="text" value={topicCustomValue}
+                                              onChange={e => setTopicCustomValue(e.target.value)}
+                                              onBlur={async () => { if (topicCustomValue.trim()) { await updateSessionTopic({ rowId: student.rowId, topic: topicCustomValue.trim() }); refetch(); } setTopicCustomRowId(null); }}
+                                              onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') setTopicCustomRowId(null); }}
                                               className="text-[10px] font-semibold rounded px-1.5 py-0.5 outline-none"
-                                              style={{ background: '#f3f4f6', border: `1px solid ${palette.tag}`, color: '#374151', width: 110 }}
-                                            />
+                                              style={{ background: '#f3f4f6', border: `1px solid ${palette.tag}`, color: '#374151', width: 110 }} />
                                           ) : (
-                                            <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-                                              <select
-                                                value={topicsFor(tutor).includes(student.topic) ? student.topic : '__other__'}
-                                                onChange={async e => {
-                                                  if (e.target.value === '__custom__') {
-                                                    setTopicEditRowId(student.rowId);
-                                                    setTopicEditValue(student.topic);
-                                                  } else {
-                                                    await updateSessionTopic({ rowId: student.rowId, topic: e.target.value });
-                                                    refetch();
-                                                  }
-                                                }}
-                                                className="text-[10px] font-semibold uppercase tracking-tight outline-none"
-                                                style={{ color: palette.tag, background: 'transparent', border: 'none', appearance: 'none', cursor: 'pointer', paddingRight: 13, maxWidth: 130 }}
-                                              >
-                                                {topicsFor(tutor).map(t => <option key={t} value={t}>{t}</option>)}
-                                                {!topicsFor(tutor).includes(student.topic) && <option value="__other__">{student.topic}</option>}
-                                                <option value="__custom__">Custom…</option>
-                                              </select>
-                                              <ChevronDown size={9} style={{ position: 'absolute', right: 0, color: palette.tag, opacity: 0.7, pointerEvents: 'none' }} />
-                                            </div>
+                                            <button
+                                              onClick={e => { const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); const spaceBelow = window.innerHeight - r.bottom; const pos = spaceBelow < 200 ? { bottom: window.innerHeight - r.top + 4, left: r.left } : { top: r.bottom + 4, left: r.left }; setTopicDropdownPos(pos); setTopicDropdownOptions(topicsFor(tutor)); setTopicDropdownCurrent(student.topic); setTopicDropdownRowId(topicDropdownRowId === student.rowId ? null : student.rowId); }}
+                                              className="inline-flex items-center gap-0.5 outline-none"
+                                              style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: palette.tag }}>
+                                              <span className="text-[10px] font-semibold uppercase tracking-tight">{student.topic}</span>
+                                              <ChevronDown size={9} style={{ opacity: 0.7, flexShrink: 0 }} />
+                                            </button>
                                           )}
                                           {student.seriesId && (
                                             <span className="text-[8px] font-black px-1 py-0.5 rounded" style={{ background: '#ede9fe', color: '#7c3aed', letterSpacing: '0.02em' }}>↺ REC</span>
@@ -1540,7 +1517,8 @@ export function TodayView({
                                     patchForm(openKey, { student: s, query: s.name, topic: autoTopic });
                                     setOpenDropdown(null);
                                   }}>
-                                  <span>{s.name}{s.grade ? ` (${s.grade})` : ''}</span>
+                                  <span>{s.name}</span>
+                                  {s.grade && <span className="ml-2 text-xs font-normal" style={{ color: '#9ca3af' }}>Gr.{s.grade}</span>}
                                   {s.subject && <span className="ml-2 text-xs font-normal" style={{ color: '#a5b4fc' }}>{s.subject}</span>}
                                 </button>
                               ))}
@@ -1640,6 +1618,33 @@ export function TodayView({
           </div>
         )}
       </div>
+
+      {/* Portal topic dropdown — renders at body level, escapes all overflow containers */}
+      {topicDropdownRowId && topicDropdownPos && typeof document !== 'undefined' && createPortal(
+        <div
+          onMouseDown={e => e.stopPropagation()}
+          style={{ position: 'fixed', top: topicDropdownPos.top, bottom: topicDropdownPos.bottom, left: topicDropdownPos.left, zIndex: 9999, background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.14)', minWidth: 160, overflow: 'hidden' }}
+        >
+          {topicDropdownOptions.map(t => (
+            <button key={t}
+              onMouseDown={async () => { await updateSessionTopic({ rowId: topicDropdownRowId, topic: t }); refetch(); setTopicDropdownRowId(null); }}
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 14px', fontSize: 11, fontWeight: 600, color: t === topicDropdownCurrent ? '#4f46e5' : '#111827', background: 'white', border: 'none', cursor: 'pointer' }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#f3f4f6')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'white')}
+            >{t}</button>
+          ))}
+          {!topicDropdownOptions.includes(topicDropdownCurrent) && (
+            <div style={{ padding: '7px 14px', fontSize: 11, fontWeight: 600, color: '#4f46e5', borderTop: '1px solid #f3f4f6' }}>{topicDropdownCurrent}</div>
+          )}
+          <button
+            onMouseDown={() => { setTopicDropdownRowId(null); setTopicCustomRowId(topicDropdownRowId); setTopicCustomValue(topicDropdownCurrent); }}
+            style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 14px', fontSize: 11, fontWeight: 600, color: '#6366f1', background: 'white', border: 'none', borderTop: '1px solid #f3f4f6', cursor: 'pointer' }}
+            onMouseEnter={e => (e.currentTarget.style.background = '#f3f4f6')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'white')}
+          >Custom…</button>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

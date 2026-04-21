@@ -1,6 +1,6 @@
 'use client'
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
-import { X, Sparkles, Loader2, Check, AlertTriangle, ChevronDown, RotateCcw, Calendar, User, Clock, ArrowRight, Plus } from 'lucide-react'
+import { X, Sparkles, Loader2, Check, AlertTriangle, ChevronDown, RotateCcw, Calendar, User, Clock, ArrowRight, Plus, Trash2 } from 'lucide-react'
 import type { Student, Tutor } from '@/lib/useScheduleData'
 import { SchedulePreviewGrid } from '@/components/SchedulePreviewGrid'
 import { SESSION_BLOCKS } from '@/components/constants'
@@ -1236,7 +1236,8 @@ export function ScheduleBuilder({
                         {student.name.charAt(0)}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', margin: 0 }}>{student.name}{student.grade ? ` (${student.grade})` : ''}</p>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', margin: 0 }}>{student.name}</p>
+                        {student.grade && <p style={{ fontSize: 11, color: '#6b7280', margin: 0 }}>Grade {student.grade}</p>}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         {isBooked && <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: '#dcfce7', color: '#15803d', border: '1px solid #86efac' }}>Booked</span>}
@@ -1369,7 +1370,7 @@ export function ScheduleBuilder({
                                 onClick={e => { e.stopPropagation(); removeSubjectRow(student.id, need.needId) }}
                                 style={{ width: 28, height: 28, borderRadius: 8, border: '1.5px solid #fecdd3', background: '#fff1f2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#e11d48', flexShrink: 0 }}
                               >
-                                <X size={11} />
+                                <Trash2 size={11} />
                               </button>
                             )}
                           </div>

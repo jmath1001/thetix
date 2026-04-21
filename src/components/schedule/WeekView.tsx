@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { PlusCircle, Check, X, Loader2, Trash2, Search, ChevronDown } from 'lucide-react';
 import { createInlineStudent, updateAttendance, removeStudentFromSession, updateSessionTopic, toISODate, dayOfWeek, getCentralTimeNow, type Tutor } from '@/lib/useScheduleData';
 import { getSessionsForDay } from '@/components/constants';
@@ -92,6 +93,11 @@ export function WeekView({
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [topicEditRowId, setTopicEditRowId] = useState<string | null>(null);
   const [topicEditValue, setTopicEditValue] = useState('');
+  const [topicDropdownRowId, setTopicDropdownRowId] = useState<string | null>(null);
+  const [topicDropdownPos, setTopicDropdownPos] = useState<{ top?: number; bottom?: number; left: number } | null>(null);
+  const [topicDropdownOptions, setTopicDropdownOptions] = useState<string[]>([]);
+  const [topicDropdownCurrent, setTopicDropdownCurrent] = useState('');
+  const [topicDropdownTutorRowId, setTopicDropdownTutorRowId] = useState<string | null>(null);
   const [slotFilterQuery, setSlotFilterQuery] = useState('');
 
   const normalizedSlotFilter = slotFilterQuery.trim().toLowerCase();
@@ -217,6 +223,13 @@ export function WeekView({
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  useEffect(() => {
+    if (!topicDropdownRowId) return;
+    const handler = (e: MouseEvent) => setTopicDropdownRowId(null);
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [topicDropdownRowId]);
 
   useEffect(() => {
     if (!bulkRemoveMode) clearSelection();
@@ -768,27 +781,13 @@ export function WeekView({
                                                   style={{ background: '#f3f4f6', border: `1px solid ${palette.tag}`, color: '#374151', width: 110 }}
                                                 />
                                               ) : (
-                                                <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-                                                  <select
-                                                    value={topicsFor(tutor).includes(student.topic) ? student.topic : '__other__'}
-                                                    onChange={async e => {
-                                                      if (e.target.value === '__custom__') {
-                                                        setTopicEditRowId(student.rowId);
-                                                        setTopicEditValue(student.topic);
-                                                      } else {
-                                                        await updateSessionTopic({ rowId: student.rowId, topic: e.target.value });
-                                                        refetch();
-                                                      }
-                                                    }}
-                                                    className="text-[10px] font-semibold uppercase tracking-tight outline-none"
-                                                    style={{ color: palette.tag, background: 'transparent', border: 'none', appearance: 'none', cursor: 'pointer', paddingRight: 13, maxWidth: 130 }}
-                                                  >
-                                                    {topicsFor(tutor).map(t => <option key={t} value={t}>{t}</option>)}
-                                                    {!topicsFor(tutor).includes(student.topic) && <option value="__other__">{student.topic}</option>}
-                                                    <option value="__custom__">Custom…</option>
-                                                  </select>
-                                                  <ChevronDown size={9} style={{ position: 'absolute', right: 0, color: palette.tag, opacity: 0.7, pointerEvents: 'none' }} />
-                                                </div>
+                                                <button
+                                                  onClick={e => { const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); const spaceBelow = window.innerHeight - r.bottom; const pos = spaceBelow < 200 ? { bottom: window.innerHeight - r.top + 4, left: r.left } : { top: r.bottom + 4, left: r.left }; setTopicDropdownPos(pos); setTopicDropdownOptions(topicsFor(tutor)); setTopicDropdownCurrent(student.topic); setTopicDropdownTutorRowId(student.rowId); setTopicDropdownRowId(topicDropdownRowId === student.rowId ? null : student.rowId); }}
+                                                  className="inline-flex items-center gap-0.5 outline-none"
+                                                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: palette.tag }}>
+                                                  <span className="text-[10px] font-semibold uppercase tracking-tight">{student.topic}</span>
+                                                  <ChevronDown size={9} style={{ opacity: 0.7, flexShrink: 0 }} />
+                                                </button>
                                               )}
                                               {student.seriesId && (
                                                 <span className="text-[8px] font-black px-1 py-0.5 rounded" style={{ background: '#ede9fe', color: '#7c3aed', letterSpacing: '0.02em' }}>↺ REC</span>
@@ -1013,6 +1012,31 @@ export function WeekView({
           </div>
         );
       })}
+      {topicDropdownRowId && topicDropdownPos && typeof document !== 'undefined' && createPortal(
+        <div
+          onMouseDown={e => e.stopPropagation()}
+          style={{ position: 'fixed', top: topicDropdownPos.top, bottom: topicDropdownPos.bottom, left: topicDropdownPos.left, zIndex: 9999, background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.14)', minWidth: 160, overflow: 'hidden' }}
+        >
+          {topicDropdownOptions.map(t => (
+            <button key={t}
+              onMouseDown={async () => { await updateSessionTopic({ rowId: topicDropdownRowId, topic: t }); refetch(); setTopicDropdownRowId(null); }}
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 14px', fontSize: 11, fontWeight: 600, color: t === topicDropdownCurrent ? '#4f46e5' : '#111827', background: 'white', border: 'none', cursor: 'pointer' }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#f3f4f6')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'white')}
+            >{t}</button>
+          ))}
+          {!topicDropdownOptions.includes(topicDropdownCurrent) && (
+            <div style={{ padding: '7px 14px', fontSize: 11, fontWeight: 600, color: '#4f46e5', borderTop: '1px solid #f3f4f6' }}>{topicDropdownCurrent}</div>
+          )}
+          <button
+            onMouseDown={() => { setTopicDropdownRowId(null); setTopicEditRowId(topicDropdownRowId); setTopicEditValue(topicDropdownCurrent); }}
+            style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 14px', fontSize: 11, fontWeight: 600, color: '#6b7280', background: 'white', border: 'none', borderTop: '1px solid #f3f4f6', cursor: 'pointer' }}
+            onMouseEnter={e => (e.currentTarget.style.background = '#f3f4f6')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'white')}
+          >Custom…</button>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
