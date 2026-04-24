@@ -26,7 +26,8 @@ export type Tutor = {
 export type Student = {
   id: string
   name: string
-  subject: string
+  subjects: string[]
+  subject?: string | null
   grade: string | null
   hoursLeft: number
   availabilityBlocks: string[]
@@ -244,7 +245,10 @@ export function useScheduleData(weekStart: Date): ScheduleData {
         const students: Student[] = (studentRes.data ?? []).map((r: any) => ({
           id:                 r.id,
           name:               r.name,
-          subject:            r.subject,
+          subjects:           Array.isArray(r.subjects)
+            ? r.subjects.filter((s: unknown): s is string => typeof s === 'string' && !!s.trim())
+            : (r.subject ? [r.subject] : []),
+          subject:            r.subject ?? null,
           grade:              r.grade ?? null,
           hoursLeft:          r.hours_left,
           availabilityBlocks: r.availability_blocks ?? [],
@@ -335,6 +339,7 @@ export async function createInlineStudent({
     .from(STUDENTS)
     .insert({
       name: trimmed,
+      subjects: subject?.trim() ? [subject.trim()] : [],
       subject: subject?.trim() || null,
     })
     .select('*')
@@ -345,7 +350,10 @@ export async function createInlineStudent({
   return {
     id: data.id,
     name: data.name,
-    subject: data.subject ?? subject?.trim() ?? 'General',
+    subjects: Array.isArray(data.subjects)
+      ? data.subjects.filter((s: unknown): s is string => typeof s === 'string' && !!s.trim())
+      : (data.subject ? [data.subject] : (subject?.trim() ? [subject.trim()] : [])),
+    subject: data.subject ?? subject?.trim() ?? null,
     grade: data.grade ?? null,
     hoursLeft: data.hours_left ?? 0,
     availabilityBlocks: data.availability_blocks ?? [],

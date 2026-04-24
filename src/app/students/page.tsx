@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { BookingForm, BookingToast } from '@/components/BookingForm';
+import StudentDetailsModal from '@/components/StudentDetailsModal';
 import {
   bookStudent, getWeekStart, getWeekDates, toISODate, dayOfWeek, getCentralTimeNow,
 } from '@/lib/useScheduleData';
@@ -197,6 +198,7 @@ function StudentRow({
   const [expanded, setExpanded] = useState(forceExpanded);
   const [tab, setTab] = useState<'contact' | 'sessions'>('contact');
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [draft, setDraft] = useState(student);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -263,7 +265,13 @@ function StudentRow({
     await bookStudent({
       tutorId: data.slot.tutor.id, date: data.slot.date, time: data.slot.time,
       student: {
-        id: student.id, name: student.name, subject: student.subject ?? '', grade: student.grade ?? null,
+        id: student.id,
+        name: student.name,
+        subjects: Array.isArray(student.subjects)
+          ? student.subjects.filter((s: unknown): s is string => typeof s === 'string' && !!s.trim())
+          : (student.subject ? [student.subject] : []),
+        subject: student.subject ?? null,
+        grade: student.grade ?? null,
         hoursLeft: student.hours_left ?? 0, availabilityBlocks: student.availability_blocks ?? [],
         email: student.email ?? null, phone: student.phone ?? null,
         parent_name: student.parent_name ?? null,
@@ -400,6 +408,11 @@ function StudentRow({
               </button>
             ))}
             <div className="ml-auto flex items-center gap-2 pb-2 pt-2">
+              <button onClick={() => setShowDetailsModal(true)}
+                className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[10px] font-bold transition-all"
+                style={{ background: '#f5f3ff', borderColor: '#c4b5fd', color: '#6d28d9' }}>
+                Edit Subjects
+              </button>
               <button onClick={() => { setDraft(student); setShowEditModal(true); }}
                 className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[10px] font-bold transition-all"
                 style={{ background: '#fff', borderColor: '#cbd5e1', color: '#475569' }}>
@@ -418,6 +431,23 @@ function StudentRow({
                     <div className="flex items-center gap-2.5 rounded-lg border border-[#fcd34d] bg-[#fffbeb] px-3 py-2">
                       <Clock size={12} className="shrink-0" style={{ color: '#b45309' }} />
                       <span className="text-[12px] font-black text-[#92400e]">Hours left: {typeof student.hours_left === 'number' ? student.hours_left : 'Not on file'}</span>
+                    </div>
+                    <div className="flex items-start gap-2.5 rounded-lg border border-[#c4b5fd] bg-[#f5f3ff] px-3 py-2">
+                      <GraduationCap size={12} className="shrink-0 mt-0.5" style={{ color: '#7c3aed' }} />
+                      <div className="flex-1">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-[#6d28d9] mb-1">Subjects</p>
+                        <div className="flex flex-wrap gap-1">
+                          {Array.isArray(student.subjects) && student.subjects.length > 0
+                            ? student.subjects.map((s: string, idx: number) => (
+                              <span key={idx} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-200 text-purple-900">{s}</span>
+                            ))
+                            : (student.subject ? (
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-200 text-purple-900">{student.subject}</span>
+                            ) : (
+                              <span className="text-[10px] font-medium text-[#94a3b8]">Not set</span>
+                            ))}
+                        </div>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2.5 rounded-lg border border-[#d1d5db] bg-[#f3f4f6] px-3 py-2">
                       <Mail size={12} className="shrink-0" style={{ color: '#64748b' }} />
@@ -601,6 +631,17 @@ function StudentRow({
             </div>
           </div>
         </div>
+      )}
+
+      {showDetailsModal && (
+        <StudentDetailsModal 
+          student={student} 
+          onClose={() => setShowDetailsModal(false)}
+          onSave={(updatedStudent) => {
+            onRefetch();
+            setShowDetailsModal(false);
+          }}
+        />
       )}
     </div>
   );

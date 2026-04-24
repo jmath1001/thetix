@@ -1,6 +1,7 @@
 export type CommandStudent = {
   id: string
   name: string
+  subjects?: string[]
   subject?: string | null
   grade?: string | null
   hoursLeft?: number

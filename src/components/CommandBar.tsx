@@ -152,6 +152,9 @@ function ContactLink({ href, icon, label, sublabel }: { href: string; icon: Reac
 function StudentHeader({ student, onBook }: { student: any; onBook: () => void }) {
   const initials = student.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
   const hoursLeft = student.hoursLeft ?? student.hours_left
+  const primarySubject = Array.isArray(student.subjects) && student.subjects.length > 0
+    ? student.subjects[0]
+    : student.subject
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 14,
@@ -170,7 +173,7 @@ function StudentHeader({ student, onBook }: { student: any; onBook: () => void }
         <div style={{ fontSize: 17, fontWeight: 800, color: C.textPrimary, letterSpacing: '-0.02em', lineHeight: 1.2 }}>{student.name}</div>
         <div style={{ display: 'flex', gap: 6, marginTop: 3, flexWrap: 'wrap' }}>
           {student.grade && <Pill color={C.textSecondary} bg={C.surface} border={C.border}>Gr. {student.grade}</Pill>}
-          {student.subject && <Pill color={C.textSecondary} bg={C.surface} border={C.border}>{student.subject}</Pill>}
+          {primarySubject && <Pill color={C.textSecondary} bg={C.surface} border={C.border}>{primarySubject}</Pill>}
           {hoursLeft !== undefined && hoursLeft !== null && <Pill color={C.amber} bg={C.amberSoft}>{hoursLeft}h left</Pill>}
         </div>
       </div>

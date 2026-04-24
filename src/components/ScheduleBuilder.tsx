@@ -85,6 +85,14 @@ const AVAILABILITY_DAYS = [
   { dow: 6, label: 'Sat' },
 ]
 
+function getStudentSubjects(student?: Student | null): string[] {
+  if (!student) return []
+  if (Array.isArray(student.subjects) && student.subjects.length > 0) {
+    return student.subjects.filter(Boolean)
+  }
+  return student.subject ? [student.subject] : []
+}
+
 function subjectMatchesTutor(subject: string, tutor: { subjects: string[] }): boolean {
   if (!subject) return false
   const s = subject.toLowerCase().trim()
@@ -324,6 +332,34 @@ export function ScheduleBuilder({
     return ids
   }, [sessions])
 
+  const recurringTopicsByStudent = useMemo(() => {
+    const topicsByStudent = new Map<string, Map<string, number>>()
+
+    sessions.forEach((s: any) => {
+      s.students?.forEach((st: any) => {
+        if (st.status === 'cancelled' || !st.id || !st.seriesId) return
+        const topic = typeof st.topic === 'string' ? st.topic.trim() : ''
+        if (!topic) return
+
+        if (!topicsByStudent.has(st.id)) topicsByStudent.set(st.id, new Map<string, number>())
+        const studentTopics = topicsByStudent.get(st.id)!
+        studentTopics.set(topic, (studentTopics.get(topic) ?? 0) + 1)
+      })
+    })
+
+    const result: Record<string, string[]> = {}
+    topicsByStudent.forEach((topicCounts, studentId) => {
+      result[studentId] = Array.from(topicCounts.entries())
+        .sort((a, b) => {
+          if (b[1] !== a[1]) return b[1] - a[1]
+          return a[0].localeCompare(b[0])
+        })
+        .map(([topic]) => topic)
+    })
+
+    return result
+  }, [sessions])
+
   const existingSeatCounts = useMemo(() => {
     const counts: Record<string, number> = {}
     sessions.forEach((s: any) => {
@@ -558,7 +594,7 @@ export function ScheduleBuilder({
       for (const st of fullStudents) {
         const movingStudent = studentById[st.id]
         if (!movingStudent) continue
-        const movingTopic = st.topic || movingStudent.subject || need.subject
+        const movingTopic = st.topic || getStudentSubjects(movingStudent)[0] || need.subject
 
         const destination = candidateSeats.find(seat => {
           if (!subjectMatchesTutor(movingTopic, seat.tutor)) return false
@@ -639,10 +675,15 @@ export function ScheduleBuilder({
       } else {
         next.add(id)
         const selectedStudent = students.find(s => s.id === id)
-        // Init with one empty subject row
+        const recurringSubjects = recurringTopicsByStudent[id] ?? []
+        const savedSubjects = getStudentSubjects(selectedStudent)
+        const defaultSubjects = Array.from(new Set([...recurringSubjects, ...savedSubjects])).slice(0, 3)
+        // Prefill with recurring topics first, then saved student defaults.
         setStudentNeeds(sn => ({
           ...sn,
-          [id]: [{ subject: '', needId: `${id}-0`, allowSameDayDouble: false }]
+          [id]: defaultSubjects.length > 0
+            ? defaultSubjects.map((subject, idx) => ({ subject, needId: `${id}-${idx}`, allowSameDayDouble: false }))
+            : [{ subject: '', needId: `${id}-0`, allowSameDayDouble: false }]
         }))
         setStudentAvailability(sa => ({
           ...sa,
@@ -651,7 +692,7 @@ export function ScheduleBuilder({
       }
       return next
     })
-  }, [students, availabilityOpenFor, persistedAvailability])
+  }, [students, availabilityOpenFor, persistedAvailability, recurringTopicsByStudent])
 
   const saveStudentAvailability = useCallback(async (studentId: string, availabilityBlocks: string[]) => {
     const saveVersion = (availabilitySaveVersionRef.current[studentId] ?? 0) + 1

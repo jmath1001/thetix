@@ -380,7 +380,13 @@ export default function RecurringManager() {
         availability: r.availability ?? [], availabilityBlocks: r.availability_blocks ?? [],
       })));
       setStudents((studentRes.data ?? []).map((r: any) => ({
-        id: r.id, name: r.name, subject: r.subject, grade: r.grade ?? null,
+        id: r.id,
+        name: r.name,
+        subjects: Array.isArray(r.subjects)
+          ? r.subjects.filter((s: unknown): s is string => typeof s === 'string' && !!s.trim())
+          : (r.subject ? [r.subject] : []),
+        subject: r.subject ?? null,
+        grade: r.grade ?? null,
         hoursLeft: r.hours_left, availabilityBlocks: r.availability_blocks ?? [],
         email: r.email ?? null, phone: r.phone ?? null,
         parent_name: r.parent_name ?? null,
@@ -425,7 +431,7 @@ export default function RecurringManager() {
       tutorId: firstTutor?.id ?? '',
       dayOfWeek: day,
       time: firstTime,
-      topic: firstStudent?.subject ?? firstTutor?.subjects?.[0] ?? 'Math',
+      topic: firstStudent?.subjects?.[0] ?? firstStudent?.subject ?? firstTutor?.subjects?.[0] ?? 'Math',
       weeks: 8,
       startDate: toISODate(new Date()),
       notes: '',
@@ -740,7 +746,7 @@ export default function RecurringManager() {
                 <label className="block text-[10px] font-black uppercase tracking-widest mb-1.5 text-[#64748b]">Student</label>
                 <select value={createForm.studentId} onChange={e => {
                   const picked = students.find(s => s.id === e.target.value);
-                  patchCreate({ studentId: e.target.value, topic: picked?.subject ?? createForm.topic });
+                  patchCreate({ studentId: e.target.value, topic: picked?.subjects?.[0] ?? picked?.subject ?? createForm.topic });
                 }} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none text-[#0f172a]" style={{ border: '2px solid #e2e8f0' }}>
                   <option value="">Select student</option>
                   {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
